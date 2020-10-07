@@ -20,7 +20,7 @@ if __name__ == "__main__":
 
     # instantiate result array and specific number calls to objective per optimizer
     res = []
-    n_calls = 20  # Objective Function evaluations
+    n_calls = 200  # Objective Function evaluations
     start_time = time.time()  # overall Runtime measuring
 
     dimensions = scfxn_ref15_space

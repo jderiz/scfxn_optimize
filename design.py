@@ -8,15 +8,24 @@ from skopt.utils import use_named_args
 from hyperparams import scfxn_ref15_space
 
 prs.init("-ex1 "
-         "-ex2"
-         "-mute core.pack.pack_rotamers core.pack.task")
+         "-ex2 "
+         "-mute core.pack.pack_rotamers core.pack.task")  # no output from the design process
+
+run = 0  # counter
 
 
 @use_named_args(dimensions=scfxn_ref15_space)
 def design_with_config(**config):
+    global run
+    run = run + 1
+    print(""
+          ""
+          "RUN: ", run)
+
     print(config)
+    ref15 = get_fa_scorefxn()
     scfxn = create_scfxn.creat_scfxn_from_config(config=config)
-    pose = pose_from_pdb('benchmark/1K9P_A_relax_0001.pdb')
+    pose = pose_from_pdb('benchmark/1K9P_A_relax_0001.pdb')  # easiest struct for optimizer picking
     starting_pose = Pose()
     resfile = "./design.resfile"
     with open(resfile, "w") as f:
@@ -32,8 +41,9 @@ def design_with_config(**config):
     print(taskf.create_task_and_apply_taskoperations(pose))
     packer.apply(pose)
 
-    print(scfxn(pose))
-    return scfxn(pose)
+    print("Optimized scfxn score: ", scfxn(pose))
+    print('REF15 Score ', ref15(pose))
+    return ref15(pose)
 
 
 class Designer(object):
