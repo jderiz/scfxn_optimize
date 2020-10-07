@@ -8,7 +8,7 @@ from skopt.utils import use_named_args
 from hyperparams import scfxn_ref15_space
 
 prs.init("-ex1 "
-         "-ex2"
+         "-ex2 "
          "-mute core.pack.pack_rotamers core.pack.task")
 
 
