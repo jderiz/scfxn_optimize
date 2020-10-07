@@ -33,7 +33,7 @@ if __name__ == "__main__":
     forest_check = callbacks.CheckpointSaver('.forest_checkpoints.gz')
     gbrt_check = callbacks.CheckpointSaver('.gbrt_checkpoints.gz')
     gp_check = callbacks.CheckpointSaver('.gp_checkpoints.gz')
-    optimizer = sys.argv[0]
+    optimizer = sys.argv[1]
     print(
         '_________start optimize________' +
         '_____________{}________________'.format(optimizer)
