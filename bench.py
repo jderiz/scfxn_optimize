@@ -1,4 +1,5 @@
 import pickle
+import sys
 import time
 import os
 import matplotlib.pyplot as plt
@@ -32,49 +33,52 @@ if __name__ == "__main__":
     forest_check = callbacks.CheckpointSaver('.forest_checkpoints.gz')
     gbrt_check = callbacks.CheckpointSaver('.gbrt_checkpoints.gz')
     gp_check = callbacks.CheckpointSaver('.gp_checkpoints.gz')
-
+    optimizer = sys.argv[0]
     print(
-        '_________start optimize________'
+        '_________start optimize________' +
+        '_____________{}________________'.format(optimizer)
     )
-    print('FOREST')
-    forest_result = forest_minimize(
-        func=objective,
-        dimensions=dimensions,
-        acq_func='EI',  # expected Improvement (evaluate whats best to use)
-        n_calls=n_calls,
-        # x0=default_parameters,
-        n_jobs=-1,
-        callback=[timer_callback, forest_check]
-    )  # All availiable Cores if aquisition =lbfgs
-    res.append(("forest", forest_result))
+    if optimizer == 'forest' or 'all':
+        print('FOREST')
+        forest_result = forest_minimize(
+            func=objective,
+            dimensions=dimensions,
+            acq_func='EI',  # expected Improvement (evaluate whats best to use)
+            n_calls=n_calls,
+            # x0=default_parameters,
+            n_jobs=-1,
+            callback=[timer_callback, forest_check]
+        )  # All availiable Cores if aquisition =lbfgs
+        with open("results/res_{}_{}.pkl".format('forest', str(n_calls)), "wb") as file:
+            pickle.dump(forest_result, file)
+    if optimizer == 'gbrt' or 'all':
+        print('GradientBoostedTrees')
+        gbrt_res = gbrt_minimize(
+            func=objective,
+            dimensions=dimensions,
+            acq_func='EI',
+            n_calls=n_calls,
+            n_jobs=-1,
+            callback=[timer_callback, gbrt_check]
+        )
+        with open("results/res_{}_{}.pkl".format('gbrt', str(n_calls)), "wb") as file:
+            pickle.dump(gbrt_res, file)
+    if optimizer == 'gp' or 'all':
+        print('Gaussian Processes')
+        gp_res = gp_minimize(
+            func=objective,
+            dimensions=dimensions,
+            acq_func="EI",
+            n_calls=n_calls,
+            n_jobs=-1,
+            callback=[timer_callback, gp_check]
+        )
+        with open("results/res_{}_{}.pkl".format('gp', str(n_calls)), "wb") as file:
+            pickle.dump(gp_res, file)
 
-    print('GradientBoostedTrees')
-    gbrt_res = gbrt_minimize(
-        func=objective,
-        dimensions=dimensions,
-        acq_func='EI',
-        n_calls=n_calls,
-        n_jobs=-1,
-        callback=[timer_callback, gbrt_check]
-    )
-
-    res.append(('gbrt', gbrt_res))
-    print('Gaussian Processes')
-    gp_res = gp_minimize(
-        func=objective,
-        dimensions=dimensions,
-        acq_func="EI",
-        n_calls=n_calls,
-        n_jobs=-1,
-        callback=[timer_callback, gp_check]
-    )
-    res.append(('gp', gp_res))
-
-    with open("results/res_{}.pkl".format(str(n_calls)), "wb") as file:
-        pickle.dump(res, file)
-    plot_convergence(*res)
-    plt.show()
-    plt.savefig('results/convergence.png', dpi=300, bbox_inches="tight")
+    # plot_convergence(*res)
+    # plt.show()
+    # plt.savefig('results/convergence.png', dpi=300, bbox_inches="tight")
 
     took = time.time() - start_time
     print("Took: {} to run".format(time.strftime("%H: %M: %S", time.gmtime(took))))
