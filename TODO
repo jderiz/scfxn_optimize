@@ -27,3 +27,4 @@ perfect weights -- Kuhlmann, Baker 2000
 
 ## Notes
 The Rotamer Packing only linnear scale up to 4 Threads.
+use FastDesign instead of moritz script for parallel.
