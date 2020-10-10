@@ -38,7 +38,7 @@ if __name__ == "__main__":
         '_________start optimize________' +
         '_____________{}________________'.format(optimizer)
     )
-    if optimizer == 'forest' or 'all':
+    if optimizer in ['forest', 'all']:
         print('FOREST')
         forest_result = forest_minimize(
             func=objective,
@@ -51,7 +51,7 @@ if __name__ == "__main__":
         )  # All availiable Cores if aquisition =lbfgs
         with open("results/res_{}_{}.pkl".format('forest', str(n_calls)), "wb") as file:
             pickle.dump(forest_result, file)
-    if optimizer == 'gbrt' or 'all':
+    if optimizer in ['gbrt', 'all']:
         print('GradientBoostedTrees')
         gbrt_res = gbrt_minimize(
             func=objective,
@@ -63,7 +63,7 @@ if __name__ == "__main__":
         )
         with open("results/res_{}_{}.pkl".format('gbrt', str(n_calls)), "wb") as file:
             pickle.dump(gbrt_res, file)
-    if optimizer == 'gp' or 'all':
+    if optimizer in ['gp', 'all']:
         print('Gaussian Processes')
         gp_res = gp_minimize(
             func=objective,
