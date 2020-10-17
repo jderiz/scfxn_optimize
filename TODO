@@ -19,12 +19,15 @@
 	write generic wrapper around optimization so that everyone can throw in his/her project for energy function optimization.
 
 ## Problems
-	sbGrid Installation
-
+design mit angepassten weights als loss ref15?????
 ## papers to read
 perfect weights -- Kuhlmann, Baker 2000
 
 
 ## Notes
+Use Ref15 as default params.
 The Rotamer Packing only linnear scale up to 4 Threads.
 use FastDesign instead of moritz script for parallel.
+Relaxing is the notion of alowing the sequence to wiggle into its most likely 
+native position begining with the chrystal structure, which is of course only
+a snapshot that might not be ideal.

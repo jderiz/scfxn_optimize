@@ -5,8 +5,7 @@ import os
 import matplotlib.pyplot as plt
 
 from skopt import forest_minimize, gp_minimize, gbrt_minimize, callbacks
-from skopt.plots import (  # only needed for bench black-box functions
-    plot_convergence, plot_evaluations, plot_objective)
+from skopt.plots import (plot_convergence, plot_evaluations, plot_objective)
 
 from design import Designer, design_with_config
 from hyperparams import scfxn_ref15_space
@@ -24,7 +23,7 @@ if __name__ == "__main__":
     start_time = time.time()  # overall Runtime measuring
 
     dimensions = scfxn_ref15_space
-
+ 
     designer = Designer(filename='benchmark/1K9P_A_relax_0001.pdb')
     objective = design_with_config
 
