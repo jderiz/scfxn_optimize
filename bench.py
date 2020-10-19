@@ -2,11 +2,9 @@ import pickle
 import sys
 import time
 import os
-import matplotlib.pyplot as plt
 
 from skopt import forest_minimize, gp_minimize, gbrt_minimize, callbacks
-from skopt.plots import (  # only needed for bench black-box functions
-    plot_convergence, plot_evaluations, plot_objective)
+
 
 from design import Designer, design_with_config
 from hyperparams import scfxn_ref15_space
@@ -20,7 +18,7 @@ if __name__ == "__main__":
 
     # instantiate result array and specific number calls to objective per optimizer
     res = []
-    n_calls = 200  # Objective Function evaluations
+    n_calls = 100  # Objective Function evaluations
     start_time = time.time()  # overall Runtime measuring
 
     dimensions = scfxn_ref15_space
@@ -34,6 +32,7 @@ if __name__ == "__main__":
     gbrt_check = callbacks.CheckpointSaver('.gbrt_checkpoints.gz')
     gp_check = callbacks.CheckpointSaver('.gp_checkpoints.gz')
     optimizer = sys.argv[1]
+    acq_func_kwargs = {'xi': 0.001, 'kappa': 0.1}
     print(
         '_________start optimize________' +
         '_____________{}________________'.format(optimizer)
@@ -47,6 +46,7 @@ if __name__ == "__main__":
             n_calls=n_calls,
             # x0=default_parameters,
             n_jobs=-1,
+            acq_func_kwargs=acq_func_kwargs,
             callback=[timer_callback, forest_check]
         )  # All availiable Cores if aquisition =lbfgs
         with open("results/res_{}_{}.pkl".format('forest', str(n_calls)), "wb") as file:
@@ -59,6 +59,7 @@ if __name__ == "__main__":
             acq_func='EI',
             n_calls=n_calls,
             n_jobs=-1,
+            acq_func_kwargs=acq_func_kwargs,
             callback=[timer_callback, gbrt_check]
         )
         with open("results/res_{}_{}.pkl".format('gbrt', str(n_calls)), "wb") as file:
@@ -71,6 +72,7 @@ if __name__ == "__main__":
             acq_func="EI",
             n_calls=n_calls,
             n_jobs=-1,
+            acq_func_kwargs=acq_func_kwargs,
             callback=[timer_callback, gp_check]
         )
         with open("results/res_{}_{}.pkl".format('gp', str(n_calls)), "wb") as file:
