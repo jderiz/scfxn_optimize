@@ -23,8 +23,8 @@ def design_with_config(**config):
           "RUN: ", run)
 
     print(config)
-    ref15 = get_fa_scorefxn()
-    scfxn = create_scfxn.creat_scfxn_from_config(config=config)
+    ref15 = get_fa_scorefxn()  # REF15 score function with default weights for loss calulation
+    scfxn = create_scfxn.creat_scfxn_from_config(config=config)  # optimization score Function
     pose = pose_from_pdb('benchmark/1K9P_A_relax_0001.pdb')  # easiest struct for optimizer picking
     starting_pose = Pose()
     resfile = "./design.resfile"
@@ -105,15 +105,9 @@ class Designer(object):
         print(self.scorefxn_G(pose))
         return self.scorefxn_G(pose)
 
-    @use_named_args(dimensions=scfxn_ref15_space)
-    @staticmethod
-    def test(**config):
-        print(config)
-        print(create_scfxn.creat_scfxn_from_config(config=config))
-        return random.randint(0, 100)
 
-
-if __name__ == '__main__':
-    prs.init("-ex1 -ex2")
-    designer = Designer('/home/iwe7/meiler/scfxn_optimize/benchmark/1K9P_A_relax_0001.pdb')
-    designer.fixbb()
+@use_named_args(dimensions=scfxn_ref15_space)
+def test(**config):
+    print(config)
+    print(create_scfxn.creat_scfxn_from_config(config=config))
+    return random.randint(0, 100)
