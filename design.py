@@ -41,5 +41,6 @@ def design_with_config(**config):
 
     print("Optimized scfxn score: ", scfxn(pose))
     print('REF15 Score ', ref15(pose))
-    # we want to return the number of differing residues between native and designed
+    # TODO: What defines our loss, for now use REF15
+    return ref15(pose)
 
