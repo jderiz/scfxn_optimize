@@ -1,0 +1,33 @@
+## ALL
+	!!! Optimize the Folding Function !!!
+
+
+	Decide on folding problem and benchmark --> Design(Moritz)
+	Setup Infrastructure (AutoML, Pipelines)
+	Decide on Optimization Framework ( Skopt, AutoSklearn )
+	Decide on AutoML Tools (BayesianOpt(Gaussian, RandomForests)), Ensembles
+	Formulate Hypothesis ""
+	# Get expert parametrization, intermediate, and "Random" for reference.
+	training problem reduction? --> erst grob dann granular
+	Decide on Optimizer, Bayesian Neural Networks, Gaussian Processes, Random Forrest.
+	Successive Halfing ? 
+	AquisitionFunction:
+			probably RandomForests as they deal best with conditionals and mixed type input spaces. [on/off, continuous etc.]
+	Feature Extraction for mapping of problem Characteristics to Function Weights.
+  dummy_optimize for grid search
+	How does the "new Function" for memebrain proteins etc can be handled. and can we learn from the information gained on ref15
+	write generic wrapper around optimization so that everyone can throw in his/her project for energy function optimization.
+
+## Problems
+design mit angepassten weights als loss ref15?????
+## papers to read
+perfect weights -- Kuhlmann, Baker 2000
+
+
+## Notes
+Use Ref15 as default params.
+The Rotamer Packing only linnear scale up to 4 Threads.
+use FastDesign instead of moritz script for parallel.
+Relaxing is the notion of alowing the sequence to wiggle into its most likely 
+native position begining with the chrystal structure, which is of course only
+a snapshot that might not be ideal.

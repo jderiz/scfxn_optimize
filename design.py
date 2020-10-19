@@ -18,9 +18,7 @@ run = 0  # counter
 def design_with_config(**config):
     global run
     run = run + 1
-    print(""
-          ""
-          "RUN: ", run)
+    print("RUN: ", run)
 
     print(config)
     ref15 = get_fa_scorefxn()  # REF15 score function with default weights for loss calulation
@@ -38,11 +36,12 @@ def design_with_config(**config):
     # taskf.push_back(operation.RestrictToRepacking())
     packer = pyrosetta.rosetta.protocols.minimization_packing.PackRotamersMover(scfxn)
     packer.task_factory(taskf)
-    print(taskf.create_task_and_apply_taskoperations(pose))
+    # print(taskf.create_task_and_apply_taskoperations(pose))
     packer.apply(pose)
 
     print("Optimized scfxn score: ", scfxn(pose))
     print('REF15 Score ', ref15(pose))
+    # we optimize the Designing function but eval on standard ref15
     return ref15(pose)
 
 

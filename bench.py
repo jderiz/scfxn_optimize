@@ -4,7 +4,11 @@ import time
 import os
 
 from skopt import forest_minimize, gp_minimize, gbrt_minimize, callbacks
+<<<<<<< HEAD
 
+=======
+from skopt.plots import (plot_convergence, plot_evaluations, plot_objective)
+>>>>>>> f16435bef1bd5e8e95dbcf0eb04e860db7b76886
 
 from design import Designer, design_with_config
 from hyperparams import scfxn_ref15_space
@@ -22,7 +26,7 @@ if __name__ == "__main__":
     start_time = time.time()  # overall Runtime measuring
 
     dimensions = scfxn_ref15_space
-
+ 
     designer = Designer(filename='benchmark/1K9P_A_relax_0001.pdb')
     objective = design_with_config
 
@@ -37,7 +41,7 @@ if __name__ == "__main__":
         '_________start optimize________' +
         '_____________{}________________'.format(optimizer)
     )
-    if optimizer == 'forest' or 'all':
+    if optimizer in ['forest', 'all']:
         print('FOREST')
         forest_result = forest_minimize(
             func=objective,
@@ -51,7 +55,7 @@ if __name__ == "__main__":
         )  # All availiable Cores if aquisition =lbfgs
         with open("results/res_{}_{}.pkl".format('forest', str(n_calls)), "wb") as file:
             pickle.dump(forest_result, file)
-    if optimizer == 'gbrt' or 'all':
+    if optimizer in ['gbrt', 'all']:
         print('GradientBoostedTrees')
         gbrt_res = gbrt_minimize(
             func=objective,
@@ -64,7 +68,7 @@ if __name__ == "__main__":
         )
         with open("results/res_{}_{}.pkl".format('gbrt', str(n_calls)), "wb") as file:
             pickle.dump(gbrt_res, file)
-    if optimizer == 'gp' or 'all':
+    if optimizer in ['gp', 'all']:
         print('Gaussian Processes')
         gp_res = gp_minimize(
             func=objective,
