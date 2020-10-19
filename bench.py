@@ -4,14 +4,11 @@ import time
 import os
 
 from skopt import forest_minimize, gp_minimize, gbrt_minimize, callbacks
-<<<<<<< HEAD
 
-=======
 from skopt.plots import (plot_convergence, plot_evaluations, plot_objective)
->>>>>>> f16435bef1bd5e8e95dbcf0eb04e860db7b76886
 
-from design import Designer, design_with_config
-from hyperparams import scfxn_ref15_space
+from design import design_with_config
+from hyperparams import scfxn_ref15_space, ref15_weights
 
 if __name__ == "__main__":
     """
@@ -26,17 +23,17 @@ if __name__ == "__main__":
     start_time = time.time()  # overall Runtime measuring
 
     dimensions = scfxn_ref15_space
- 
-    designer = Designer(filename='benchmark/1K9P_A_relax_0001.pdb')
-    objective = design_with_config
 
+    objective = design_with_config
+    default_parameters = [val for k, val in ref15_weights]
     # setup callbacks for logging
     timer_callback = callbacks.TimerCallback()
     forest_check = callbacks.CheckpointSaver('.forest_checkpoints.gz')
     gbrt_check = callbacks.CheckpointSaver('.gbrt_checkpoints.gz')
     gp_check = callbacks.CheckpointSaver('.gp_checkpoints.gz')
     optimizer = sys.argv[1]
-    acq_func_kwargs = {'xi': 0.001, 'kappa': 0.1}
+    xi = 0.001
+    kappa = 0.1
     print(
         '_________start optimize________' +
         '_____________{}________________'.format(optimizer)
@@ -46,11 +43,12 @@ if __name__ == "__main__":
         forest_result = forest_minimize(
             func=objective,
             dimensions=dimensions,
-            acq_func='EI',  # expected Improvement (evaluate whats best to use)
+            acq_func='PI',  # expected Improvement (evaluate whats best to use)
             n_calls=n_calls,
-            # x0=default_parameters,
+            x0=default_parameters,
             n_jobs=-1,
-            acq_func_kwargs=acq_func_kwargs,
+            xi=xi,
+            kappa=kappa,
             callback=[timer_callback, forest_check]
         )  # All availiable Cores if aquisition =lbfgs
         with open("results/res_{}_{}.pkl".format('forest', str(n_calls)), "wb") as file:
@@ -60,10 +58,12 @@ if __name__ == "__main__":
         gbrt_res = gbrt_minimize(
             func=objective,
             dimensions=dimensions,
-            acq_func='EI',
+            acq_func='PI',
             n_calls=n_calls,
+            x0=default_parameters,
             n_jobs=-1,
-            acq_func_kwargs=acq_func_kwargs,
+            xi=xi,
+            kappa=kappa,
             callback=[timer_callback, gbrt_check]
         )
         with open("results/res_{}_{}.pkl".format('gbrt', str(n_calls)), "wb") as file:
@@ -73,10 +73,12 @@ if __name__ == "__main__":
         gp_res = gp_minimize(
             func=objective,
             dimensions=dimensions,
-            acq_func="EI",
+            acq_func="PI",
             n_calls=n_calls,
             n_jobs=-1,
-            acq_func_kwargs=acq_func_kwargs,
+            x0=default_parameters,
+            xi=xi,
+            kappa=kappa,
             callback=[timer_callback, gp_check]
         )
         with open("results/res_{}_{}.pkl".format('gp', str(n_calls)), "wb") as file:

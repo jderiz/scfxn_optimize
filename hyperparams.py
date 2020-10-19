@@ -20,7 +20,24 @@ scfxn_ref15_dimensions = {
     'yhh_planarity': Real(high=2, low=0),
     'ref': Real(high=2, low=0),
     'rama_prepro': Real(high=2, low=0),
-    # 'problem_type': Categorical()
 }
-
-scfxn_ref15_space = [Real(high=5, low=0, name=name) for name, _ in scfxn_ref15_dimensions.items()]
+ref15_weights = [('fa_atr', 1),
+                 ('fa_rep', 0.55),
+                 ('fa_sol', 1),
+                 ('fa_intra_rep', 0.005),
+                 ('fa_intra_sol_xover4', 1),
+                 ('lk_ball_wtd', 1),
+                 ('fa_elec', 1),
+                 ('pro_close', 1.25),
+                 ('hbond_sr_bb', 1),
+                 ('hbond_lr_bb', 1),
+                 ('hbond_bb_sc', 1),
+                 ('hbond_sc', 1),
+                 ('dslf_fa13', 1.25),
+                 ('omega', 0.4),
+                 ('fa_dun', 0.7),
+                 ('p_aa_pp', 0.6),
+                 ('yhh_planarity', 0.625),
+                 ('ref', 1),
+                 ('rama_prepro', 0.45)]
+scfxn_ref15_space = [Real(high=2, low=0.1, name=name) for name, _ in scfxn_ref15_dimensions.items()]
