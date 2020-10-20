@@ -3,9 +3,6 @@ import sys
 import time
 import os
 from skopt import forest_minimize, gp_minimize, gbrt_minimize, callbacks
-
-from skopt.plots import (plot_convergence, plot_evaluations, plot_objective)
-
 from design import design_with_config
 from hyperparams import scfxn_ref15_space, ref15_weights
 
@@ -82,10 +79,6 @@ if __name__ == "__main__":
         )
         with open("results/res_{}_{}_similar.pkl".format('gp', str(n_calls)), "wb") as file:
             pickle.dump(gp_res, file)
-
-    # plot_convergence(*res)
-    # plt.show()
-    # plt.savefig('results/convergence.png', dpi=300, bbox_inches="tight")
 
     took = time.time() - start_time
     print("Took: {} to run".format(time.strftime("%H: %M: %S", time.gmtime(took))))
