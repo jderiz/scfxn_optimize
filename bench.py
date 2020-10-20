@@ -2,7 +2,6 @@ import pickle
 import sys
 import time
 import os
-
 from skopt import forest_minimize, gp_minimize, gbrt_minimize, callbacks
 
 from skopt.plots import (plot_convergence, plot_evaluations, plot_objective)
@@ -51,7 +50,7 @@ if __name__ == "__main__":
             kappa=kappa,
             callback=[timer_callback, forest_check]
         )  # All availiable Cores if aquisition =lbfgs
-        with open("results/res_{}_{}.pkl".format('forest', str(n_calls)), "wb") as file:
+        with open("results/res_{}_{}_similar.pkl".format('forest', str(n_calls)), "wb") as file:
             pickle.dump(forest_result, file)
     if optimizer in ['gbrt', 'all']:
         print('GradientBoostedTrees')
@@ -66,7 +65,7 @@ if __name__ == "__main__":
             kappa=kappa,
             callback=[timer_callback, gbrt_check]
         )
-        with open("results/res_{}_{}.pkl".format('gbrt', str(n_calls)), "wb") as file:
+        with open("results/res_{}_{}_similar.pkl".format('gbrt', str(n_calls)), "wb") as file:
             pickle.dump(gbrt_res, file)
     if optimizer in ['gp', 'all']:
         print('Gaussian Processes')
@@ -81,7 +80,7 @@ if __name__ == "__main__":
             kappa=kappa,
             callback=[timer_callback, gp_check]
         )
-        with open("results/res_{}_{}.pkl".format('gp', str(n_calls)), "wb") as file:
+        with open("results/res_{}_{}_similar.pkl".format('gp', str(n_calls)), "wb") as file:
             pickle.dump(gp_res, file)
 
     # plot_convergence(*res)
