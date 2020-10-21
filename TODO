@@ -31,3 +31,10 @@ use FastDesign instead of moritz script for parallel.
 Relaxing is the notion of alowing the sequence to wiggle into its most likely 
 native position begining with the chrystal structure, which is of course only
 a snapshot that might not be ideal.
+
+
+## Parallelization
+N * 128 random runs --> save to file.
+x0 and y0 in Optimizer. 
+
+Use genetic algorithm for many parallel runs in the beginning. and only BO for the fine tuning 
