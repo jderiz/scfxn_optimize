@@ -1,12 +1,9 @@
 ## ALL
-	!!! Optimize the Folding Function !!!
-
 
 	Decide on folding problem and benchmark --> Design(Moritz)
 	Setup Infrastructure (AutoML, Pipelines)
-	Decide on Optimization Framework ( Skopt, AutoSklearn )
+	# Decide on Optimization Framework ( Skopt, AutoSklearn )
 	Decide on AutoML Tools (BayesianOpt(Gaussian, RandomForests)), Ensembles
-	Formulate Hypothesis ""
 	# Get expert parametrization, intermediate, and "Random" for reference.
 	training problem reduction? --> erst grob dann granular
 	Decide on Optimizer, Bayesian Neural Networks, Gaussian Processes, Random Forrest.
@@ -19,15 +16,28 @@
 	write generic wrapper around optimization so that everyone can throw in his/her project for energy function optimization.
 
 ## Problems
-design mit angepassten weights als loss ref15?????
+Sinnvoller Loss bei Design
 ## papers to read
 perfect weights -- Kuhlmann, Baker 2000
 
 
 ## Notes
-Use Ref15 as default params.
-The Rotamer Packing only linnear scale up to 4 Threads.
-use FastDesign instead of moritz script for parallel.
-Relaxing is the notion of alowing the sequence to wiggle into its most likely 
+- Use Ref15 as default params.
+- The Rotamer Packing only linnear scale up to 4 Threads.
+- use FastDesign instead of moritz script for parallel.
+- Relaxing is the notion of alowing the sequence to wiggle into its most likely 
 native position begining with the chrystal structure, which is of course only
 a snapshot that might not be ideal.
+
+
+## Parallelization
+N * 128 random runs --> save to file.
+x0 and y0 in Optimizer. 
+
+Use genetic algorithm for many parallel runs in the beginning. and only BO for the fine tuning 
+
+
+# TODO
+Implement Parallelization for warm-start
+Research ensembles/genetic algorithms for optimization
+Formulate Hypothesis ""
