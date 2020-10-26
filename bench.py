@@ -37,7 +37,7 @@ if __name__ == "__main__":
     acq_fun_kwargs = {"xi": xi, "kappa": kappa}
     print(
         "_________start optimize________"
-        + "_____________{}________________".format(optimizer)
+        + "_____________{}________________".format(estimator)
     )
 
     optimizer = Optimizer(
