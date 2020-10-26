@@ -37,6 +37,7 @@ x0 and y0 in Optimizer.
 Use genetic algorithm for many parallel runs in the beginning. and only BO for the fine tuning 
 
 
+find N x_i with minimal loss, use to setup next optimizer
 # TODO
 Implement Parallelization for warm-start
 Research ensembles/genetic algorithms for optimization

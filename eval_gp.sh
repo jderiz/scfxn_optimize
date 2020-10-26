@@ -15,5 +15,5 @@ source /nfs/cluster/easybuild/software/Anaconda3/2020.02/etc/profile.d/conda.sh
 
 conda activate scfxn
 
-python -u bench.py gp > gp_similar.out
+python -u bench.py GP > gp_similar.out
 
