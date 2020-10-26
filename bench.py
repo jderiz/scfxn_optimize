@@ -19,7 +19,7 @@ if __name__ == "__main__":
 
     # instantiate result array and specific number calls to objective per optimizer
     res = []
-    n_calls = 100  # Objective Function evaluations
+    n_calls = 50  # Objective Function evaluations
     start_time = time.time()  # overall Runtime measuring
     dimensions = scfxn_ref15_space
     objective = design_with_config
@@ -39,6 +39,7 @@ if __name__ == "__main__":
         "_________start optimize________"
         + "_____________{}________________".format(optimizer)
     )
+
     optimizer = Optimizer(
         dimensions=dimensions,
         base_estimator=estimator,
@@ -57,4 +58,3 @@ if __name__ == "__main__":
         pickle.dump(res, file)
     took = time.time() - start_time
     print("Took: {} to run".format(time.strftime("%H: %M: %S", time.gmtime(took))))
-
