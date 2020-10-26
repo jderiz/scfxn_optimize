@@ -19,7 +19,7 @@ if __name__ == "__main__":
 
     # instantiate result array and specific number calls to objective per optimizer
     res = []
-    n_calls = 100  # Objective Function evaluations
+    n_calls = 50  # Objective Function evaluations
     start_time = time.time()  # overall Runtime measuring
     dimensions = scfxn_ref15_space
     objective = design_with_config
@@ -37,7 +37,7 @@ if __name__ == "__main__":
     acq_fun_kwargs = {"xi": xi, "kappa": kappa}
     print(
         "_________start optimize________"
-        + "_____________{}________________".format(optimizer)
+        + "_____________{}________________".format(estimator)
     )
     optimizer = Optimizer(
         dimensions=dimensions,
