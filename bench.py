@@ -39,6 +39,7 @@ if __name__ == "__main__":
         "_________start optimize________"
         + "_____________{}________________".format(estimator)
     )
+
     optimizer = Optimizer(
         dimensions=dimensions,
         base_estimator=estimator,
