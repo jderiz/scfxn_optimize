@@ -31,7 +31,7 @@ if __name__ == "__main__":
     gp_check = callbacks.CheckpointSaver(".gp_checkpoints.gz")
     # "GP, GBRT, ET, RF"
     estimator = sys.argv[1]
-    cores = 64
+    cores = 24
     xi = 0.001
     kappa = 0.1
     acq_func_kwargs = {"xi": xi, "kappa": kappa}

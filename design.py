@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import random, os
+from joblib import Parallel, delayed
 
 import pyrosetta as prs
 from Bio import pairwise2
@@ -10,13 +11,14 @@ from skopt.utils import use_named_args
 
 import create_scfxn
 from hyperparams import scfxn_ref15_space
-
+import logging
 prs.init(
-    "-ex1 " "-ex2 " "-mute core.pack.pack_rotamers core.pack.task"
+        options='-ex1 -ex2', set_logging_handler=True
 )  # no output from the design process
 
 run = 0  # counter
-
+logger = logging.getLogger('rosetta')
+logger.setLevel(logging.ERROR)
 
 @use_named_args(dimensions=scfxn_ref15_space)
 def design_with_config(**config):
@@ -44,21 +46,28 @@ def design_with_config(**config):
     resfile = "./design.resfile"
     with open(resfile, "w") as f:
         f.write("ALLAAxc \n")
-        f.write("start\n")
-    taskf = prs.rosetta.core.pack.task.TaskFactory()
-    taskf.push_back(prs.rosetta.core.pack.task.operation.InitializeFromCommandline())
-    taskf.push_back(prs.rosetta.core.pack.task.operation.ReadResfile(resfile))
-    packer = prs.rosetta.protocols.minimization_packing.PackRotamersMover(scfxn)
-    packer.task_factory(taskf)
-    taskf.create_task_and_apply_taskoperations(pose)
-    packer.apply(pose)
-    print("Optimized scfxn score: ", scfxn(pose))
-    print("REF15 Score ", ref15(pose))
-    # TODO: What defines our loss, for now use REF15 or bloss62 matrix
-    bloss62 = substitution_matrices.load("BLOSUM62")
-    similar = pairwise2.align.globaldx(
-        pose.sequence(), native_pose.sequence(), bloss62, score_only=True
-    )
-    print("similarity ::", similar)
-
-    return similar
+        f.write("start\n") 
+    
+    
+    def run(pose, resfile):
+        taskf = prs.rosetta.core.pack.task.TaskFactory()
+        taskf.push_back(prs.rosetta.core.pack.task.operation.InitializeFromCommandline())
+        taskf.push_back(prs.rosetta.core.pack.task.operation.ReadResfile(resfile))
+        packer = prs.rosetta.protocols.minimization_packing.PackRotamersMover(scfxn)
+        packer.task_factory(taskf)
+        taskf.create_task_and_apply_taskoperations(pose)
+        packer.apply(pose) 
+        print("Optimized scfxn score: ", scfxn(pose))
+        print("REF15 Score ", ref15(pose))
+        # TODO: What defines our loss, for now use REF15 or bloss62 matrix
+        bloss62 = substitution_matrices.load("BLOSUM62")
+        # compute normalizes similarity
+        similar = pairwise2.align.globaldx(
+            pose.sequence(), native_pose.sequence(), bloss62, score_only=True
+        ) / len(pose.sequence())
+        print("similarity ::", similar)
+        return similar
+    results = Parallel(n_jobs=setup.runs_per_config)(delayed(run)(pose, resfile) for _ in setup.runs_per_config)
+    similar = sum(results)/len(results)
+    # return negative for minimization
+    return -similar
