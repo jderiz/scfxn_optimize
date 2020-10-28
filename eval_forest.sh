@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --time=32:00:00
-#SBATCH --mem=10G
+#SBATCH --mem-per-cpu=2G
 #SBATCH --mail-type=FAIL
 #SBATCH --partition=clara-job
 #SBATCH --mail-user=jannis.deriz@gmail.com
