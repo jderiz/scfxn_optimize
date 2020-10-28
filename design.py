@@ -33,12 +33,15 @@ def design_with_config(**config):
     )  # optimization score Function
     pose = pose_from_pdb(
         "benchmark/1K9P_A_relax_0001.pdb"
-    )  # easiest struct for optimizer picking
-    pdbs = []
+    )  # easiest struct for estiamtor picking
+    # TODO: Add random struct each run once decided on estimator
+    # pdbs = []
 
-    for pdb in os.listdir("benchmark"):
-        if pdb.endswith(".pdb"):
-            pdbs.append(pdb)
+    # for pdb in os.listdir("benchmark"):
+    #     if pdb.endswith(".pdb"):
+    #         #  store actual Pose() object
+    #         pdbs.append(pose_from_pdb('benchmark/'+pdb))
+    # pose = pdbs[random.randint(0, len(pdbs))] # picke random pose
     native_pose = Pose()
     native_pose.assign(pose)
     resfile = "./design.resfile"
@@ -58,7 +61,9 @@ def design_with_config(**config):
     bloss62 = substitution_matrices.load("BLOSUM62")
     similar = pairwise2.align.globaldx(
         pose.sequence(), native_pose.sequence(), bloss62, score_only=True
-    )
+    ) / len(pose.sequence())
     print("similarity ::", similar)
 
-    return similar
+    # return inverse score as we minimize
+
+    return -similar
