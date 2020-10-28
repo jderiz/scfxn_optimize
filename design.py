@@ -35,19 +35,22 @@ def design_with_config(**config):
     )  # optimization score Function
     pose = pose_from_pdb(
         "benchmark/1K9P_A_relax_0001.pdb"
-    )  # easiest struct for optimizer picking
-    pdbs = []
+    )  # easiest struct for estiamtor picking
+    # TODO: Add random struct each run once decided on estimator
+    # pdbs = []
 
-    for pdb in os.listdir("benchmark"):
-        if pdb.endswith(".pdb"):
-            pdbs.append(pdb)
+    # for pdb in os.listdir("benchmark"):
+    #     if pdb.endswith(".pdb"):
+    #         #  store actual Pose() object
+    #         pdbs.append(pose_from_pdb('benchmark/'+pdb))
+    # pose = pdbs[random.randint(0, len(pdbs))] # picke random pose
     native_pose = Pose()
     native_pose.assign(pose)
     resfile = "./design.resfile"
     with open(resfile, "w") as f:
         f.write("ALLAAxc \n")
         f.write("start\n") 
-    
+        
     
     def run(pose, resfile):
         taskf = prs.rosetta.core.pack.task.TaskFactory()
@@ -69,5 +72,4 @@ def design_with_config(**config):
         return similar
     results = Parallel(n_jobs=setup.runs_per_config)(delayed(run)(pose, resfile) for _ in setup.runs_per_config)
     similar = sum(results)/len(results)
-    # return negative for minimization
     return -similar
