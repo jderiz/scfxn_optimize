@@ -56,5 +56,5 @@ if __name__ == "__main__":
     res = optimizer.get_result()
     took = time.time() - start_time
     print("Took: {} to run".format(time.strftime("%H: %M: %S", time.gmtime(took))))
-    with open("results/{}_res_{}.pkl".format(estimator, str(n_calls)), "wb") as file:
+    with open("results/{}_{}_res_{}.pkl".format(time.strftime("%H_%M"),estimator, str(n_calls)), "wb") as file:
         pickle.dump(res, file)
