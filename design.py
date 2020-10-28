@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import random
+import random, os
 
 import pyrosetta as prs
 from Bio import pairwise2

@@ -34,7 +34,7 @@ if __name__ == "__main__":
     cores = 64
     xi = 0.001
     kappa = 0.1
-    acq_fun_kwargs = {"xi": xi, "kappa": kappa}
+    acq_func_kwargs = {"xi": xi, "kappa": kappa}
     print(
         "_________start optimize________"
         + "_____________{}________________".format(estimator)
@@ -54,7 +54,7 @@ if __name__ == "__main__":
         y = Parallel(n_jobs=cores)(delayed(objective)(v) for v in x)
         optimizer.tell(x, y)
     res = optimizer.get_result()
-    with open("results/{}_res_{}.pkl".format(estimator, str(n_calls)), "wb") as file:
-        pickle.dump(res, file)
     took = time.time() - start_time
     print("Took: {} to run".format(time.strftime("%H: %M: %S", time.gmtime(took))))
+    with open("results/{}_{}_res_{}.pkl".format(time.strftime("%H_%M"),estimator, str(n_calls)), "wb") as file:
+        pickle.dump(res, file)
