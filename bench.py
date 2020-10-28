@@ -9,7 +9,7 @@ from skopt import (Optimizer, callbacks, forest_minimize, gbrt_minimize,
 
 from design import design_with_config
 from hyperparams import ref15_weights, scfxn_ref15_space
-
+from setup import parallel_configs
 if __name__ == "__main__":
     """
     Main execution for optimization run.
@@ -31,7 +31,6 @@ if __name__ == "__main__":
     gp_check = callbacks.CheckpointSaver(".gp_checkpoints.gz")
     # "GP, GBRT, ET, RF"
     estimator = sys.argv[1]
-    cores = 24
     xi = 0.001
     kappa = 0.1
     acq_func_kwargs = {"xi": xi, "kappa": kappa}
@@ -50,8 +49,8 @@ if __name__ == "__main__":
     # Run for n_calls asking #cores points each time
 
     for i in range(n_calls):
-        x = optimizer.ask(n_points=cores)
-        y = Parallel(n_jobs=cores)(delayed(objective)(v) for v in x)
+        x = optimizer.ask(n_points=parallel_configs)
+        y = Parallel(n_jobs=parallel_configs)(delayed(objective)(v) for v in x)
         optimizer.tell(x, y)
     res = optimizer.get_result()
     took = time.time() - start_time
