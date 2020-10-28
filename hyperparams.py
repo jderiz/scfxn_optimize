@@ -41,4 +41,4 @@ ref15_weights = [('fa_atr', 1),
                  ('ref', 1),
                  ('rama_prepro', 0.45)]
 range = 0.25
-scfxn_ref15_space = [Real(high=(value + value*range), low=(value - value*range), name=name) for name, value in scfxn_ref15_dimensions.items()]
+scfxn_ref15_space = [Real(high=(value + value*range), low=(value - value*range), name=name) for name, value in ref15_weights]
