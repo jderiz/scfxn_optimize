@@ -23,7 +23,6 @@ run = 0  # counter
 logger = logging.getLogger('rosetta')
 logger.setLevel(logging.ERROR)
 
-
 @use_named_args(dimensions=scfxn_ref15_space)
 def design_with_config(**config):
     global run

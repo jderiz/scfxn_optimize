@@ -48,7 +48,9 @@ if __name__ == "__main__":
 
     # Run for n_calls asking #cores points each time
 
+    run =  0 
     for i in range(n_calls):
+        print('RUN: ', run+=1) 
         x = optimizer.ask(n_points=parallel_configs)
         y = Parallel(n_jobs=parallel_configs)(delayed(objective)(v) for v in x)
         optimizer.tell(x, y)
