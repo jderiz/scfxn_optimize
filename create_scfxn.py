@@ -5,9 +5,9 @@ from pyrosetta.rosetta.core.scoring import score_type_from_name
 
 def creat_scfxn_from_config(config):
     scfxn = ScoreFunction()
-    print(config)
+    # print(config)
     for n, w in config.items():
-        print(w)
+        # print(w)
         score_type = score_type_from_name(n)
         scfxn.set_weight(score_type, w)
 

@@ -1,2 +1,2 @@
-parallel_configs = 8
-runs_per_config = 4
+parallel_configs = 4
+runs_per_config = 2
