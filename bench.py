@@ -1,4 +1,5 @@
 import logging
+import multiprocessing
 import os
 import pickle
 import sys
@@ -15,7 +16,9 @@ from design import design_with_config
 from hyperparams import ref15_weights, scfxn_ref15_space
 from setup import parallel_configs, runs_per_config
 
-logger = logging.getLogger("rosetta")
+logger = multiprocessing.log_to_stderr()
+logger.setLevel(logging.INFO)
+logger.warning('doomed')
 
 if __name__ == "__main__":
     """
@@ -27,14 +30,10 @@ if __name__ == "__main__":
     # instantiate result array and specific number calls to objective per optimizer
     res = []
     n_calls = 50  # Objective Function evaluations
+    calls = 0  # iteration counter
     start_time = time.time()  # overall Runtime measuring
     dimensions = scfxn_ref15_space
-    # def test(x):
-    #     time.sleep(5)
-    #     print('\n \n \n \n \n')
-    #     return x
     objective = design_with_config
-    # objective = test
     default_parameters = [val for k, val in ref15_weights]
     # setup callbacks for logging
     timer_callback = callbacks.TimerCallback()
@@ -58,19 +57,15 @@ if __name__ == "__main__":
         acq_func_kwargs=acq_func_kwargs,
     )
 
-    # Run for n_calls asking #cores points each time
-
-    run = 0
-
     # MAIN optimiaztion Loop with custom result handling
     # using all available cores with Pool()
-    results_from_config = {}
-    configs = {}
-    semaphore_open = False
-    calls = 0
-    # results = []
     with get_context("spawn").Pool(processes=cpu_count()) as tp:
+        result_buffer = {}
+        cached_config = None
+        jobs_for_current_config = 0
+
         print("initialized Worker Pool with max CPUS")
+        jobs = []
 
         def join_and_exit():
             print("wait for all Processes to finish and close pool")
@@ -78,39 +73,71 @@ if __name__ == "__main__":
             tp.close()
 
         def make_config_batch():
+            global calls
+            global cached_config
+            global jobs_for_current_config
+            print('Making New Batch \n \n \n <>>>>><<<<>')
+            print('CALLS TO GO: ', (n_calls - calls))
+
             # while not reached n_calls
 
             if calls <= n_calls:
-                config = optimizer.ask()
-                # map 4 processes with same config calling callback once all are done
-                r = tp.map_async(
+                # check if new config or cached
+
+                if cached_config and jobs_for_current_config <= 3:
+                    config = cached_config
+                    jobs_for_current_config += 1
+                else:  # make new config reset counter to 1
+                    config = optimizer.ask()
+                    cached_config = config
+                    jobs_for_current_config = 1
+                # instantiate job with config
+                r = tp.apply_async(
                     objective,
-                    [config for _ in range(runs_per_config)],
+                    (config,),
                     callback=partial(config_callback, config=config),
                     error_callback=error_callback,
                 )
-                r.wait()
+                # print('Start r.wait()')
+                # r.wait(timeout=5.0)
                 # results.append(r)
+                # Append map_result to jobs list
+                jobs.append(r)
                 calls += 1
+                print('increment calls')
+
+                # return 0
             else:
                 join_and_exit()
+            print('END of make_config_batch')
 
         def config_callback(res, config=None):
             """
             Whenever a process finishes it calls config_callback with its result
-            and a new batch of processes can be run
+            and a new process can be run
             """
             print("map_async returning")
-            _res = {
-                "bloss62": sum([x["bloss62"] for x in res]) / len(res),
-                "ref15": sum([x["ref15"] for x in res]) / len(res),
-                "scfxn": sum([x["scfxn"] for x in res]) / len(res),
-                "weights": configs[config],
-            }
-            print(_res)
-            res.append(_res)
-            optimizer.tell(config, _res["bloss62"])
-            optimizer.update_next()  # check if necessary
+            # only frozenset and tuple are hashable
+            c_hash = hash(set(config))
+            print(c_hash)
+            # check if last result for config
+
+            if len(result_buffer[c_hash]) == 3:
+                # if so, compute mean over results for config and tell optimizer
+                result_buffer[c_hash].append(res)
+                _res = {
+                    "bloss62": sum([x["bloss62"] for x in res]) / len(res),
+                    "ref15": sum([x["ref15"] for x in res]) / len(res),
+                    "scfxn": sum([x["scfxn"] for x in res]) / len(res),
+                    "weights": config,
+                }
+                # print(_res)
+                res.append(_res)
+                print('\n \n <><><<<<<<><> \n CONFIG:', config, '\n RES:', res)
+                r = optimizer.tell(config, _res["bloss62"])
+                print(r)
+            # optimizer.update_next()  # check if necessary
+            # make new batch of design processes for next config
             make_config_batch()
 
         def error_callback(r):
@@ -126,22 +153,39 @@ if __name__ == "__main__":
         )
 
         initial_map_results = []
-
+        prev_config = None
         for _ in range(initial_batches):
-            config = optimizer.ask()
-            print(config)
-            # results_from_config.update({hash(config): []})
-            # map 4 processes with same config calling callback once all are done
-            r = tp.map_async(
-                objective,
-                [config for _ in range(runs_per_config)],
-                callback=partial(config_callback, config=config),
-                error_callback=error_callback,
-            )
-            initial_map_results.append(r)
+            # map runs_per_config processes with same config calling callback\
+            # once each is done so a new process can get started
+            for _ in range(runs_per_config):
+                config = optimizer.ask()
 
-        for r in initial_map_results:
-            r.wait()
+                if config == prev_config:
+                    print('SAME CONFIG TWICE:: TERMINATE')
+                    exit()
+                r = tp.apply_async(
+                    objective,
+                    (config,),
+                    callback=partial(config_callback, config=config),
+                    error_callback=error_callback,
+                )
+                jobs.append(r)
+            # time.sleep(1)
+            print('\n \n INITIAL :', _)
+            print(config)
+
+        # for r in initial_map_results:
+        #     r.wait()
+
+        while jobs:
+            print('waiting for all jobs to FINISH')
+
+            for r in jobs:
+                print(len(jobs))
+                r.wait()
+                # time.sleep(5)
+                jobs.remove(r)
+                print(len(jobs))
 
     # result printing and saving
     took = time.time() - start_time

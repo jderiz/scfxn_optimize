@@ -12,7 +12,7 @@ from joblib import Parallel, delayed
 from pyrosetta import (Pose, PyJobDistributor, get_fa_scorefxn, init,
                        pose_from_pdb)
 from skopt.utils import use_named_args
-
+import time
 import create_scfxn
 from hyperparams import scfxn_ref15_space
 from setup import runs_per_config
@@ -20,15 +20,19 @@ from setup import runs_per_config
 prs.init(
     options="-ex1 -ex2", set_logging_handler=True
 )  # no output from the design process
-
+prs.logging_support.set_logging_sink()
 logger = logging.getLogger("rosetta")
 logger.setLevel(logging.ERROR)
 
 
 @use_named_args(dimensions=scfxn_ref15_space)
 def design_with_config(**config):
-
+    start_time = time.time()  # overall Runtime measuring
     print('DESIGNING')
+    # time.sleep(15)
+    # dummy = {"bloss62": 1, "ref15": 1, "scfxn": 1}
+    # return dummy
+
     logger.log(level=logging.DEBUG, msg='designing with config')
     ref15 = (
         get_fa_scorefxn()
@@ -74,8 +78,11 @@ def design_with_config(**config):
     # return similar
 
     # similar = sum(results) / len(results)
-    result = {"bloss62": -similar, "ref15": ref15(pose), "scfxn": scfxn(pose)}
+    # moritz says its okay to return energy normalized by length
+    result = {"bloss62": -similar, "ref15": (ref15(pose)/len(pose.sequence())), "scfxn": (scfxn(pose)/len(pose.sequence()))}
 
-    print(result)
+    print('DESIGN_DONE: ',result)
+    took = time.time() - start_time
+    print("Took: {} to run".format(time.strftime("%H: %M: %S", time.gmtime(took))))
 
     return result
