@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --time=32:00:00
+#SBATCH --time=48:00:00
 #SBATCH --mem-per-cpu=2G
 #SBATCH --partition=clara-job
 #SBATCH --mail-type=end
@@ -14,5 +14,5 @@ source /nfs/cluster/easybuild/software/Anaconda3/2020.02/etc/profile.d/conda.sh
 
 conda activate scfxn
 
-python -u bench.py GP > GP.out
+python -u bench.py GP > py_out/GP.out
 
