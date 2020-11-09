@@ -30,7 +30,7 @@ if __name__ == "__main__":
 
     # instantiate result array and specific number calls to objective per optimizer
     results = []
-    n_calls = 96  # Objective Function evaluations
+    n_calls = 800  # Objective Function evaluations
     calls = 0  # iteration counter
     num_callbacks = 0 # keep track of callback calls
     start_time = time.time()  # overall Runtime measuring
@@ -44,6 +44,7 @@ if __name__ == "__main__":
     gp_check = callbacks.CheckpointSaver(".gp_checkpoints.gz")
     # "GP, GBRT, ET, RF"
     estimator = sys.argv[1]
+    # more exploit then explore
     xi = 0.001
     kappa = 0.1
     acq_func_kwargs = {"xi": xi, "kappa": kappa}
@@ -193,7 +194,7 @@ if __name__ == "__main__":
     print("Took for ALL: {} to run".format(time.strftime("%H: %M: %S", time.gmtime(took))))
     # save custom results
     with open(
-        "results/{}_{}_res_{}.pkl".format(
+        "results/{}_{}_res_{}_blossum.pkl".format(
             time.strftime("%H_%M"), estimator, str(n_calls)
         ),
         "wb",
@@ -201,7 +202,7 @@ if __name__ == "__main__":
         pickle.dump(results, file)
     # save results from optimizer.tell()
     with open(
-        "results/{}_{}_res_{}_optimizer.pkl".format(
+            "results/{}_{}_res_{}_blossum_optimizer.pkl".format(
             time.strftime("%H_%M"), estimator, str(n_calls)
         ),
         "wb",
