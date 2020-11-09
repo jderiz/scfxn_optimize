@@ -30,8 +30,9 @@ if __name__ == "__main__":
 
     # instantiate result array and specific number calls to objective per optimizer
     results = []
-    n_calls = 50  # Objective Function evaluations
+    n_calls = 96  # Objective Function evaluations
     calls = 0  # iteration counter
+    num_callbacks = 0 # keep track of callback calls
     start_time = time.time()  # overall Runtime measuring
     dimensions = scfxn_ref15_space
     objective = design_with_config
@@ -75,11 +76,7 @@ if __name__ == "__main__":
         def wait_and_exit():
             print("wait for all Processes to finish and close pool")
             # TODO: be certain all jobs are finished
-            # tp.terminate()
             _DONE = True
-            tp.terminate()
-            tp.close()
-            # print('TERMINATED')
 
         def make_process():
             global calls
@@ -122,13 +119,12 @@ if __name__ == "__main__":
             Whenever a process finishes it calls config_callback with its result
             and a new process can be run
             """
-            global result_buffer, results
+            global result_buffer, results, num_callbacks
 
-            print('CALLBACK')
-            print('BUFF_KEYS: ', result_buffer.keys())
+            num_callbacks += 1
+            print('CALLBACK: ', num_callbacks)
             # only frozenset and tuple are hashable
             c_hash = hash(frozenset(config))
-            print('HASH: ', c_hash)
 
             make_process()
             # Check if key exists
@@ -146,10 +142,7 @@ if __name__ == "__main__":
                         "scfxn": sum([x["scfxn"] for x in res]) / len(res),
                         "weights": config,
                     }
-                    # print(_res, '\n \n \n \n ')
                     results.append(_res)
-                    # print(results)
-                    # print('\n \n <><><<<<<<><> \n CONFIG:', config, '\n RES:', res)
                     opti_res = optimizer.tell(config, _res["bloss62"])
                     del result_buffer[c_hash]  # dont need that buffer
                     optimizer_results.append(opti_res)
@@ -182,11 +175,13 @@ if __name__ == "__main__":
 
         # while there are jobs in the list being processed wait for them to finish
         # TODO: Understand this better, and maybe refactor
-        print('\n \n \n WAIT FOR ALL')
 
         while jobs:
             if not active_children():
-                # when no more child processes.
+                print('NO MORE ACTIVE CHILDREN')
+                # when no more child processes sleep a minute to let things settle
+                # then terminate Pool
+                time.sleep(60)
                 tp.terminate()
                 break
 
