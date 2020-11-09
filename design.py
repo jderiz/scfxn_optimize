@@ -18,7 +18,7 @@ from hyperparams import scfxn_ref15_space
 from setup import runs_per_config
 
 prs.init(
-    options="-ex1 -ex2", set_logging_handler=True
+    options="-ex1 -ex2", set_logging_handler=True, extra_options="-linmem_ig 10 -archive_on_disk /tmp/rosetta"
 )  # no output from the design process
 prs.logging_support.set_logging_sink()
 logger = logging.getLogger("rosetta")
@@ -27,13 +27,12 @@ logger.setLevel(logging.ERROR)
 
 @use_named_args(dimensions=scfxn_ref15_space)
 def design_with_config(**config):
-    start_time = time.time()  # overall Runtime measuring
-    print('DESIGNING')
-    # time.sleep(15)
-    # dummy = {"bloss62": 1, "ref15": 1, "scfxn": 1}
+    start_time = time.time()  #  Runtime measuring
+    # print('DESIGNING')
+    # time.sleep(random.randint(30, 50))
+    # dummy = {"bloss62": random.randint(1, 100), "ref15": random.randint(1, 50), "scfxn": random.randint(1, 46)}
     # return dummy
 
-    logger.log(level=logging.DEBUG, msg='designing with config')
     ref15 = (
         get_fa_scorefxn()
     )  # REF15 score function with default weights for loss calulation
@@ -48,6 +47,7 @@ def design_with_config(**config):
             pdbs.append(pose_from_pdb("benchmark/" + pdb))
     # pick random
     pose = random.choice(pdbs)
+    
 
     # copy pose for comparison after design
     native_pose = Pose()
@@ -71,13 +71,7 @@ def design_with_config(**config):
     similar = pairwise2.align.globaldx(
         pose.sequence(), native_pose.sequence(), bloss62, score_only=True
     ) / len(pose.sequence())
-    # # print results
-    # print("similarity ::", similar)
-    # print("Optimized scfxn score: ", scfxn(pose))
-    # print("REF15 Score ", ref15(pose))
-    # return similar
 
-    # similar = sum(results) / len(results)
     # moritz says its okay to return energy normalized by length
     result = {"bloss62": -similar, "ref15": (ref15(pose)/len(pose.sequence())), "scfxn": (scfxn(pose)/len(pose.sequence()))}
 
