@@ -44,7 +44,11 @@ if __name__ == "__main__":
     gp_check = callbacks.CheckpointSaver(".gp_checkpoints.gz")
     # "GP, GBRT, ET, RF"
     estimator = sys.argv[1]
-    # more exploit then explore
+    loss_value = sys.argv[2]
+    if not loss_value:
+	print('ERROR: No loss value defined as second argument')
+	exit() 
+   # more exploit then explore
     xi = 0.001
     kappa = 0.1
     acq_func_kwargs = {"xi": xi, "kappa": kappa}
@@ -144,7 +148,7 @@ if __name__ == "__main__":
                         "weights": config,
                     }
                     results.append(_res)
-                    opti_res = optimizer.tell(config, _res["bloss62"])
+                    opti_res = optimizer.tell(config, _res[loss_value])
                     del result_buffer[c_hash]  # dont need that buffer
                     optimizer_results.append(opti_res)
                 else: # not last run yet, append to buffer for this config
@@ -194,16 +198,16 @@ if __name__ == "__main__":
     print("Took for ALL: {} to run".format(time.strftime("%H: %M: %S", time.gmtime(took))))
     # save custom results
     with open(
-        "results/{}_{}_res_{}_blossum.pkl".format(
-            time.strftime("%H_%M"), estimator, str(n_calls)
+        "results/{}_{}_res_{}_{}.pkl".format(
+            time.strftime("%H_%M"), estimator, str(n_calls), loss_value
         ),
         "wb",
     ) as file:
         pickle.dump(results, file)
     # save results from optimizer.tell()
     with open(
-            "results/{}_{}_res_{}_blossum_optimizer.pkl".format(
-            time.strftime("%H_%M"), estimator, str(n_calls)
+            "results/{}_{}_res_{}_{}_optimizer.pkl".format(
+            time.strftime("%H_%M"), estimator, str(n_calls), loss_value
         ),
         "wb",
     ) as file:
