@@ -13,7 +13,7 @@ from numpy import repeat
 
 from design import design_with_config
 from hyperparams import ref15_weights, scfxn_ref15_space
-from setup import parallel_configs, runs_per_config
+from setup import parallel_configs, runs_per_config, n_calls
 from skopt import (Optimizer, callbacks, forest_minimize, gbrt_minimize,
                    gp_minimize)
 
@@ -30,7 +30,7 @@ if __name__ == "__main__":
 
     # instantiate result array and specific number calls to objective per optimizer
     results = []
-    n_calls = 800  # Objective Function evaluations
+    # n_calls = 800  # Objective Function evaluations
     calls = 0  # iteration counter
     num_callbacks = 0 # keep track of callback calls
     start_time = time.time()  # overall Runtime measuring
@@ -83,6 +83,11 @@ if __name__ == "__main__":
             print("wait for all Processes to finish and close pool")
             # TODO: be certain all jobs are finished
             _DONE = True
+            while active_children():
+                pass
+            print('No More active_children')
+            tp.terminate()
+            tp.close()
 
         def make_process():
             global calls
@@ -189,9 +194,8 @@ if __name__ == "__main__":
                 print('NO MORE ACTIVE CHILDREN')
                 # when no more child processes sleep a minute to let things settle
                 # then terminate Pool
-                tp.terminate()
                 time.sleep(60)
-
+                tp.terminate()
                 break
 
         for async_result in jobs:
