@@ -1,3 +1,5 @@
-__pycache__
-results/*
-py_out/*
+benchmark/
+results/
+__pycache__/
+slurm*
+py_out/
