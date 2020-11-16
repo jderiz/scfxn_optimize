@@ -13,13 +13,13 @@ from numpy import repeat
 
 from design import design_with_config
 from hyperparams import ref15_weights, scfxn_ref15_space
-from setup import parallel_configs, runs_per_config
+from setup import parallel_configs, runs_per_config, n_calls
 from skopt import (Optimizer, callbacks, forest_minimize, gbrt_minimize,
                    gp_minimize)
 
 logger = multiprocessing.log_to_stderr()
-logger.setLevel(logging.INFO)
-logger.warning('doomed')
+logger.setLevel(logging.WARNING)
+
 
 if __name__ == "__main__":
     """
@@ -30,18 +30,13 @@ if __name__ == "__main__":
 
     # instantiate result array and specific number calls to objective per optimizer
     results = []
-    n_calls = 800  # Objective Function evaluations
+    # n_calls = 800  # Objective Function evaluations
     calls = 0  # iteration counter
     num_callbacks = 0 # keep track of callback calls
     start_time = time.time()  # overall Runtime measuring
     dimensions = scfxn_ref15_space
     objective = design_with_config
     default_parameters = [val for k, val in ref15_weights]
-    # setup callbacks for logging
-    timer_callback = callbacks.TimerCallback()
-    forest_check = callbacks.CheckpointSaver(".forest_checkpoints.gz")
-    gbrt_check = callbacks.CheckpointSaver(".gbrt_checkpoints.gz")
-    gp_check = callbacks.CheckpointSaver(".gp_checkpoints.gz")
     # "GP, GBRT, ET, RF"
     estimator = sys.argv[1]
     loss_value = sys.argv[2]
@@ -81,7 +76,35 @@ if __name__ == "__main__":
 
         def save_and_exit():
             print("wait for all Processes to finish and close pool")
+            print(len(active_children()))
             # TODO: be certain all jobs are finished
+            # while active_children():
+            #     print(len(active_children()))
+            #     time.sleep(10)
+                # pass
+            print('No More active_children')
+            print('SAVING')
+            took = time.time() - start_time
+            print("Took for ALL: {} to run".format(time.strftime("%H: %M: %S", time.gmtime(took))))
+            # save custom results
+            with open(
+                "results/{}_{}_res_{}_{}.pkl".format(
+                   time.strftime("%H_%M"), estimator, str(n_calls), loss_value
+                   ),
+                "wb",
+                 ) as file:
+                pickle.dump(results, file)
+            # save results from optimizer.tell()
+            with open(
+                "results/{}_{}_res_{}_{}_optimizer.pkl".format(
+                   time.strftime("%H_%M"), estimator, str(n_calls), loss_value
+                   ),
+                "wb",
+                ) as file:
+                pickle.dump(optimizer_results, file)
+            print('TERMINATING')
+            tp.terminate()
+            tp.close()
             _DONE = True
 
         def make_process():
@@ -90,10 +113,9 @@ if __name__ == "__main__":
             global jobs_for_current_config
             global pending_jobs
 
-            if calls <= n_calls:
+            if calls < n_calls:
                 # while not reached n_calls make either new config and first job for it
                 # of instantiate job for existing config until @param runs_per_config.
-                # check if new config or cached
 
                 if cached_config and jobs_for_current_config < runs_per_config:
                     config = cached_config
@@ -101,7 +123,7 @@ if __name__ == "__main__":
                 else:  # make new config reset counter to 0
                     config = optimizer.ask()
                     cached_config = config
-                    jobs_for_current_config = 0
+                    jobs_for_current_config = 1
                 # instantiate job knowing which config it belongs to.
                 job = tp.apply_async(
                         objective,
@@ -132,7 +154,6 @@ if __name__ == "__main__":
             # only frozenset and tuple are hashable
             c_hash = hash(frozenset(config))
 
-            make_process()
             # Check if key exists
 
             if c_hash in result_buffer.keys():
@@ -152,7 +173,7 @@ if __name__ == "__main__":
                             }
                     results.append(_res)
                     opti_res = optimizer.tell(config, _res[loss_value])
-                    del result_buffer[c_hash]  # dont need that buffer
+                    # del result_buffer[c_hash]  # dont need that buffer
                     optimizer_results.append(opti_res)
                 else: # not last run yet, append to buffer for this config
                     print('APPEND map_res ')
@@ -160,6 +181,9 @@ if __name__ == "__main__":
             else:
                 print('NEW BUFFER')
                 result_buffer.update({c_hash: [map_res]})
+            # Make New Process
+            make_process()
+
 
         def error_callback(r):
             logger.log(level=logging.ERROR, msg=r)
@@ -173,7 +197,7 @@ if __name__ == "__main__":
            runs_per_config,
            )
         initial_map_results = []
-        prev_config = None
+        prev_config = None 
 
         # Start Loop
 
@@ -184,37 +208,36 @@ if __name__ == "__main__":
         # while there are jobs in the list being processed wait for them to finish
         # TODO: Understand this better, and maybe refactor
 
-        while jobs:
+        while not _DONE:
             if not active_children():
                 print('NO MORE ACTIVE CHILDREN')
                 # when no more child processes sleep a minute to let things settle
                 # then terminate Pool
+                print([(key, len(val)) for key, val in result_buffer.items()])
+                time.sleep(15)
                 tp.terminate()
-                time.sleep(60)
-
                 break
-
-        for async_result in jobs:
-            if async_result.ready():
-                jobs.remove(async_result)
+            # for async_result in jobs:
+            #     if async_result.ready():
+            #         jobs.remove(async_result)
 
     ##########################
     # result printing and saving
-    took = time.time() - start_time
-    print("Took for ALL: {} to run".format(time.strftime("%H: %M: %S", time.gmtime(took))))
-    # save custom results
-    with open(
-        "results/{}_{}_res_{}_{}.pkl".format(
-           time.strftime("%H_%M"), estimator, str(n_calls), loss_value
-           ),
-        "wb",
-         ) as file:
-        pickle.dump(results, file)
-    # save results from optimizer.tell()
-    with open(
-        "results/{}_{}_res_{}_{}_optimizer.pkl".format(
-           time.strftime("%H_%M"), estimator, str(n_calls), loss_value
-           ),
-        "wb",
-        ) as file:
-        pickle.dump(optimizer_results, file)
+    # took = time.time() - start_time
+    # print("Took for ALL: {} to run".format(time.strftime("%H: %M: %S", time.gmtime(took))))
+    # # save custom results
+    # with open(
+    #     "results/{}_{}_res_{}_{}.pkl".format(
+    #        time.strftime("%H_%M"), estimator, str(n_calls), loss_value
+    #        ),
+    #     "wb",
+    #      ) as file:
+    #     pickle.dump(results, file)
+    # # save results from optimizer.tell()
+    # with open(
+    #     "results/{}_{}_res_{}_{}_optimizer.pkl".format(
+    #        time.strftime("%H_%M"), estimator, str(n_calls), loss_value
+    #        ),
+    #     "wb",
+    #     ) as file:
+    #     pickle.dump(optimizer_results, file)
