@@ -48,7 +48,7 @@ if __name__ == "__main__":
 
     if not loss_value:
         print('ERROR: No loss value defined as second argument')
-        exit() 
+        exit()
     # more exploit then explore
     xi = 0.001
     kappa = 0.1
@@ -69,7 +69,7 @@ if __name__ == "__main__":
     # using all available cores with Pool()
     optimizer_results = []
     _DONE = False
-    # TODO: spawn or fork processes 
+    # TODO: spawn or fork processes
     with get_context('spawn').Pool(processes=cpu_count(), maxtasksperchild=2) as tp:
         # maxtasksperchild for controlling memory usage
         result_buffer = {}
@@ -136,9 +136,9 @@ if __name__ == "__main__":
             # Check if key exists
 
             if c_hash in result_buffer.keys():
-                # if this is the last run for config 
 
                 if len(result_buffer[c_hash]) == (runs_per_config - 1):
+                    # if this is the last run for config
                     print('SAVE RESULT')
                     # if so, compute mean over results for config and tell optimizer
                     result_buffer[c_hash].append(map_res)
