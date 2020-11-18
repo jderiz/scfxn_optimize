@@ -35,13 +35,13 @@ from setup import runs_per_config
 def design_with_config(**config):
     start_time = time.time()  #  Runtime measuring
     print('DESIGNING')
-    time.sleep(random.randint(3, 5))
-    dummy = {"bloss62": random.randint(1, 100), "ref15": random.randint(1, 50), "scfxn": random.randint(1, 46)}
+    # time.sleep(random.randint(3, 5))
+    # dummy = {"bloss62": random.randint(1, 100), "ref15": random.randint(1, 50), "scfxn": random.randint(1, 46)}
 
-    print('DESIGN_DONE: ',dummy)
-    took = time.time() - start_time
-    print("Took: {} to run".format(time.strftime("%H: %M: %S", time.gmtime(took))))
-    return dummy
+    # print('DESIGN_DONE: ',dummy)
+    # took = time.time() - start_time
+    # print("Took: {} to run".format(time.strftime("%H: %M: %S", time.gmtime(took))))
+    # return dummy
 
     ref15 = (
         get_fa_scorefxn()
