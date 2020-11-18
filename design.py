@@ -17,17 +17,17 @@ import create_scfxn
 from hyperparams import scfxn_ref15_space
 from setup import runs_per_config
 
- prs.init(
-     options="-ex1 -ex2", set_logging_handler=True, extra_options="-linmem_ig 10 -archive_on_disk /tmp/rosetta"
- )  # no output from the design process
- prs.logging_support.set_logging_sink()
- logger = logging.getLogger("rosetta")
- logger.setLevel(logging.ERROR)
- logger.handlers.pop() # remove stream handler
+prs.init(
+options="-ex1 -ex2", set_logging_handler=True, extra_options="-linmem_ig 10 -archive_on_disk /tmp/rosetta"
+)  # no output from the design process
+prs.logging_support.set_logging_sink()
+logger = logging.getLogger("rosetta")
+logger.setLevel(logging.ERROR)
+logger.handlers.pop() # remove stream handler
 
- rosetta_log_handler = logging.FileHandler('rosetta.log')
- rosetta_log_handler.setLevel(logging.DEBUG)
- logger.addHandler(rosetta_log_handler)
+rosetta_log_handler = logging.FileHandler('rosetta.log')
+rosetta_log_handler.setLevel(logging.DEBUG)
+logger.addHandler(rosetta_log_handler)
 
 
 
