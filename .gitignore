@@ -4,3 +4,7 @@ __pycache__/
 slurm*
 py_out/
 setup.py
+*.ipynb
+design.resfile
+plotting.py
+test_notebook.db
