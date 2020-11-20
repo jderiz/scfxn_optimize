@@ -93,7 +93,7 @@ if __name__ == "__main__":
                     if not job.ready():
                         # print(job._job, job._cache, job._event, job._pool)
                         job._event.set()  # tell process in same thread that is is done
-                        print(active_children())
+                        # print(active_children())
 
                 if all([job.ready() for job in jobs]):
                     print('ALL JOBS READY')
@@ -107,6 +107,7 @@ if __name__ == "__main__":
 
             print([job.ready() for job in jobs])
             print([(key, len(val)) for key, val in result_buffer.items()])
+            print(len(result_buffer))
             print('SAVING')
             took = time.time() - start_time
             print("Took for ALL: {} to run"
@@ -131,6 +132,7 @@ if __name__ == "__main__":
             tp.terminate()
             _DONE = True
 
+        my_configs = []
         def make_process():
             global calls
             global cached_config
@@ -145,9 +147,11 @@ if __name__ == "__main__":
                 jobs_for_current_config += 1
             else:  # make new config reset counter to 1
                 config = optimizer.ask()
+                optimizer.update_next()
                 cached_config = config
                 jobs_for_current_config = 1
             # instantiate job knowing which config it belongs to.
+            my_configs.append(config)
             job = tp.apply_async(
                 objective,
                 (config,),
@@ -168,7 +172,9 @@ if __name__ == "__main__":
             num_callbacks += 1
             print('CALLBACK: ', num_callbacks)
             # only frozenset and tuple are hashable
-            c_hash = hash(frozenset(config))
+            # c_hash = hash(frozenset(config))
+            # sorted(config)
+            c_hash = str(sorted(config))
 
             # Check if key exists
 

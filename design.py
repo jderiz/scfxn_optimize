@@ -18,19 +18,29 @@ from hyperparams import scfxn_ref15_space
 from setup import runs_per_config
 
 prs.init(
-    options="-ex1 -ex2", set_logging_handler=True, extra_options="-linmem_ig 10 -archive_on_disk /tmp/rosetta"
+options="-ex1 -ex2", set_logging_handler=True, extra_options="-linmem_ig 10 -archive_on_disk /tmp/rosetta"
 )  # no output from the design process
 prs.logging_support.set_logging_sink()
 logger = logging.getLogger("rosetta")
 logger.setLevel(logging.ERROR)
+logger.handlers.pop() # remove stream handler
+
+rosetta_log_handler = logging.FileHandler('rosetta.log')
+rosetta_log_handler.setLevel(logging.DEBUG)
+logger.addHandler(rosetta_log_handler)
+
 
 
 @use_named_args(dimensions=scfxn_ref15_space)
 def design_with_config(**config):
     start_time = time.time()  #  Runtime measuring
-    # print('DESIGNING')
-    # time.sleep(random.randint(30, 50))
+    print('DESIGNING')
+    # time.sleep(random.randint(3, 5))
     # dummy = {"bloss62": random.randint(1, 100), "ref15": random.randint(1, 50), "scfxn": random.randint(1, 46)}
+
+    # print('DESIGN_DONE: ',dummy)
+    # took = time.time() - start_time
+    # print("Took: {} to run".format(time.strftime("%H: %M: %S", time.gmtime(took))))
     # return dummy
 
     ref15 = (
@@ -79,4 +89,5 @@ def design_with_config(**config):
     took = time.time() - start_time
     print("Took: {} to run".format(time.strftime("%H: %M: %S", time.gmtime(took))))
 
+    # This has to be serializable in order to get pickled and send back to parent
     return result
