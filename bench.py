@@ -70,7 +70,7 @@ if __name__ == "__main__":
     jobs = []
     _DONE = False
 
-    with get_context('spawn').Pool(processes=cpu_count(), maxtasksperchild=2) as tp:
+    with get_context('spawn').Pool(processes=cpu_count(), maxtasksperchild=1) as tp:
         # maxtasksperchild for controlling memory usage
         BREAK_WAITING = False
         cached_config = None
@@ -143,7 +143,7 @@ if __name__ == "__main__":
             if cached_config and jobs_for_current_config < runs_per_config:
                 config = cached_config
                 jobs_for_current_config += 1
-            else:  # make new config reset counter to 0
+            else:  # make new config reset counter to 1
                 config = optimizer.ask()
                 cached_config = config
                 jobs_for_current_config = 1
