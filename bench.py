@@ -12,7 +12,6 @@ from joblib import Parallel, delayed
 from numpy import repeat
 from skopt import (Optimizer, callbacks, forest_minimize, gbrt_minimize,
                    gp_minimize)
-
 from design import design_with_config
 from hyperparams import ref15_weights, scfxn_ref15_space
 from setup import n_calls, parallel_configs, runs_per_config
@@ -30,7 +29,6 @@ if __name__ == "__main__":
 
     # instantiate result array and specific number calls to objective per optimizer
     results = []
-    # n_calls = 800  # Objective Function evaluations
     calls = 0  # iteration counter
     num_callbacks = 0  # keep track of callback calls
     start_time = time.time()  # overall Runtime measuring
@@ -43,10 +41,10 @@ if __name__ == "__main__":
 
     # global save_and_exit
 
-    if not loss_value:
-        print('ERROR: No loss value defined as second argument')
+    if not loss_value or not estimator:
+        print('ERROR: No loss or estimator supplied')
         exit()
-    # more exploit then explore
+    # more exploit then explore: DEFAULTS: xi:0.01, kappa:1.96 
     xi = 0.001
     kappa = 0.1
     acq_func_kwargs = {"xi": xi, "kappa": kappa}
@@ -58,14 +56,11 @@ if __name__ == "__main__":
     optimizer = Optimizer(
         dimensions=dimensions,
         base_estimator=estimator,
-        n_jobs=-1,
         acq_func_kwargs=acq_func_kwargs,
     )
 
     # MAIN optimiaztion Loop with custom result handling
     # using all available cores with Pool()
-    optimizer_results = []
-
     result_buffer = {}
     jobs = []
     _DONE = False
@@ -92,7 +87,7 @@ if __name__ == "__main__":
                 for job in jobs:
                     if not job.ready():
                         # print(job._job, job._cache, job._event, job._pool)
-                        job._event.set()  # tell process in same thread that is is done
+                        job._event.set()  # tell process in same thread that it is done
                         # print(active_children())
 
                 if all([job.ready() for job in jobs]):
@@ -111,23 +106,15 @@ if __name__ == "__main__":
             print('SAVING')
             took = time.time() - start_time
             print("Took for ALL: {} to run"
-                  .format(time.strftime("%H: %M: %S", time.gmtime(took))))
+                  .format(time.strftime("%D_%H: %M: %S", time.gmtime(took))))
             # save custom results
             with open(
                 "results/{}_{}_res_{}_{}.pkl".format(
-                    time.strftime("%H_%M"), estimator, str(n_calls), loss_value
+                    time.strftime("%D_%H_%M"), estimator, str(n_calls), loss_value
                 ),
                 "wb",
             ) as file:
                 pickle.dump(results, file)
-            # save results from optimizer.tell()
-            with open(
-                "results/{}_{}_res_{}_{}_optimizer.pkl".format(
-                    time.strftime("%H_%M"), estimator, str(n_calls), loss_value
-                ),
-                "wb",
-            ) as file:
-                pickle.dump(optimizer_results, file)
             print('TERMINATING')
             tp.terminate()
             _DONE = True
@@ -194,9 +181,9 @@ if __name__ == "__main__":
                         "weights": config,
                     }
                     results.append(_res)
-                    opti_res = optimizer.tell(config, _res[loss_value])
+                    optimizer.tell(config, _res[loss_value])
                     # del result_buffer[c_hash]  # dont need that buffer
-                    optimizer_results.append(opti_res)
+                    # optimizer_results.append(opti_res)
                 else:  # not last run yet, append to buffer for this config
                     print('APPEND map_res ')
                     result_buffer[c_hash].append(map_res)

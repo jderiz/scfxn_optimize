@@ -17,17 +17,25 @@ import create_scfxn
 from hyperparams import scfxn_ref15_space
 from setup import runs_per_config
 
-prs.init(
-options="-ex1 -ex2", set_logging_handler=True, extra_options="-linmem_ig 10 -archive_on_disk /tmp/rosetta"
-)  # no output from the design process
-prs.logging_support.set_logging_sink()
-logger = logging.getLogger("rosetta")
-logger.setLevel(logging.ERROR)
-logger.handlers.pop() # remove stream handler
 
-rosetta_log_handler = logging.FileHandler('rosetta.log')
-rosetta_log_handler.setLevel(logging.DEBUG)
-logger.addHandler(rosetta_log_handler)
+def initialize():
+    """initialize pyrosetta
+
+    :arg1: TODO
+    :returns: TODO
+
+    """
+    prs.init(
+    options="-ex1 -ex2", set_logging_handler=True, extra_options="-linmem_ig 10 -archive_on_disk /tmp/rosetta"
+    )  # no output from the design process
+    prs.logging_support.set_logging_sink()
+    logger = logging.getLogger("rosetta")
+    logger.setLevel(logging.ERROR)
+    logger.handlers.pop() # remove stream handler
+
+    rosetta_log_handler = logging.FileHandler('rosetta.log')
+    rosetta_log_handler.setLevel(logging.DEBUG)
+    logger.addHandler(rosetta_log_handler)
 
 
 
@@ -51,6 +59,7 @@ def design_with_config(**config):
     )  # optimization score Function
     pdbs = []
 
+    # get all protein pdbs
     for pdb in os.listdir("benchmark"):
         if pdb.endswith(".pdb"):
             #  store actual Pose() object
@@ -83,8 +92,7 @@ def design_with_config(**config):
     ) / len(pose.sequence())
 
     # moritz says its okay to return energy normalized by length
-    result = {"bloss62": -similar, "ref15": (ref15(pose)/len(pose.sequence())), "scfxn": (scfxn(pose)/len(pose.sequence()))}
-
+    result = {"prot_len": len(pose.sequence()), "bloss62": -similar, "ref15": (ref15(pose)/len(pose.sequence())), "scfxn": (scfxn(pose)/len(pose.sequence()))}
     print('DESIGN_DONE: ',result)
     took = time.time() - start_time
     print("Took: {} to run".format(time.strftime("%H: %M: %S", time.gmtime(took))))
