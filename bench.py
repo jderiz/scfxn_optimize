@@ -58,8 +58,8 @@ if __name__ == "__main__":
     optimizer = Optimizer(
         dimensions=dimensions,
         base_estimator=estimator,
-        n_jobs=-1,
         acq_func_kwargs=acq_func_kwargs,
+        n_initial_points=300
     )
 
     # MAIN optimiaztion Loop with custom result handling
@@ -91,13 +91,15 @@ if __name__ == "__main__":
             while not _DONE:
                 for job in jobs:
                     if not job.ready():
-                        # print(job._job, job._cache, job._event, job._pool)
+                        time.sleep(60)
+                        print(job._job, job._cache, job._event, job._pool)
                         job._event.set()  # tell process in same thread that is is done
                         # print(active_children())
 
                 if all([job.ready() for job in jobs]):
                     print('ALL JOBS READY')
                     tp.close()
+                    break
 
                 if not active_children():
                     print('No More active_children')
@@ -196,14 +198,15 @@ if __name__ == "__main__":
                     results.append(_res)
                     opti_res = optimizer.tell(config, _res[loss_value])
                     # del result_buffer[c_hash]  # dont need that buffer
-                    optimizer_results.append(opti_res)
+                    # optimizer_results.append(opti_res)
                 else:  # not last run yet, append to buffer for this config
                     print('APPEND map_res ')
                     result_buffer[c_hash].append(map_res)
-            else:
+            else: # otherwise make new buffer entry
                 print('NEW BUFFER')
                 result_buffer.update({c_hash: [map_res]})
 
+		# while there are calls left on the budget
             if calls < n_calls:
                 # Make New Process
                 make_process()

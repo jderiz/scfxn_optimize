@@ -1,6 +1,6 @@
 import os
-optimizers = ['GP'] #, 'RF', 'GBRT', 'ET']
-loss_funcs = ['scfxn', 'bloss62' ,'ref15']
+optimizers = ['dummy']#'GP'] #, 'RF', 'GBRT', 'ET']
+loss_funcs = ['bloss62']#, 'bloss62' ,'ref15']
 
 for opti in optimizers:
     for loss in loss_funcs:
