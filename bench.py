@@ -59,8 +59,17 @@ if __name__ == "__main__":
         dimensions=dimensions,
         base_estimator=estimator,
         acq_func_kwargs=acq_func_kwargs,
-        n_initial_points=300
+        # n_initial_points=300
     )
+
+    # Warmstart Optimizer
+    with open('wsres.pkl', 'rb') as h:
+        wsres = pickle.load(h)
+    
+    y_0 = [x[loss_value] for x in wsres]
+    x_0 = [x['weights'] for x in wsres]
+    optimizer.tell(x_0, y_0)
+
 
     # MAIN optimiaztion Loop with custom result handling
     # using all available cores with Pool()
@@ -70,7 +79,7 @@ if __name__ == "__main__":
     jobs = []
     _DONE = False
 
-    with get_context('spawn').Pool(processes=cpu_count(), maxtasksperchild=1) as tp:
+    with get_context('spawn').Pool(processes=cpu_count(), maxtasksperchild=2) as tp:
         # maxtasksperchild for controlling memory usage
         BREAK_WAITING = False
         cached_config = None
