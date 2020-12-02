@@ -57,7 +57,17 @@ if __name__ == "__main__":
         dimensions=dimensions,
         base_estimator=estimator,
         acq_func_kwargs=acq_func_kwargs,
+        # n_initial_points=300
     )
+
+    # Warmstart Optimizer
+    with open('wsres.pkl', 'rb') as h:
+        wsres = pickle.load(h)
+    
+    y_0 = [x[loss_value] for x in wsres]
+    x_0 = [x['weights'] for x in wsres]
+    optimizer.tell(x_0, y_0)
+
 
     # MAIN optimiaztion Loop with custom result handling
     # using all available cores with Pool()
@@ -65,7 +75,7 @@ if __name__ == "__main__":
     jobs = []
     _DONE = False
 
-    with get_context('spawn').Pool(processes=cpu_count(), maxtasksperchild=1) as tp:
+    with get_context('spawn').Pool(processes=cpu_count(), maxtasksperchild=2) as tp:
         # maxtasksperchild for controlling memory usage
         BREAK_WAITING = False
         cached_config = None
@@ -86,13 +96,15 @@ if __name__ == "__main__":
             while not _DONE:
                 for job in jobs:
                     if not job.ready():
-                        # print(job._job, job._cache, job._event, job._pool)
-                        job._event.set()  # tell process in same thread that it is done
+                        time.sleep(60)
+                        print(job._job, job._cache, job._event, job._pool)
+                        job._event.set()  # tell process in same thread that is is done
                         # print(active_children())
 
                 if all([job.ready() for job in jobs]):
                     print('ALL JOBS READY')
                     tp.close()
+                    break
 
                 if not active_children():
                     print('No More active_children')
@@ -187,10 +199,11 @@ if __name__ == "__main__":
                 else:  # not last run yet, append to buffer for this config
                     print('APPEND map_res ')
                     result_buffer[c_hash].append(map_res)
-            else:
+            else: # otherwise make new buffer entry
                 print('NEW BUFFER')
                 result_buffer.update({c_hash: [map_res]})
 
+		# while there are calls left on the budget
             if calls < n_calls:
                 # Make New Process
                 make_process()
