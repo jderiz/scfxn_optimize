@@ -18,7 +18,7 @@ from hyperparams import scfxn_ref15_space
 from setup import runs_per_config
 
 prs.init(
-options="-ex1 -ex2", set_logging_handler=True, extra_options="-linmem_ig 10 -archive_on_disk /tmp/rosetta"
+options="-ex1 -ex2", set_logging_handler=True, extra_options="-mute basic -mute core -mute protocols -linmem_ig 10 -archive_on_disk /tmp/rosetta"
 )  # no output from the design process
 prs.logging_support.set_logging_sink()
 logger = logging.getLogger("rosetta")
@@ -83,7 +83,7 @@ def design_with_config(**config):
     ) / len(pose.sequence())
 
     # moritz says its okay to return energy normalized by length
-    result = {"bloss62": -similar, "ref15": (ref15(pose)/len(pose.sequence())), "scfxn": (scfxn(pose)/len(pose.sequence()))}
+    result = {"sequence": pose.sequence(), "bloss62": -similar, "ref15": (ref15(pose)/len(pose.sequence())), "scfxn": (scfxn(pose)/len(pose.sequence()))}
 
     print('DESIGN_DONE: ',result)
     took = time.time() - start_time
