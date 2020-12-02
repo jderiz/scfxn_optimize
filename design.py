@@ -20,10 +20,6 @@ from setup import runs_per_config
 
 def initialize():
     """initialize pyrosetta
-
-    :arg1: TODO
-    :returns: TODO
-
     """
     prs.init(
     options="-ex1 -ex2", set_logging_handler=True, extra_options="-linmem_ig 10 -archive_on_disk /tmp/rosetta"
@@ -43,14 +39,6 @@ def initialize():
 def design_with_config(**config):
     start_time = time.time()  #  Runtime measuring
     print('DESIGNING')
-    # time.sleep(random.randint(3, 5))
-    # dummy = {"bloss62": random.randint(1, 100), "ref15": random.randint(1, 50), "scfxn": random.randint(1, 46)}
-
-    # print('DESIGN_DONE: ',dummy)
-    # took = time.time() - start_time
-    # print("Took: {} to run".format(time.strftime("%H: %M: %S", time.gmtime(took))))
-    # return dummy
-
     ref15 = (
         get_fa_scorefxn()
     )  # REF15 score function with default weights for loss calulation
@@ -92,7 +80,7 @@ def design_with_config(**config):
     ) / len(pose.sequence())
 
     # moritz says its okay to return energy normalized by length
-    result = {"prot_len": len(pose.sequence()), "bloss62": -similar, "ref15": (ref15(pose)/len(pose.sequence())), "scfxn": (scfxn(pose)/len(pose.sequence()))}
+    result = {"sequence": pose.sequence(), "prot_len": len(pose.sequence()), "bloss62": -similar, "ref15": (ref15(pose)/len(pose.sequence())), "scfxn": (scfxn(pose)/len(pose.sequence()))}
     print('DESIGN_DONE: ',result)
     took = time.time() - start_time
     print("Took: {} to run".format(time.strftime("%H: %M: %S", time.gmtime(took))))
