@@ -2,13 +2,10 @@
 import logging
 import os
 import random
-import subprocess
-from multiprocessing import Pool
 
 import pyrosetta as prs
 from Bio import pairwise2
 from Bio.Align import substitution_matrices
-from joblib import Parallel, delayed
 from pyrosetta import (Pose, PyJobDistributor, get_fa_scorefxn, init,
                        pose_from_pdb)
 from skopt.utils import use_named_args
@@ -21,6 +18,8 @@ from setup import runs_per_config
 def initialize():
     """initialize pyrosetta
     """
+    global prs
+    print('INITIALIZED')
     prs.init(
     options="-ex1 -ex2", set_logging_handler=True, extra_options="-linmem_ig 10 -archive_on_disk /tmp/rosetta"
     )  # no output from the design process
