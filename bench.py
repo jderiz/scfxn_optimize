@@ -1,7 +1,8 @@
 import argparse
-from multiprocessing import Pool, cpu_count
+from multiprocessing import Pool, cpu_count, get_context
+from design import initialize 
 
-from optimization import Optimization
+import optimization
 
 if __name__ == "__main__":
     """
@@ -9,7 +10,7 @@ if __name__ == "__main__":
     Main execution script for Optimization run
 
     """
-    description = "Run optimization of Energy Function weights for some objective "
+    description = "Run optimization of Energy Function weights in parallel"
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument(
         "-e",
@@ -61,11 +62,15 @@ if __name__ == "__main__":
     else:
         cores = args.cores
 
-    with Pool(processes=cores, maxtasksperchild=5) as tp:  # get_context('spawn')
-        optimization = Optimization(
-            tp,
-            args.loss,
-            base_estimator=args.estimator,
-            test_run=args.test_run,
-        )
-        optimization.start()
+    n_calls = args.evals*args.rpc
+
+    optimization.init(
+        # tp,
+        args.loss,
+        base_estimator=args.estimator,
+        test_run=args.test_run,
+        cores=cores, 
+        n_calls=n_calls,
+        runs_per_config=args.rpc
+    )
+    optimization.start()
