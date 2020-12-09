@@ -23,17 +23,19 @@ logger.setLevel(logging.WARNING)
 
 def init(
     loss,
-    base_estimator="RF",
+    estimator="RF",
     test_run=False,
-    n_calls=200,
-    runs_per_config=5,
+    number_calls=200,
+    rpc=5,
     result_dir="results",
     warm_start=None,
     cores=None,
+    mtpc=None
 ):
     """
     Init Optimization 
     """
+    
     # define global variables all functions can access
     global _DONE
     global _cores
@@ -51,19 +53,20 @@ def init(
     global loss_value
     global jobs_for_current_config
     global base_estimator
+    global tp
 
     cached_config = None
     loss_value = loss
     jobs_for_current_config = 0
-    n_calls = n_calls
-    runs_per_config = runs_per_config
+    n_calls = number_calls*rpc
+    runs_per_config = rpc
     calls = 0  # iteration counter
     num_callbacks = 0  # keep track of callback calls
     jobs = []
     _DONE = False
     result_buffer = {}
     results = []
-    base_estimator = base_estimator
+    base_estimator = estimator
 
     # Setup result folder
     os.makedirs(result_dir, exist_ok=True)
@@ -83,8 +86,10 @@ def init(
     if test_run:
         print("DUMMY OBJECTIVE")
         objective = dummy_objective
+        init_method = None
     else:
         objective = design_with_config
+        init_method = initialize
     # more exploit then explore: DEFAULTS: xi:0.01, kappa:1.96
     # TODO: implement cooldown [start_values, end_values]
     xi = 0.001
@@ -105,6 +110,9 @@ def init(
         y_0 = [x[loss_value] for x in wsres]
         x_0 = [x["weights"] for x in wsres]
         optimizer.tell(x_0, y_0)
+    
+    tp = Pool(cores, initializer=init_method, maxtasksperchild=mtpc)
+
 
 
 def dummy_objective(config):
@@ -118,17 +126,18 @@ def dummy_objective(config):
     }
 
 
-def save_and_exit(tp):
+def save_and_exit():
     print("wait for all Processes to finish and close pool")
     print(len(active_children()))
     global jobs
     global _DONE
     global base_estimator
+    global tp
 
     while not _DONE:
         for job in jobs:
             if not job.ready():
-                time.sleep(60)
+                time.sleep(5)
                 print(job._job, job._cache, job._event, job._pool)
                 job._event.set()  # tell process in same thread that is is done
                 # print(active_children())
@@ -169,7 +178,7 @@ def save_and_exit(tp):
     _DONE = True
 
 
-def make_process(tp, config=None):
+def make_process(config=None):
     # TODO: lock
 
     # while not reached n_calls make either new config and first job for it
@@ -178,6 +187,8 @@ def make_process(tp, config=None):
     global jobs_for_current_config
     global runs_per_config
     global calls
+    global tp
+    global n_calls
 
     if config:
         config = config
@@ -207,7 +218,7 @@ def make_process(tp, config=None):
 
 def _callback(map_res, config=None):
     """
-    Whenever a process finishes it calls config_callback with its result
+    Whenever a process finishes it calls _callback with its result
     and a new process can be run. 
     """
     # TODO: lock
@@ -215,6 +226,8 @@ def _callback(map_res, config=None):
     global loss_value
     global result_buffer
     global results
+    global tp
+    global n_calls
     
 
     num_callbacks += 1
@@ -258,15 +271,16 @@ def _callback(map_res, config=None):
     # TODO: release lock
 
     if calls < n_calls:
+        print(calls, n_calls)
         # Make New Process
         make_process()
     else:
         # wait for all processors to finish then exit Pool
-
-        while active_children():
-            print(len(jobs))
-            time.sleep(60)
-
+        # while active_children():
+        #     print(len(jobs))
+        #     time.sleep(60)
+        if num_callbacks == n_calls:
+            save_and_exit()
         # pending_jobs -= 1
         # print("PENDING: ", pending_jobs)
         # print("ACTIVE CHILDREN: ", len(active_children()))
@@ -287,6 +301,7 @@ def start():
     """
     start the optimization process, and wait for it to finish
     """
+    global _DONE
     _DONE = False
     ref15_config = [val for k, val in ref15_weights]
     # initial runs
@@ -297,5 +312,5 @@ def start():
         make_process()
 
     while not _DONE:
-        time.sleep(60)
+        time.sleep(5)
         pass

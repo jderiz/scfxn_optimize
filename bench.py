@@ -1,8 +1,8 @@
 import argparse
 from multiprocessing import Pool, cpu_count, get_context
-from design import initialize 
 
 import optimization
+from design import initialize
 
 if __name__ == "__main__":
     """
@@ -45,13 +45,19 @@ if __name__ == "__main__":
     parser.add_argument(
         "-w",
         "--warm-start-file",
-        help="specifies a pickled object that holds information of previous runs and can be used to warm start the optimization by telling the optimiter about those points",
+        help="specifies a pickled object that holds information of previous runs and can be used to warm start the optimization by telling the optimizer about those points",
     )
     parser.add_argument(
         "-c",
         "--cores",
         default=0,
         help="spcify number of cores to use if 0 then use all",
+    )
+    parser.add_argument(
+        "-mtpc",
+        "--max-tasks-per-child",
+        default=3,
+        help="limit the number of task a worker process can complete before respawning a new process ( useful for freeing RAM)",
     )
 
     args = parser.parse_args()
@@ -62,15 +68,14 @@ if __name__ == "__main__":
     else:
         cores = args.cores
 
-    n_calls = args.evals*args.rpc
-
     optimization.init(
         # tp,
         args.loss,
-        base_estimator=args.estimator,
+        estimator=args.estimator,
         test_run=args.test_run,
-        cores=cores, 
-        n_calls=n_calls,
-        runs_per_config=args.rpc
+        cores=cores,
+        number_calls=args.evals,
+        rpc=args.runs_per_config,
+        mtpc=int(args.max_tasks_per_child)
     )
     optimization.start()
