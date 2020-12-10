@@ -73,9 +73,9 @@ if __name__ == "__main__":
         args.loss,
         estimator=args.estimator,
         test_run=args.test_run,
-        cores=cores,
-        number_calls=args.evals,
-        rpc=args.runs_per_config,
+        cores=int(cores),
+        number_calls=int(args.evals),
+        rpc=int(args.runs_per_config),
         mtpc=int(args.max_tasks_per_child)
     )
     optimization.start()

@@ -156,7 +156,6 @@ def save_and_exit() -> None:
             break
         time.sleep(5)
 
-    print([job.ready() for job in jobs])
     print("SAVING")
     took = time.time() - start_time
     print(

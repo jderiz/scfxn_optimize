@@ -21,7 +21,7 @@ def initialize():
     global prs
     print('INITIALIZED')
     prs.init(
-    options="-ex1 -ex2", set_logging_handler=True, extra_options="-linmem_ig 10 -archive_on_disk /tmp/rosetta"
+    options="-ex1 -ex2", set_logging_handler=True, extra_options="-linmem_ig 10 -archive_on_disk /tmp/rosetta -mute core -mute"
     )  # no output from the design process
     prs.logging_support.set_logging_sink()
     logger = logging.getLogger("rosetta")
@@ -31,6 +31,15 @@ def initialize():
     rosetta_log_handler = logging.FileHandler('rosetta.log')
     rosetta_log_handler.setLevel(logging.DEBUG)
     logger.addHandler(rosetta_log_handler)
+    global pdbs 
+    pdbs = {}
+
+    # get all protein pdbs
+    for pdb in os.listdir("benchmark"):
+        if pdb.endswith(".pdb"):
+            #  store actual Pose() object
+            pdbs.update({pdb.split('.')[0]: pose_from_pdb("benchmark/" + pdb)})
+
 
 
 
@@ -44,16 +53,12 @@ def design_with_config(**config):
     scfxn = create_scfxn.creat_scfxn_from_config(
         config=config
     )  # optimization score Function
-    pdbs = []
-
-    # get all protein pdbs
-    for pdb in os.listdir("benchmark"):
-        if pdb.endswith(".pdb"):
-            #  store actual Pose() object
-            pdbs.append(pose_from_pdb("benchmark/" + pdb))
-    # pick random
-    pose = random.choice(pdbs)
     
+    # pick random
+    # pose = random.choice(pdbs)
+    # key = random.choice(pdbs.keys())
+    # pose = pdbs[key]
+    pose = pdbs['1K9P']
 
     # copy pose for comparison after design
     native_pose = Pose()
