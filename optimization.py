@@ -87,7 +87,7 @@ def init(
         print("DUMMY OBJECTIVE")
         objective = dummy_objective
         init_method = None
-        n_calls = 10
+        n_calls = 200
     else:
         objective = design_with_config
         init_method = initialize
@@ -108,8 +108,7 @@ def init(
         with open(warm_start + ".pkl", "rb") as h:
             wsres = pickle.load(h)
 
-        wg = wsres.groupby('weights')
-
+        # TODO: group by c_hash and then mean() over loss for each group
         y_0 = [x[loss_value] for x in wsres]
         x_0 = [x["weights"] for x in wsres]
         optimizer.tell(x_0, y_0)
