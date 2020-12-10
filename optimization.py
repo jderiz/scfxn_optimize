@@ -30,12 +30,12 @@ def init(
     result_dir="results",
     warm_start=None,
     cores=None,
-    mtpc=None
+    mtpc=None,
 ):
     """
     Init Optimization 
     """
-    
+
     # define global variables all functions can access
     global _DONE
     global _cores
@@ -58,7 +58,7 @@ def init(
     cached_config = None
     loss_value = loss
     jobs_for_current_config = 0
-    n_calls = number_calls*rpc
+    n_calls = number_calls
     runs_per_config = rpc
     calls = 0  # iteration counter
     num_callbacks = 0  # keep track of callback calls
@@ -87,6 +87,7 @@ def init(
         print("DUMMY OBJECTIVE")
         objective = dummy_objective
         init_method = None
+        n_calls = 10
     else:
         objective = design_with_config
         init_method = initialize
@@ -110,14 +111,13 @@ def init(
         y_0 = [x[loss_value] for x in wsres]
         x_0 = [x["weights"] for x in wsres]
         optimizer.tell(x_0, y_0)
-    
+
     tp = Pool(cores, initializer=init_method, maxtasksperchild=mtpc)
 
 
-
-def dummy_objective(config):
+def dummy_objective(config) -> dict:
     # print('TEST')
-    time.sleep(1)
+    time.sleep(random.randint(1, 5))
 
     return {
         "bloss62": random.randint(1, 100),
@@ -126,7 +126,7 @@ def dummy_objective(config):
     }
 
 
-def save_and_exit():
+def save_and_exit() -> None:
     print("wait for all Processes to finish and close pool")
     print(len(active_children()))
     global jobs
@@ -156,19 +156,17 @@ def save_and_exit():
         time.sleep(5)
 
     print([job.ready() for job in jobs])
-    print([(key, len(val)) for key, val in result_buffer.items()])
-    print(len(result_buffer))
     print("SAVING")
     took = time.time() - start_time
     print(
         "Took for ALL: {} to run".format(
-            time.strftime("%D_%H: %M: %S", time.gmtime(took))
+            time.strftime("%H: %M: %S", time.gmtime(took))
         )
     )
     # save custom results
     with open(
         "results/{}_{}_res_{}_{}.pkl".format(
-            time.strftime("%D_%H_%M"), base_estimator, str(n_calls), loss_value,
+            time.strftime("%H_%M"), base_estimator, str(n_calls), loss_value,
         ),
         "wb",
     ) as file:
@@ -178,11 +176,45 @@ def save_and_exit():
     _DONE = True
 
 
-def make_process(config=None):
-    # TODO: lock
+def _callback(map_res, config=None) -> None:
+    """
+    Whenever a process finishes it calls _callback with its result
+    and a new process can be run. 
+    """
+    global num_callbacks
+    global loss_value
+    global results
+    global tp
+    global n_calls
+    global calls
+    num_callbacks += 1
+    print("CALLBACK: ", num_callbacks)
+    # print(map_res)
+    # add weights to each entry
+    for res in map_res:
+        res.update({'weights': config})
+    # print(map_res)
+    results.extend(map_res)
+    optimizer.tell(
+        config, (sum([x[loss_value] for x in map_res]) / len(map_res))
+    )
 
-    # while not reached n_calls make either new config and first job for it
-    # of instantiate job for existing config until @param runs_per_config.
+    if calls <= n_calls:
+        print(calls, n_calls)
+        # Make New Process batch
+        make_batch()
+    else:
+        if num_callbacks == n_calls:
+            save_and_exit()
+
+
+def error_callback(r):
+    logger.log(level=logging.ERROR, msg=r)
+
+
+def make_batch(config=None) -> None:
+    print('Make Batch')
+
     global cached_config
     global jobs_for_current_config
     global runs_per_config
@@ -202,10 +234,10 @@ def make_process(config=None):
         optimizer.update_next()
         cached_config = config
         jobs_for_current_config = 1
-    # instantiate job knowing which config it belongs to.
-    job = tp.apply_async(
+    # instantiate jobs knowing which config they belongs to.
+    job = tp.map_async(
         objective,
-        (config,),
+        [config for _ in range(runs_per_config)],
         callback=partial(_callback, config=config),
         error_callback=error_callback,
     )
@@ -213,104 +245,25 @@ def make_process(config=None):
     jobs.append(job)
     calls += 1
 
-    # TODO: release lock
-
-
-def _callback(map_res, config=None):
-    """
-    Whenever a process finishes it calls _callback with its result
-    and a new process can be run. 
-    """
-    # TODO: lock
-    global num_callbacks
-    global loss_value
-    global result_buffer
-    global results
-    global tp
-    global n_calls
-    
-
-    num_callbacks += 1
-    print("CALLBACK: ", num_callbacks)
-    # only frozenset and tuple are hashable
-    # c_hash = hash(frozenset(config))
-    # sorted(config)
-    c_hash = str(sorted(config))
-
-    # Check if key exists
-
-    if c_hash in result_buffer.keys():
-
-        if len(result_buffer[c_hash]) == (runs_per_config - 1):
-            # if this is the last run for config
-            print("SAVE RESULT")
-            # if so, compute mean over results for config and tell optimizer
-            result_buffer[c_hash].append(map_res)
-            # print(result_buffer[c_hash])
-            res = result_buffer[c_hash]
-            _res = {
-                "sequence": map_res["sequence"],
-                "bloss62": sum([x["bloss62"] for x in res]) / len(res),
-                "ref15": sum([x["ref15"] for x in res]) / len(res),
-                "scfxn": sum([x["scfxn"] for x in res]) / len(res),
-                "weights": config,
-            }
-            results.append(_res)
-            optimizer.tell(config, _res[loss_value])
-            # del result_buffer[c_hash]  # dont need that buffer
-            # optimizer_results.append(opti_res)
-        else:  # not last run yet, append to buffer for this config
-            print("APPEND map_res ")
-            result_buffer[c_hash].append(map_res)
-    else:  # otherwise make new buffer entry
-        print("NEW BUFFER")
-        result_buffer.update({c_hash: [map_res]})
-
-    # while there are calls left on the budget
-
-    # TODO: release lock
-
-    if calls < n_calls:
-        print(calls, n_calls)
-        # Make New Process
-        make_process()
-    else:
-        # wait for all processors to finish then exit Pool
-        # while active_children():
-        #     print(len(jobs))
-        #     time.sleep(60)
-        if num_callbacks == n_calls:
-            save_and_exit()
-        # pending_jobs -= 1
-        # print("PENDING: ", pending_jobs)
-        # print("ACTIVE CHILDREN: ", len(active_children()))
-        # # print([job.ready() for job in jobs])
-
-        # # TODO: think HARD why there is one left job that is not ready ??
-        # # has not returned? counter error?
-
-        # if pending_jobs == 0:
-        #     save_and_exit()
-
-
-def error_callback(r):
-    logger.log(level=logging.ERROR, msg=r)
-
 
 def start():
     """
     start the optimization process, and wait for it to finish
     """
     global _DONE
+    global calls
+    global runs_per_config
     _DONE = False
     ref15_config = [val for k, val in ref15_weights]
     # initial runs
 
-    make_process(ref15_config)
+    make_batch(ref15_config)
+    calls += 1
 
-    for _ in range(_cores):
-        make_process()
+    for _ in range(int(_cores/runs_per_config) - 1):
+        make_batch()
 
     while not _DONE:
-        time.sleep(5)
+        print('Wait...')
+        time.sleep(25)
         pass
