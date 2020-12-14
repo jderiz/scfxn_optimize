@@ -108,7 +108,7 @@ def init(
         with open(warm_start + ".pkl", "rb") as h:
             wsres = pickle.load(h)
 
-        # TODO: group by c_hash and then mean() over loss for each group
+        # TODO: group by c_hash and then mean()
         y_0 = [x[loss_value] for x in wsres]
         x_0 = [x["weights"] for x in wsres]
         optimizer.tell(x_0, y_0)
@@ -156,6 +156,7 @@ def save_and_exit() -> None:
             break
         time.sleep(5)
 
+    print([job.ready() for job in jobs])
     print("SAVING")
     took = time.time() - start_time
     print(
@@ -191,7 +192,7 @@ def _callback(map_res, config=None) -> None:
     print("CALLBACK: ", num_callbacks)
     # print(map_res)
     # add weights to each entry
-    c_hash = str(sorted(config))
+    c_hash = hash(str(sorted(config)))
     for res in map_res:
         res.update({'weights': config})
         res.update({'c_hash': c_hash})

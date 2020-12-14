@@ -16,7 +16,7 @@ if __name__ == "__main__":
         "-e",
         "--estimator",
         default="RF",
-        help="the base_estimator to be used by the Optimizer",
+        help="the base_estimator to be used by the Optimizer in skopt (RF, ET, GBRT, GP)",
     )
     parser.add_argument(
         "-l",
