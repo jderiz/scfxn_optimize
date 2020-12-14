@@ -10,11 +10,11 @@ from multiprocessing import (Pipe, Pool, active_children, cpu_count,
                              current_process, get_context)
 
 from numpy import repeat
+from skopt import (Optimizer, callbacks, forest_minimize, gbrt_minimize,
+                   gp_minimize)
 
 from design import design_with_config, initialize
 from hyperparams import ref15_weights, scfxn_ref15_space
-from skopt import (Optimizer, callbacks, forest_minimize, gbrt_minimize,
-                   gp_minimize)
 
 # Setup Logging
 logger = multiprocessing.log_to_stderr()
@@ -87,7 +87,7 @@ def init(
         print("DUMMY OBJECTIVE")
         objective = dummy_objective
         init_method = None
-        n_calls = 200
+        # n_calls = 200
     else:
         objective = design_with_config
         init_method = initialize
@@ -118,7 +118,7 @@ def init(
 
 def dummy_objective(config) -> dict:
     # print('TEST')
-    time.sleep(random.randint(1, 5))
+    # time.sleep(random.randint(5, 15))
 
     return {
         "bloss62": random.randint(1, 100),
@@ -128,35 +128,18 @@ def dummy_objective(config) -> dict:
 
 
 def save_and_exit() -> None:
-    print("wait for all Processes to finish and close pool")
+    """All Callbacks have returned, tell all remaining jobs they are done, terminate pool and save results"""
     print(len(active_children()))
     global jobs
     global _DONE
     global base_estimator
     global tp
 
-    while not _DONE:
-        for job in jobs:
-            if not job.ready():
-                time.sleep(5)
-                print(job._job, job._cache, job._event, job._pool)
-                job._event.set()  # tell process in same thread that is is done
-                # print(active_children())
-
-        if all([job.ready() for job in jobs]):
-            print("ALL JOBS READY")
-            tp.close()
-
-            break
-
-        if not active_children():
-            print("No More active_children")
-            _DONE = True
-
-            break
-        time.sleep(5)
-
+    # tell Pool to terminate
+    tp.close()
+    print(tp._state)
     print([job.ready() for job in jobs])
+
     print("SAVING")
     took = time.time() - start_time
     print(
@@ -174,7 +157,6 @@ def save_and_exit() -> None:
         pickle.dump(results, file)
     print("TERMINATING")
     tp.terminate()
-    _DONE = True
 
 
 def _callback(map_res, config=None) -> None:
@@ -188,26 +170,31 @@ def _callback(map_res, config=None) -> None:
     global tp
     global n_calls
     global calls
+    global _DONE
     num_callbacks += 1
-    print("CALLBACK: ", num_callbacks)
     # print(map_res)
-    # add weights to each entry
+    # add weights to each entry as well as config hash for later analysis
     c_hash = hash(str(sorted(config)))
+
     for res in map_res:
-        res.update({'weights': config})
+        res.update({'config': config})
         res.update({'c_hash': c_hash})
     # print(map_res)
     results.extend(map_res)
     optimizer.tell(
         config, (sum([x[loss_value] for x in map_res]) / len(map_res))
     )
+    print("CALLBACK: ", num_callbacks)
 
-    if calls <= n_calls:
+    # make n_calls batches
+    if calls < n_calls:
         print(calls, n_calls)
         # Make New Process batch
         make_batch()
     else:
-        if num_callbacks == n_calls:
+        if len(results) == n_calls*runs_per_config:
+            print('got ', len(results), ' results from ', len(jobs), ' jobs from which ', len([job for job in jobs if job.ready()]), 'report ready')
+            _DONE = True  # release waiting Loop
             save_and_exit()
 
 
@@ -216,14 +203,15 @@ def error_callback(r):
 
 
 def make_batch(config=None) -> None:
-    print('Make Batch')
-
     global cached_config
     global jobs_for_current_config
     global runs_per_config
     global calls
     global tp
     global n_calls
+
+    calls += 1
+    print('Make Batch: ', calls)
 
     if config:
         config = config
@@ -246,7 +234,7 @@ def make_batch(config=None) -> None:
     )
     # Append map_result to jobs list
     jobs.append(job)
-    calls += 1
+    # increase calls counter
 
 
 def start():
@@ -261,12 +249,12 @@ def start():
     # initial runs
 
     make_batch(ref15_config)
-    calls += 1
 
     for _ in range(int(_cores/runs_per_config) - 1):
         make_batch()
 
     while not _DONE:
-        print('Wait...')
-        time.sleep(25)
+        # endless while consumes a lot of cpu 
+        # print('Wait...')
+        time.sleep(5)
         pass
