@@ -16,7 +16,7 @@ if __name__ == "__main__":
         "-e",
         "--estimator",
         default="RF",
-        help="the base_estimator to be used by the Optimizer",
+        help="the base_estimator to be used by the Optimizer in skopt (RF, ET, GBRT, GP)",
     )
     parser.add_argument(
         "-l",
@@ -72,9 +72,9 @@ if __name__ == "__main__":
         args.loss,
         estimator=args.estimator,
         test_run=args.test_run,
-        cores=cores,
-        number_calls=args.evals,
-        rpc=args.runs_per_config,
+        cores=int(cores),
+        number_calls=int(args.evals),
+        rpc=int(args.runs_per_config),
         mtpc=int(args.max_tasks_per_child)
     )
     optimization.start()
