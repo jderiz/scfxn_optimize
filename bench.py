@@ -69,7 +69,6 @@ if __name__ == "__main__":
         cores = args.cores
 
     optimization.init(
-        # tp,
         args.loss,
         estimator=args.estimator,
         test_run=args.test_run,
