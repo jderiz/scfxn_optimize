@@ -12,7 +12,7 @@ from skopt import (Optimizer, callbacks)
 import pandas as pd
 from design import design_with_config, initialize
 from hyperparams import ref15_weights, scfxn_ref15_space
-
+import multiprocessing
 # Setup Logging
 logger = multiprocessing.log_to_stderr()
 logger.setLevel(logging.WARNING)
