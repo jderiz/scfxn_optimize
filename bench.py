@@ -10,7 +10,8 @@ if __name__ == "__main__":
     Main execution script for Optimization run
 
     """
-    description = "Run optimization of Energy Function weights in parallel"
+    description = "Run optimization of Energy Function weights for some objective\n\
+                    function in parallel."
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument(
         "-e",

@@ -1,5 +1,4 @@
 import logging
-import multiprocessing
 import os
 import pickle
 import random
@@ -9,10 +8,8 @@ from functools import partial
 from multiprocessing import (Pipe, Pool, active_children, cpu_count,
                              current_process, get_context)
 
-from numpy import repeat
-from skopt import (Optimizer, callbacks, forest_minimize, gbrt_minimize,
-                   gp_minimize)
-
+from skopt import (Optimizer, callbacks)
+import pandas as pd
 from design import design_with_config, initialize
 from hyperparams import ref15_weights, scfxn_ref15_space
 
@@ -106,11 +103,14 @@ def init(
 
     if warm_start:
         with open(warm_start + ".pkl", "rb") as h:
-            wsres = pickle.load(h)
+            wsres : pd.DataFrame = pickle.load(h)
 
         # TODO: group by c_hash and then mean()
-        y_0 = [x[loss_value] for x in wsres]
-        x_0 = [x["weights"] for x in wsres]
+        # we only want to tell the optimizer one y_0 per config
+        c_group = wsres.goupby('c_hash')
+
+        y_0 = [x[loss_value].mean() for x in c_group]
+        x_0 = [x["weights"][0] for x in c_group]
         optimizer.tell(x_0, y_0)
 
     tp = Pool(cores, initializer=init_method, maxtasksperchild=mtpc)
