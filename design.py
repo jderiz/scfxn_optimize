@@ -13,8 +13,7 @@ from skopt.utils import use_named_args
 
 import create_scfxn
 from hyperparams import scfxn_ref15_space
-from setup import runs_per_config
-
+from pyrosetta.rosetta.utility import vector1_bool
 
 def initialize():
     """initialize pyrosetta
@@ -27,7 +26,7 @@ def initialize():
     prs.logging_support.set_logging_sink()
     logger = logging.getLogger("rosetta")
     logger.setLevel(logging.ERROR)
-    logger.handlers.pop()  # remove stream handler
+    # logger.handlers.pop()  # remove stream handler
 
     rosetta_log_handler = logging.FileHandler('rosetta.log')
     rosetta_log_handler.setLevel(logging.DEBUG)
@@ -41,8 +40,32 @@ def initialize():
         if pdb.endswith(".pdb"):
             #  store actual Pose() object
             pdbs.update({pdb.split('.')[0]: pose_from_pdb("benchmark/" + pdb)})
+    global pssms
+    pssms = {}
 
-    # print(pdbs)
+    
+    for pssm in os.listdir('PSSMS'):
+        # for all benchmark pdbs set the native pose as comparison_pose
+        # set ReturnResidueSubsetSelector with whole sequence
+        names = pssm.split('_') 
+        for prot_name in pdbs.keys():
+            if prot_name in names:
+                seq_len = len(pdbs[prot_name].sequence())
+                sub_vec = vector1_bool()
+                for _ in range(seq_len):
+                    # make  as long as sequence 
+                    sub_vec.append(1)
+                srm = prs.rosetta.protocols.analysis.simple_metrics.SequenceRecoveryMetric()
+                # get ResidueSelector that selects entire Sequence
+                rselector = prs.rosetta.core.select.residue_selector.ReturnResidueSubsetSelector(sub_vec)
+                srm.load_pssm(os.getcwd()+'/PSSMS/'+ pssm)
+                srm.set_comparison_pose(pdbs[prot_name]) # compare to native pose
+                srm.set_residue_selector(rselector)
+                srm.set_residue_selector_ref(None) # uses same as set_residue_selector
+                pssms.update({prot_name: srm})
+
+
+
 
 
 @use_named_args(dimensions=scfxn_ref15_space)
@@ -87,6 +110,7 @@ def design_with_config(**config) -> dict:
     similar = pairwise2.align.globaldx(
         pose.sequence(), native_pose.sequence(), bloss62, score_only=True
     ) / len(pose.sequence())
+    pssm_score = pssms[prot_name].calculate(pose)
 
     # moritz says its okay to return energy normalized by length
     result = {"pose": pose,
@@ -94,10 +118,13 @@ def design_with_config(**config) -> dict:
               "prot_name": prot_name,
               "bloss62": -similar,
               "ref15": (ref15(pose)/len(pose.sequence())), 
-              "scfxn": (scfxn(pose)/len(pose.sequence()))}
+              "scfxn": (scfxn(pose)/len(pose.sequence())),
+              "pssm": pssm_score,
+              }
+                
     print('DESIGN_DONE: ', result)
     took = time.time() - start_time
-    print("Took: {} to run".format(time.strftime("%H: %M: %S", time.gmtime(took))))
+    print("Took: {} to run design on length {}".format(time.strftime("%H: %M: %S", time.gmtime(took)), len(pose.sequence())))
 
     # This has to be serializable in order to get pickled and send back to parent
 
