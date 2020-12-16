@@ -89,7 +89,8 @@ def design_with_config(**config) -> dict:
     ) / len(pose.sequence())
 
     # moritz says its okay to return energy normalized by length
-    result = {"pose": pose,
+    # check if pose can be pickled fast and returned
+    result = {"sequence": pose.sequence(),
               "prot_len": len(pose.sequence()), 
               "prot_name": prot_name,
               "bloss62": -similar,

@@ -83,6 +83,7 @@ def init(
     if test_run:
         print("DUMMY OBJECTIVE")
         objective = dummy_objective
+        loss_value = 'ref15'
         init_method = None
         # n_calls = 200
     else:
@@ -174,7 +175,9 @@ def _callback(map_res, config=None) -> None:
     num_callbacks += 1
     # print(map_res)
     # add weights to each entry as well as config hash for later analysis
-    c_hash = hash(str(sorted(config)))
+    print("CALLBACK: ", num_callbacks)
+    c_hash = str(sorted(config))
+
 
     for res in map_res:
         res.update({'config': config})
@@ -184,7 +187,6 @@ def _callback(map_res, config=None) -> None:
     optimizer.tell(
         config, (sum([x[loss_value] for x in map_res]) / len(map_res))
     )
-    print("CALLBACK: ", num_callbacks)
 
     # make n_calls batches
     if calls < n_calls:
