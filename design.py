@@ -81,10 +81,10 @@ def design_with_config(**config) -> dict:
 
     # pick random
     # pose = random.choice(pdbs)
-    # prot_name = random.choice(pdbs.keys())
-    # pose = pdbs[prot_name]
-    pose = pdbs['1K9P']
-    prot_name = '1K9P'
+    prot_name = random.choice(pdbs.keys())
+    pose = pdbs[prot_name]
+    # pose = pdbs['1K9P']
+    # prot_name = '1K9P'
 
     # copy pose for comparison after design
     native_pose = Pose()
@@ -110,6 +110,7 @@ def design_with_config(**config) -> dict:
     similar = pairwise2.align.globaldx(
         pose.sequence(), native_pose.sequence(), bloss62, score_only=True
     ) / len(pose.sequence())
+    # compute Rosetta SimpleMetrics PSSM 
     pssm_score = pssms[prot_name].calculate(pose)
 
     # moritz says its okay to return energy normalized by length
