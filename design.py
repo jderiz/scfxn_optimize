@@ -120,7 +120,7 @@ def design_with_config(**config) -> dict:
               "bloss62": -similar,
               "ref15": (ref15(pose)/len(pose.sequence())), 
               "scfxn": (scfxn(pose)/len(pose.sequence())),
-              "pssm": pssm_score,
+              "pssm": -pssm_score,
               }
                 
     print('DESIGN_DONE: ', result)
