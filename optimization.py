@@ -55,7 +55,7 @@ def init(
     global jobs_for_current_config
     global base_estimator
     global tp
-    global cooldown
+    global _cooldown
 
     cached_config = None
     loss_value = loss
@@ -69,7 +69,7 @@ def init(
     result_buffer = {}
     results = []
     base_estimator = estimator
-    cooldown = cooldown
+    _cooldown = cooldown
 
     # Setup result folder
     os.makedirs(result_dir, exist_ok=True)
@@ -181,6 +181,7 @@ def _callback(map_res, config=None) -> None:
     # print(map_res)
     # add weights to each entry as well as config hash for later analysis
     print("CALLBACK: ", num_callbacks)
+    print("With res: ", map_res)
     c_hash = str(sorted(config))
 
 

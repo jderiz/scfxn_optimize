@@ -83,12 +83,10 @@ def design_with_config(**config) -> dict:
         config=config
     )  # optimization score Function
 
-    # pick random
-    # pose = random.choice(pdbs)
-    # prot_name = random.choice(list(pdbs.keys()))
-    # pose = pdbs[prot_name]
-    pose = pdbs['1K9P']
-    prot_name = '1K9P'
+    # pick same prot for same config
+    h = hash(str(config)) % len(pdbs)
+    prot_name = list(pdbs.keys())[h]
+    pose = pdbs[prot_name]
 
     # copy pose for comparison after design
     native_pose = Pose()
@@ -122,7 +120,7 @@ def design_with_config(**config) -> dict:
     # check if pose can be pickled fast and returned
 
     result = {"sequence": pose.sequence(),
-              "pose": PackedPose(pose),
+              # "pose": PackedPose(pose),
               "prot_len": len(pose.sequence()),
               "prot_name": prot_name,
               "bloss62": -similar,
@@ -131,7 +129,7 @@ def design_with_config(**config) -> dict:
               "pssm": -pssm_score,
               }
 
-    print('DESIGN_DONE: ', result)
+    print('DESIGN_DONE: ')
     took = time.time() - start_time
     print("Took: {} to run design on length {}".format(
         time.strftime("%H: %M: %S", time.gmtime(took)), len(pose.sequence())))
