@@ -29,6 +29,9 @@ def init(
     cores=None,
     mtpc=None,
     weight_range=0.25,
+    xi=0.01, 
+    kappa=1.69, 
+    cooldown=False,
 ):
     """
     Init Optimization 
@@ -52,6 +55,7 @@ def init(
     global jobs_for_current_config
     global base_estimator
     global tp
+    global cooldown
 
     cached_config = None
     loss_value = loss
@@ -65,6 +69,7 @@ def init(
     result_buffer = {}
     results = []
     base_estimator = estimator
+    cooldown = cooldown
 
     # Setup result folder
     os.makedirs(result_dir, exist_ok=True)
@@ -93,8 +98,6 @@ def init(
         init_method = initialize
     # more exploit then explore: DEFAULTS: xi:0.01, kappa:1.96
     # TODO: implement cooldown [start_values, end_values]
-    xi = 0.001
-    kappa = 0.1
     acq_func_kwargs = {"xi": xi, "kappa": kappa}
     optimizer = Optimizer(
         dimensions=dimensions,
