@@ -1,4 +1,5 @@
-from skopt.space import Real, Categorical
+from skopt.space import Categorical, Real
+
 scfxn_ref15_dimensions = {
     "fa_atr": Real(high=2, low=0),
     'fa_rep': Real(high=2, low=0),
@@ -40,7 +41,23 @@ ref15_weights = [('fa_atr', 1),
                  ('ref', 1),
                  ('rama_prepro', 0.45)]
 
-relax_init_fa_reps = [0.040, 0.051, 0.265, 0.280, 0.559, 0.581, 1] 
+relax_init_fa_reps = [0.040, 0.051, 0.265, 0.280, 0.559, 0.581, 1]
 relax_init_coord_cst_weight = [1.0, 0.5, 0.0, 0.0]
-range = 0.25
-scfxn_ref15_space = [Real(high=(value + value*range), low=(value - value*range), name=name) for name, value in ref15_weights]
+global _range
+_range = 0.25
+def get_ref15() -> list:
+    return ref15_weights
+
+def get_dimensions() -> list:
+    return [Real(high=(value + value*_range),
+                              low=(value - value*_range),
+                              name=name) for name, value in ref15_weights]
+
+
+def set_range(new_range: float) -> None:
+    global _range
+
+    if new_range < 0 or new_range > 1:
+        raise ValueError('range has to be within [0, 1]')
+    else:
+        _range = new_range

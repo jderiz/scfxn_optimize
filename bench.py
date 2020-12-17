@@ -30,7 +30,8 @@ if __name__ == "__main__":
         action="store_true",
         help="can be used as switch to evaluate dummy objctive",
     )
-    parser.add_argument("-evals", default=200, help="number of points to evaluate")
+    parser.add_argument("-evals", default=200,
+                        help="number of points to evaluate")
     parser.add_argument(
         "-rpc",
         "--runs-per-config",
@@ -60,6 +61,8 @@ if __name__ == "__main__":
         default=3,
         help="limit the number of task a worker process can complete before respawning a new process ( useful for freeing RAM)",
     )
+    parser.add_argument("-range", default=0.25, type=float,
+                        help="how much the optimization can deviate from ref15 weights")
 
     args = parser.parse_args()
     print(args)
@@ -76,6 +79,7 @@ if __name__ == "__main__":
         cores=int(cores),
         number_calls=int(args.evals),
         rpc=int(args.runs_per_config),
-        mtpc=int(args.max_tasks_per_child)
+        mtpc=int(args.max_tasks_per_child),
+        weight_range=args.range,
     )
     optimization.start()

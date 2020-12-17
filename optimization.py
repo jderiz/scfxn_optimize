@@ -11,7 +11,7 @@ from multiprocessing import (Pipe, Pool, active_children, cpu_count,
 from skopt import (Optimizer, callbacks)
 import pandas as pd
 from design import design_with_config, initialize
-from hyperparams import ref15_weights, scfxn_ref15_space
+import hyperparams
 import multiprocessing
 # Setup Logging
 logger = multiprocessing.log_to_stderr()
@@ -28,6 +28,7 @@ def init(
     warm_start=None,
     cores=None,
     mtpc=None,
+    weight_range=0.25,
 ):
     """
     Init Optimization 
@@ -77,8 +78,9 @@ def init(
     # overall Runtime measuring
     start_time = time.time()
 
-    # Optimizer setup
-    dimensions = scfxn_ref15_space
+    # optimizer dimensions setup
+    hyperparams.set_range(weight_range)
+    dimensions = hyperparams.get_dimensions()
 
     if test_run:
         print("DUMMY OBJECTIVE")
@@ -247,7 +249,7 @@ def start():
     global calls
     global runs_per_config
     _DONE = False
-    ref15_config = [val for k, val in ref15_weights]
+    ref15_config = [val for k, val in hyperparams.get_ref15()]
     # initial runs
 
     make_batch(ref15_config)
