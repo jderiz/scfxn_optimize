@@ -62,7 +62,9 @@ if __name__ == "__main__":
         help="limit the number of task a worker process can complete before respawning a new process ( useful for freeing RAM)",
     )
     parser.add_argument("-range", default=0.25, type=float,
-                        help="how much the optimization can deviate from ref15 weights")
+                        help="how much the optimization can deviate from ref15 weights, defaults to 0.25")
+    parser.add_argument("-xi", default=0.01, type=float, help="optimizer argument to manage explore vs. exploit higher==> explore")
+    parser.add_argument("-kappa", default=1.69, type=float, help="optimier argument to manage explore vs. exploit higher==> explore")
 
     args = parser.parse_args()
     print(args)
@@ -81,5 +83,7 @@ if __name__ == "__main__":
         rpc=int(args.runs_per_config),
         mtpc=int(args.max_tasks_per_child),
         weight_range=args.range,
+        xi=args.xi, 
+        kappa=args.kappa,
     )
     optimization.start()
