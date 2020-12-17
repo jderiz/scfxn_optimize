@@ -63,6 +63,7 @@ def initialize():
                 srm.set_residue_selector(rselector)
                 srm.set_residue_selector_ref(None) # uses same as set_residue_selector
                 pssms.update({prot_name: srm})
+    # print(pdbs, pssms)
 
 
 
@@ -81,7 +82,7 @@ def design_with_config(**config) -> dict:
 
     # pick random
     # pose = random.choice(pdbs)
-    prot_name = random.choice(pdbs.keys())
+    prot_name = random.choice(list(pdbs.keys()))
     pose = pdbs[prot_name]
     # pose = pdbs['1K9P']
     # prot_name = '1K9P'
@@ -115,7 +116,9 @@ def design_with_config(**config) -> dict:
 
     # moritz says its okay to return energy normalized by length
     # check if pose can be pickled fast and returned
+    
     result = {"sequence": pose.sequence(),
+            "pose": pose,
               "prot_len": len(pose.sequence()), 
               "prot_name": prot_name,
               "bloss62": -similar,
