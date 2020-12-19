@@ -57,9 +57,14 @@ def initialize():
                 seq_len = len(pdbs[prot_name].sequence())
                 sub_vec = vector1_bool()
 
-                for _ in range(seq_len):
-                    # make  as long as sequence
-                    sub_vec.append(1)
+                # except 6Q21 --> 168
+                if prot_name == '6Q21':
+                    for _ in range(168):
+                        sub_vec.append(1)
+                else:
+                    for _ in range(seq_len):
+                        # make  as long as sequence
+                        sub_vec.append(1)
                 srm = prs.rosetta.protocols.analysis.simple_metrics.SequenceRecoveryMetric()
                 # get ResidueSelector that selects entire Sequence
                 rselector = prs.rosetta.core.select.residue_selector.ReturnResidueSubsetSelector(
