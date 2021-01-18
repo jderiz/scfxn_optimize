@@ -243,8 +243,19 @@ def make_batch(config=None) -> None:
     jobs.append(job)
     # increase calls counter
 
-
-def start():
+def design(config_path, evals, mtpc):
+    """
+        Do an actual design run with a single config
+    """
+    with open(config_path, 'rb') as h:
+        config = pickle.load(h)
+    with get_context('spawn').Pool(processes=_cores, maxtasksperchild=mtpc) as tp:
+        result_set = tp.map(design_with_config, [config for i in range(evals)] ) 
+        with open('results/design_{}.pkl'.format(evals), 'wb') as h:
+            res = pickle.load(h)
+            res.append(pd.DataFrame(result_set))
+            pickle.dump(res)
+def start_optimization():
     """
     start the optimization process, and wait for it to finish
     """
