@@ -11,6 +11,7 @@
 ## Analysis
      - show Convergence of Optimization on each loss.
      - Determine 'best' configuration
+     - je mehr gute configs ich nehme desto unwahrscheinlicher das sie alle durch zufall entstanden sind. Wenn dann die Configurationen noch näher beieinander legen als zur outroup dann ist das ein weiteres indiz für "echt" gute configs
 
 ## Ideas
     - PSO for guiding Monte Carlo
@@ -19,6 +20,7 @@
 ## Problems
 Sinnvoller Loss bei Design
 Vergleich von Resultaten
+Wenn ich mit prior 1fach teste, und zwar ausschließlich die subgruppe von der ich mir erfolg verspreche verletzt das nicht das Prinzip?
 ## papers to read
 
 
