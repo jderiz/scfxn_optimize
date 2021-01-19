@@ -1,4 +1,5 @@
 import logging
+import multiprocessing
 import os
 import pickle
 import random
@@ -8,11 +9,12 @@ from functools import partial
 from multiprocessing import (Pipe, Pool, active_children, cpu_count,
                              current_process, get_context)
 
-from skopt import (Optimizer, callbacks)
 import pandas as pd
-from design import design_with_config, initialize
+from skopt import Optimizer, callbacks
+
 import hyperparams
-import multiprocessing
+from design import design_with_config, initialize
+
 # Setup Logging
 logger = multiprocessing.log_to_stderr()
 logger.setLevel(logging.WARNING)
@@ -21,6 +23,7 @@ logger.setLevel(logging.WARNING)
 def init(
     loss,
     estimator="RF",
+    identifier=None,
     test_run=False,
     number_calls=200,
     rpc=5,
@@ -29,8 +32,8 @@ def init(
     cores=None,
     mtpc=None,
     weight_range=0.25,
-    xi=0.01, 
-    kappa=1.69, 
+    xi=0.01,
+    kappa=1.69,
     cooldown=False,
 ):
     """
@@ -39,6 +42,7 @@ def init(
 
     # define global variables all functions can access
     global _DONE
+    global identify
     global _cores
     global result_buffer
     global results
@@ -57,6 +61,7 @@ def init(
     global tp
     global _cooldown
 
+    identify = identifier
     cached_config = None
     loss_value = loss
     jobs_for_current_config = 0
@@ -96,22 +101,23 @@ def init(
     else:
         objective = design_with_config
         init_method = initialize
-    # more exploit then explore: DEFAULTS: xi:0.01, kappa:1.96
+    # Higher values for xi, kapp --> more exploration
+    # DEFAULTS: xi:0.01, kappa:1.96
     # TODO: implement cooldown [start_values, end_values]
     acq_func_kwargs = {"xi": xi, "kappa": kappa}
     optimizer = Optimizer(
+        random_state=5,
         dimensions=dimensions,
         base_estimator=base_estimator,
         acq_func_kwargs=acq_func_kwargs,
         # n_initial_points=300
     )
-    # Warmstart Optimizer
+    # Warmstart Optimizer with previous results
 
     if warm_start:
-        with open(warm_start + ".pkl", "rb") as h:
-            wsres : pd.DataFrame = pickle.load(h)
+        with open(warm_start, "rb") as h:
+            wsres: pd.DataFrame = pickle.load(h)
 
-        # TODO: group by c_hash and then mean()
         # we only want to tell the optimizer one y_0 per config
         c_group = wsres.goupby('c_hash')
 
@@ -140,6 +146,7 @@ def save_and_exit() -> None:
     global _DONE
     global base_estimator
     global tp
+    global identify
 
     # tell Pool to terminate
     tp.close()
@@ -155,8 +162,8 @@ def save_and_exit() -> None:
     )
     # save custom results
     with open(
-        "results/{}_{}_res_{}_{}.pkl".format(
-            time.strftime("%H_%M"), base_estimator, str(n_calls), loss_value,
+        "results/{}_{}_res_{}.pkl".format(
+            time.strftime("%H_%M"), base_estimator, identify
         ),
         "wb",
     ) as file:
@@ -183,7 +190,6 @@ def _callback(map_res, config=None) -> None:
     print("CALLBACK: ", num_callbacks)
     c_hash = str(sorted(config))
 
-
     for res in map_res:
         res.update({'config': config})
         res.update({'c_hash': c_hash})
@@ -194,13 +200,15 @@ def _callback(map_res, config=None) -> None:
     )
 
     # make n_calls batches
+
     if calls < n_calls:
         print(calls, n_calls)
         # Make New Process batch
         make_batch()
     else:
         if len(results) == n_calls*runs_per_config:
-            print('got ', len(results), ' results from ', len(jobs), ' jobs from which ', len([job for job in jobs if job.ready()]), 'report ready')
+            print('got ', len(results), ' results from ', len(jobs), ' jobs from which ', len(
+                [job for job in jobs if job.ready()]), 'report ready')
             _DONE = True  # release waiting Loop
             save_and_exit()
 
@@ -243,6 +251,7 @@ def make_batch(config=None) -> None:
     jobs.append(job)
     # increase calls counter
 
+
 def design(config_path, evals, mtpc):
     """
         Do an actual design run with a single config
@@ -250,11 +259,13 @@ def design(config_path, evals, mtpc):
     with open(config_path, 'rb') as h:
         config = pickle.load(h)
     with get_context('spawn').Pool(processes=_cores, maxtasksperchild=mtpc) as tp:
-        result_set = tp.map(design_with_config, [config for i in range(evals)] ) 
+        result_set = tp.map(design_with_config, [config for i in range(evals)])
         with open('results/design_{}.pkl'.format(evals), 'wb') as h:
             res = pickle.load(h)
             res.append(pd.DataFrame(result_set))
             pickle.dump(res)
+
+
 def start_optimization():
     """
     start the optimization process, and wait for it to finish
@@ -264,7 +275,7 @@ def start_optimization():
     global runs_per_config
     _DONE = False
     ref15_config = [val for k, val in hyperparams.get_ref15()]
-    # initial runs
+    # initial runs, starting with ref15
 
     make_batch(ref15_config)
 
@@ -272,7 +283,7 @@ def start_optimization():
         make_batch()
 
     while not _DONE:
-        # endless while consumes a lot of cpu 
+        # endless while consumes a lot of cpu
         # print('Wait...')
         time.sleep(5)
         pass

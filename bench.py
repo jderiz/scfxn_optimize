@@ -68,6 +68,7 @@ if __name__ == "__main__":
     parser.add_argument("-xi", default=0.01, type=float, help="optimizer argument to manage explore vs. exploit higher==> explore")
     parser.add_argument("-kappa", default=1.69, type=float, help="optimier argument to manage explore vs. exploit higher==> explore")
     parser.add_argument("-config", default=False, help="If a config path to a pickled list that holds it ist supplied this particular config is evaluated -evals times and the results are stored with all information.")
+    parser.add_argument("-id", default=None, help="Identity string for storing the results")
     args = parser.parse_args()
     print(args)
 
@@ -83,6 +84,7 @@ if __name__ == "__main__":
         optimization.init(
             args.loss,
             estimator=args.estimator,
+            identifier=args.id
             test_run=args.test_run,
             cores=int(cores),
             number_calls=int(args.evals),
