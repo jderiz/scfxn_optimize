@@ -84,7 +84,7 @@ if __name__ == "__main__":
         optimization.init(
             args.loss,
             estimator=args.estimator,
-            identifier=args.id
+            identifier=args.id,
             test_run=args.test_run,
             cores=int(cores),
             number_calls=int(args.evals),

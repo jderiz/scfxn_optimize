@@ -11,7 +11,10 @@ for x, k in zip(xi, kappa):
     if not os.path.exists(job_dir):
         os.makedirs(job_dir)
 
-    job_file = x+'_'+k+'.job'
+    job_file = str(x)+'_'+str(k)+'.job'
+    xs = str(x)
+    ks = str(k)
+
     with open(job_file, 'w') as h:
         h.write('#!/bin/bash\n\
 #SBATCH --time=48:00:00\n\
@@ -21,10 +24,10 @@ for x, k in zip(xi, kappa):
 #SBATCH --mail-user=jannis.deriz@gmail.com\n\
 #SBATCH -n 1\n\
 #SBATCH -c 64\n\
-#SBATCH --job-name=k'+k+'\n\
+#SBATCH --job-name=k'+str(k)+'\n\
 module load Anaconda3\n\
 source /nfs/cluster/easybuild/software/Anaconda3/2020.02/etc/profile.d/conda.sh\n\
 conda activate scfxn\n\
-python bench.py -e RF -l pssm -evals 150 -rpc 7 -id xi_'+x+'_kappa'+k+' -xi '+str(x)+' -kappa '+str(k)+'\n\
-                    ')
+python bench.py -e RF -l pssm -evals 150 -rpc 7 -id xi_'+xs+'_kappa'+ks+' -xi '+xs+' -kappa '+ks+'\n\
+')
     os.system("sbatch %s" % job_file)
