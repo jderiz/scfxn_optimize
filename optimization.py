@@ -53,18 +53,18 @@ def init(
     global start_time
     global objective
     global optimizer
-    global cached_config
+    # global cached_config
     global runs_per_config
     global loss_value
-    global jobs_for_current_config
+    # global jobs_for_current_config
     global base_estimator
     global tp
     global _cooldown
 
     identify = identifier
-    cached_config = None
+    # cached_config = None
     loss_value = loss
-    jobs_for_current_config = 0
+    # jobs_for_current_config = 0
     n_calls = number_calls
     runs_per_config = rpc
     calls = 0  # iteration counter
@@ -218,29 +218,33 @@ def error_callback(r):
 
 
 def make_batch(config=None) -> None:
-    global cached_config
-    global jobs_for_current_config
+    # global cached_config
+    # global jobs_for_current_config
     global runs_per_config
     global calls
     global tp
-    global n_calls
+    # global n_calls
 
     calls += 1
     print('Make Batch: ', calls)
 
-    if config:
-        config = config
-        cached_config = config
-        jobs_for_current_config += 1
-    elif cached_config and jobs_for_current_config < runs_per_config:
-        config = cached_config
-        jobs_for_current_config += 1
-    else:  # make new config reset counter to 1
-        config = optimizer.ask()
-        optimizer.update_next()
-        cached_config = config
-        jobs_for_current_config = 1
+    # if config:
+    #     config = config
+    #     cached_config = config
+    #     jobs_for_current_config += 1
+    # elif cached_config and jobs_for_current_config < runs_per_config:
+    #     config = cached_config
+    #     jobs_for_current_config += 1
+    # else:  # make new config reset counter to 1
+    #     config = optimizer.ask()
+    #     optimizer.update_next()
+    #     cached_config = config
+    #     jobs_for_current_config = 1
     # instantiate jobs knowing which config they belongs to.
+    if not config:
+        config = optimizer.ask()
+    # needed if changes to optimizer are made during run
+    # optimizer.update_next()
     job = tp.map_async(
         objective,
         [config for _ in range(runs_per_config)],
