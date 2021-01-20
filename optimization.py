@@ -172,7 +172,7 @@ def save_and_exit() -> None:
     tp.terminate()
 
 
-def _callback(map_res, config=None) -> None:
+def _callback(map_res, config=None, run=None) -> None:
     """
     Whenever a process finishes it calls _callback with its result
     and a new process can be run. 
@@ -193,6 +193,7 @@ def _callback(map_res, config=None) -> None:
     for res in map_res:
         res.update({'config': config})
         res.update({'c_hash': c_hash})
+        res.update({'run:': run})
     # print(map_res)
     results.extend(map_res)
     optimizer.tell(
@@ -248,7 +249,7 @@ def make_batch(config=None) -> None:
     job = tp.map_async(
         objective,
         [config for _ in range(runs_per_config)],
-        callback=partial(_callback, config=config),
+        callback=partial(_callback, config=config, run=calls),
         error_callback=error_callback,
     )
     # Append map_result to jobs list
