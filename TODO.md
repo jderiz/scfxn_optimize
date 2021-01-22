@@ -2,8 +2,11 @@
     + Energy Function
     + ML Model structure stable yes/no
     + Can there be any gradient based method ? levinstein
+    + PSO / ANTS for Monte-Carlo Guidance
+
 
 # TODO: 
+    - 
 ## Code
      - add time component to loss
      - add cooldown of xi and kappa
@@ -21,6 +24,7 @@
 Sinnvoller Loss bei Design
 Vergleich von Resultaten
 Wenn ich mit prior 1fach teste, und zwar ausschließlich die subgruppe von der ich mir erfolg verspreche verletzt das nicht das Prinzip?
+Warum dauern einige runs 60 min mit der gleichen länge und andere nue 30
 ## papers to read
 
 
