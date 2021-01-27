@@ -19,7 +19,7 @@ from design import design_with_config, initialize
 logger = multiprocessing.log_to_stderr()
 logger.setLevel(logging.WARNING)
 
-log_handler = logging.FileHandler('rosetta.log')
+log_handler = logging.FileHandler('mp.log')
 log_handler.setLevel(logging.DEBUG)
 logger.addHandler(log_handler)
 
