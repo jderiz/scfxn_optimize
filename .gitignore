@@ -1,5 +1,9 @@
 benchmark/
 results/
+!analyze/
+analyze/*
+!analyze/imgs/
+!analyze/tex/
 __pycache__/
 slurm*
 py_out/
@@ -8,4 +12,3 @@ setup.py
 design.resfile
 plotting.py
 test_notebook.db
-analyze/
