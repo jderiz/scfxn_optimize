@@ -15,13 +15,6 @@ from skopt import Optimizer, callbacks
 import hyperparams
 from design import design_with_config, initialize
 
-# Setup Logging
-logger = multiprocessing.log_to_stderr()
-logger.setLevel(logging.WARNING)
-
-log_handler = logging.FileHandler('mp.log')
-log_handler.setLevel(logging.DEBUG)
-logger.addHandler(log_handler)
 
 def init(
     loss,
@@ -43,6 +36,17 @@ def init(
     Init Optimization 
     """
 
+    global logger
+    # Setup Logging
+    logger = multiprocessing.log_to_stderr()
+    logger.setLevel(logging.WARNING)
+
+    if not identifier:
+        log_handler = logging.FileHandler('mp.log')
+    else:
+        log_handler = logging.FileHandler('mp_'+identifier+'.log')
+    log_handler.setLevel(logging.DEBUG)
+    logger.addHandler(log_handler)
     # define global variables all functions can access
     global _DONE
     global identify
@@ -218,6 +222,7 @@ def _callback(map_res, config=None, run=None) -> None:
 
 
 def error_callback(r):
+    global logger
     logger.log(level=logging.ERROR, msg=r)
 
 
@@ -245,6 +250,7 @@ def make_batch(config=None) -> None:
     #     cached_config = config
     #     jobs_for_current_config = 1
     # instantiate jobs knowing which config they belongs to.
+
     if not config:
         config = optimizer.ask()
     # needed if changes to optimizer are made during run
