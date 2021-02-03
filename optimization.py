@@ -22,15 +22,17 @@ def init(
     identifier=None,
     test_run=False,
     number_calls=200,
-    rpc=5,
+    rpc=5, # runs_per_config
     result_dir="results",
     warm_start=None,
     cores=None,
-    mtpc=None,
+    mtpc=None, # maxtasksperchild
     weight_range=0.25,
     xi=0.01,
     kappa=1.69,
     cooldown=False,
+    space_dimensions=None,
+    objective=None
 ):
     """
     Init Optimization 
@@ -95,9 +97,13 @@ def init(
     # overall Runtime measuring
     start_time = time.time()
 
-    # optimizer dimensions setup
-    hyperparams.set_range(weight_range)
-    dimensions = hyperparams.get_dimensions()
+    # optimizer dimensions setup, either take default ref15 or pickled from user input
+    if not space_dimensions:
+        hyperparams.set_range(weight_range)
+        dimensions = hyperparams.get_dimensions()
+    else: 
+        with open(space_dimensions, 'rb') as h:
+            dimensions = pickle.load(h)
 
     if test_run:
         print("DUMMY OBJECTIVE")
@@ -132,7 +138,8 @@ def init(
         x_0 = [x["weights"][0] for x in c_group]
         optimizer.tell(x_0, y_0)
 
-    tp = Pool(cores, initializer=init_method, maxtasksperchild=mtpc)
+    # always spawn:  https://pythonspeed.com/articles/python-multiprocessing/
+    tp = get_context('spawn').Pool(cores, initializer=init_method, maxtasksperchild=mtpc)
 
 
 def dummy_objective(config) -> dict:
@@ -237,24 +244,11 @@ def make_batch(config=None) -> None:
     calls += 1
     print('Make Batch: ', calls)
 
-    # if config:
-    #     config = config
-    #     cached_config = config
-    #     jobs_for_current_config += 1
-    # elif cached_config and jobs_for_current_config < runs_per_config:
-    #     config = cached_config
-    #     jobs_for_current_config += 1
-    # else:  # make new config reset counter to 1
-    #     config = optimizer.ask()
-    #     optimizer.update_next()
-    #     cached_config = config
-    #     jobs_for_current_config = 1
-    # instantiate jobs knowing which config they belongs to.
-
+    if _cooldown:
+        # implement cooldown 
+        optimizer.update_next()
     if not config:
         config = optimizer.ask()
-    # needed if changes to optimizer are made during run
-    # optimizer.update_next()
     job = tp.map_async(
         objective,
         [config for _ in range(runs_per_config)],

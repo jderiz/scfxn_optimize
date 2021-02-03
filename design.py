@@ -15,7 +15,7 @@ from skopt.utils import use_named_args
 
 import create_scfxn
 import hyperparams
-
+import benchmark_prot_fetcher
 
 def initialize():
     """initialize pyrosetta
@@ -25,6 +25,8 @@ def initialize():
     prs.init(
         options="-ex1 -ex2", set_logging_handler=True, extra_options="-linmem_ig 10 -archive_on_disk /tmp/rosetta -mute core -mute basic -mute protocols"
     )  # no utput from the design process
+
+    # Setup Logging
     prs.logging_support.set_logging_sink()
     logger = logging.getLogger("rosetta")
     logger.setLevel(logging.ERROR)
@@ -33,15 +35,13 @@ def initialize():
     rosetta_log_handler = logging.FileHandler('rosetta.log')
     rosetta_log_handler.setLevel(logging.DEBUG)
     logger.addHandler(rosetta_log_handler)
+
+    # Setup proteins and their pssm matrices
+    # Proteins
     global pdbs
-    pdbs = {}
-
-    # get all protein pdbs
-
-    for pdb in os.listdir("benchmark"):
-        if pdb.endswith(".pdb"):
-            #  store actual Pose() object
-            pdbs.update({pdb.split('.')[0]: pose_from_pdb("benchmark/" + pdb)})
+    pdbs = benchmark_prot_fetcher.get()
+    
+    # PSSMS
     global pssms
     pssms = {}
 
