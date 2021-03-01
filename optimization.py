@@ -208,7 +208,7 @@ def _callback(map_res, config=None, run=None) -> None:
     for res in map_res:
         res.update({'config': config})
         res.update({'c_hash': c_hash})
-        res.update({'run:': run})
+        res.update({'run': run})
     # print(map_res)
     results.extend(map_res)
     optimizer.tell(
