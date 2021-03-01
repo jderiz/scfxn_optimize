@@ -31,6 +31,7 @@ def init(
     xi=0.01,
     kappa=1.69,
     cooldown=False,
+    save_pandas=True
 ):
     """
     Init Optimization 
@@ -67,6 +68,8 @@ def init(
     global base_estimator
     global tp
     global _cooldown
+    global pandas
+    pandas = save_pandas
 
     identify = identifier
     # cached_config = None
@@ -132,7 +135,7 @@ def init(
         x_0 = [x["weights"][0] for x in c_group]
         optimizer.tell(x_0, y_0)
 
-    tp = Pool(cores, initializer=init_method, maxtasksperchild=mtpc)
+    tp = get_context("spawn").Pool(cores, initializer=init_method, maxtasksperchild=mtpc)
 
 
 def dummy_objective(config) -> dict:
@@ -155,7 +158,7 @@ def save_and_exit() -> None:
     global tp
     global identify
 
-    # tell Pool to terminate
+    # tell pool its about to terminate
     tp.close()
     print(tp._state)
     print([job.ready() for job in jobs])
@@ -167,7 +170,12 @@ def save_and_exit() -> None:
             time.strftime("%H: %M: %S", time.gmtime(took))
         )
     )
-    # save custom results
+    # save custom results, as pandas or dict
+    if pandas:
+        df = pd.DataFrame(results)
+        weights = df.config.apply(lambda x: pd.Series(x))
+        weights.columns = [name for name, _ in hyperparams.ref15_weights] 
+        results = pd.concat([df, weights], axis=1)
     with open(
         "results/{}_{}_res_{}.pkl".format(
             time.strftime("%H_%M"), base_estimator, identify

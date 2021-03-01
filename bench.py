@@ -67,8 +67,10 @@ if __name__ == "__main__":
                         help="how much the optimization can deviate from ref15 weights, defaults to 0.25")
     parser.add_argument("-xi", default=0.01, type=float, help="optimizer argument to manage explore vs. exploit higher==> explore")
     parser.add_argument("-kappa", default=1.69, type=float, help="optimier argument to manage explore vs. exploit higher==> explore")
-    parser.add_argument("-config", default=False, help="If a config path to a pickled list that holds it ist supplied this particular config is evaluated -evals times and the results are stored with all information.")
+    parser.add_argument("-config", default=False, help="If a config path to a pickled list, series or DataFrame that holds it is supplied this particular config is evaluated -evals times and the results are stored with all information.")
     parser.add_argument("-id", default=None, help="Identity string for storing the results")
+    parser.add_argument("-no_struct", action="store_true", help="not saving the structures saves enormous amounts of space")
+    parser.add_argument("-dict_out", action="store_true", help="save result in dict format rather then pandas DataFrame")
     args = parser.parse_args()
     print(args)
 
