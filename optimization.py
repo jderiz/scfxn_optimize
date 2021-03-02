@@ -245,20 +245,6 @@ def make_batch(config=None) -> None:
     calls += 1
     print('Make Batch: ', calls)
 
-    # if config:
-    #     config = config
-    #     cached_config = config
-    #     jobs_for_current_config += 1
-    # elif cached_config and jobs_for_current_config < runs_per_config:
-    #     config = cached_config
-    #     jobs_for_current_config += 1
-    # else:  # make new config reset counter to 1
-    #     config = optimizer.ask()
-    #     optimizer.update_next()
-    #     cached_config = config
-    #     jobs_for_current_config = 1
-    # instantiate jobs knowing which config they belongs to.
-
     if not config:
         config = optimizer.ask()
     # needed if changes to optimizer are made during run
@@ -274,13 +260,33 @@ def make_batch(config=None) -> None:
     # increase calls counter
 
 
-def design(config_path, identify=None, evals=150, mtpc=3):
+def design(config_path, identify=None, evals=150, mtpc=3, cores=cpu_count()):
     """
-        Do an actual design run with a single config
+        Do an actual design run with a single config.
+        The config either needs to be a list with weight values in 
+        correct order. Or a pd.Series or DataFrame object with corresponding 
+        column names.
     """
+    
     with open(config_path, 'rb') as h:
         config = pickle.load(h)
-    with get_context('spawn').Pool(processes=_cores, maxtasksperchild=mtpc) as tp:
+        if type(config) == list:
+            pass
+        elif type(config) == pd.DataFrame:
+            c = []
+            for w in [name for name, _ in hyperparams.ref15_weights]:
+                c.append(config[w])
+            config = c
+        else:
+            raise TypeError('the config must be either in list or DataFrame format')
+        # TODO: implement series case
+        # elif type(config) == pd.Series:
+        #     c = []
+        #     for w in [name for name, _ in hyperparams.ref15_weights]:
+        #         # TODO: handle series access by label.
+        #     config = c
+
+    with get_context('spawn').Pool(processes=cores, initializer=initialize, maxtasksperchild=mtpc) as tp:
         result_set = tp.map(design_with_config, [config for i in range(evals)])
         with open('results/design_{}_{}.pkl'.format(evals, identify), 'wb') as h:
             res = pickle.load(h)
