@@ -274,7 +274,7 @@ def make_batch(config=None) -> None:
     # increase calls counter
 
 
-def design(config_path, evals, mtpc):
+def design(config_path, identify=None, evals=150, mtpc=3):
     """
         Do an actual design run with a single config
     """
@@ -282,7 +282,7 @@ def design(config_path, evals, mtpc):
         config = pickle.load(h)
     with get_context('spawn').Pool(processes=_cores, maxtasksperchild=mtpc) as tp:
         result_set = tp.map(design_with_config, [config for i in range(evals)])
-        with open('results/design_{}.pkl'.format(evals), 'wb') as h:
+        with open('results/design_{}_{}.pkl'.format(evals, identify), 'wb') as h:
             res = pickle.load(h)
             res.append(pd.DataFrame(result_set))
             pickle.dump(res)
