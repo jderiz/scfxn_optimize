@@ -15,13 +15,6 @@ from skopt import Optimizer, callbacks
 import hyperparams
 from design import design_with_config, initialize
 
-# Setup Logging
-logger = multiprocessing.log_to_stderr()
-logger.setLevel(logging.WARNING)
-
-log_handler = logging.FileHandler('rosetta.log')
-log_handler.setLevel(logging.DEBUG)
-logger.addHandler(log_handler)
 
 def init(
     loss,
@@ -38,11 +31,23 @@ def init(
     xi=0.01,
     kappa=1.69,
     cooldown=False,
+    save_pandas=True
 ):
     """
     Init Optimization 
     """
 
+    global logger
+    # Setup Logging
+    logger = multiprocessing.log_to_stderr()
+    logger.setLevel(logging.WARNING)
+
+    if not identifier:
+        log_handler = logging.FileHandler('mp.log')
+    else:
+        log_handler = logging.FileHandler('mp_'+identifier+'.log')
+    log_handler.setLevel(logging.DEBUG)
+    logger.addHandler(log_handler)
     # define global variables all functions can access
     global _DONE
     global identify
@@ -63,6 +68,8 @@ def init(
     global base_estimator
     global tp
     global _cooldown
+    global pandas
+    pandas = save_pandas
 
     identify = identifier
     # cached_config = None
@@ -128,7 +135,7 @@ def init(
         x_0 = [x["weights"][0] for x in c_group]
         optimizer.tell(x_0, y_0)
 
-    tp = Pool(cores, initializer=init_method, maxtasksperchild=mtpc)
+    tp = get_context("spawn").Pool(cores, initializer=init_method, maxtasksperchild=mtpc)
 
 
 def dummy_objective(config) -> dict:
@@ -151,7 +158,7 @@ def save_and_exit() -> None:
     global tp
     global identify
 
-    # tell Pool to terminate
+    # tell pool its about to terminate
     tp.close()
     print(tp._state)
     print([job.ready() for job in jobs])
@@ -163,7 +170,12 @@ def save_and_exit() -> None:
             time.strftime("%H: %M: %S", time.gmtime(took))
         )
     )
-    # save custom results
+    # save custom results, as pandas or dict
+    if pandas:
+        df = pd.DataFrame(results)
+        weights = df.config.apply(lambda x: pd.Series(x))
+        weights.columns = [name for name, _ in hyperparams.ref15_weights] 
+        results = pd.concat([df, weights], axis=1)
     with open(
         "results/{}_{}_res_{}.pkl".format(
             time.strftime("%H_%M"), base_estimator, identify
@@ -196,7 +208,7 @@ def _callback(map_res, config=None, run=None) -> None:
     for res in map_res:
         res.update({'config': config})
         res.update({'c_hash': c_hash})
-        res.update({'run:': run})
+        res.update({'run': run})
     # print(map_res)
     results.extend(map_res)
     optimizer.tell(
@@ -218,6 +230,7 @@ def _callback(map_res, config=None, run=None) -> None:
 
 
 def error_callback(r):
+    global logger
     logger.log(level=logging.ERROR, msg=r)
 
 
@@ -232,19 +245,6 @@ def make_batch(config=None) -> None:
     calls += 1
     print('Make Batch: ', calls)
 
-    # if config:
-    #     config = config
-    #     cached_config = config
-    #     jobs_for_current_config += 1
-    # elif cached_config and jobs_for_current_config < runs_per_config:
-    #     config = cached_config
-    #     jobs_for_current_config += 1
-    # else:  # make new config reset counter to 1
-    #     config = optimizer.ask()
-    #     optimizer.update_next()
-    #     cached_config = config
-    #     jobs_for_current_config = 1
-    # instantiate jobs knowing which config they belongs to.
     if not config:
         config = optimizer.ask()
     # needed if changes to optimizer are made during run
@@ -260,15 +260,38 @@ def make_batch(config=None) -> None:
     # increase calls counter
 
 
-def design(config_path, evals, mtpc):
+def design(config_path=None, identify=None, evals=150, mtpc=3, cores=cpu_count()):
     """
-        Do an actual design run with a single config
+        Do an actual design run with a single config.
+        The config either needs to be a list with weight values in 
+        correct order. Or a pd.Series or DataFrame object with corresponding 
+        column names.
     """
-    with open(config_path, 'rb') as h:
-        config = pickle.load(h)
-    with get_context('spawn').Pool(processes=_cores, maxtasksperchild=mtpc) as tp:
+    if config_path is None:
+        # use ref15 as default weights 
+        config = [weight for _, weight in hyperparams.ref15_weights]
+    else:
+        with open(config_path, 'rb') as h:
+            config = pickle.load(h)
+            if type(config) == list:
+                pass
+            elif type(config) == pd.DataFrame:
+                c = []
+                for w in [name for name, _ in hyperparams.ref15_weights]:
+                    c.append(config[w])
+                config = c
+            else:
+                raise TypeError('the config must be either in list or DataFrame format')
+            # TODO: implement series case
+            # elif type(config) == pd.Series:
+            #     c = []
+            #     for w in [name for name, _ in hyperparams.ref15_weights]:
+            #         # TODO: handle series access by label.
+            #     config = c
+
+    with get_context('spawn').Pool(processes=cores, initializer=initialize, maxtasksperchild=mtpc) as tp:
         result_set = tp.map(design_with_config, [config for i in range(evals)])
-        with open('results/design_{}.pkl'.format(evals), 'wb') as h:
+        with open('results/design_{}_{}.pkl'.format(evals, identify), 'wb') as h:
             res = pickle.load(h)
             res.append(pd.DataFrame(result_set))
             pickle.dump(res)
