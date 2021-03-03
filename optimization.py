@@ -260,31 +260,34 @@ def make_batch(config=None) -> None:
     # increase calls counter
 
 
-def design(config_path, identify=None, evals=150, mtpc=3, cores=cpu_count()):
+def design(config_path=None, identify=None, evals=150, mtpc=3, cores=cpu_count()):
     """
         Do an actual design run with a single config.
         The config either needs to be a list with weight values in 
         correct order. Or a pd.Series or DataFrame object with corresponding 
         column names.
     """
-    
-    with open(config_path, 'rb') as h:
-        config = pickle.load(h)
-        if type(config) == list:
-            pass
-        elif type(config) == pd.DataFrame:
-            c = []
-            for w in [name for name, _ in hyperparams.ref15_weights]:
-                c.append(config[w])
-            config = c
-        else:
-            raise TypeError('the config must be either in list or DataFrame format')
-        # TODO: implement series case
-        # elif type(config) == pd.Series:
-        #     c = []
-        #     for w in [name for name, _ in hyperparams.ref15_weights]:
-        #         # TODO: handle series access by label.
-        #     config = c
+    if config_path is None:
+        # use ref15 as default weights 
+        config = [weight for _, weight in hyperparams.ref15_weights]
+    else:
+        with open(config_path, 'rb') as h:
+            config = pickle.load(h)
+            if type(config) == list:
+                pass
+            elif type(config) == pd.DataFrame:
+                c = []
+                for w in [name for name, _ in hyperparams.ref15_weights]:
+                    c.append(config[w])
+                config = c
+            else:
+                raise TypeError('the config must be either in list or DataFrame format')
+            # TODO: implement series case
+            # elif type(config) == pd.Series:
+            #     c = []
+            #     for w in [name for name, _ in hyperparams.ref15_weights]:
+            #         # TODO: handle series access by label.
+            #     config = c
 
     with get_context('spawn').Pool(processes=cores, initializer=initialize, maxtasksperchild=mtpc) as tp:
         result_set = tp.map(design_with_config, [config for i in range(evals)])
