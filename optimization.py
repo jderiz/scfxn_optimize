@@ -267,7 +267,7 @@ def design(config_path=None, identify=None, evals=150, mtpc=3, cores=cpu_count()
         correct order. Or a pd.Series or DataFrame object with corresponding 
         column names.
     """
-    if config_path is None:
+    if not config_path:
         # use ref15 as default weights 
         config = [weight for _, weight in hyperparams.ref15_weights]
     else:
