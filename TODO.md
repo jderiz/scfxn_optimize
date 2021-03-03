@@ -11,6 +11,7 @@
      - add time component to loss
      - add cooldown of xi and kappa
      - add SEED für replizierbarkeit
+     - format ouput into pandas DataFrame
 ## Analysis
      - show Convergence of Optimization on each loss.
      - Determine 'best' configuration
