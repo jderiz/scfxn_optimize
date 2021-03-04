@@ -2,8 +2,8 @@ import os
 
 optimizers = ['RF']  # 'GP'] #, 'RF', 'GBRT', 'ET']
 loss_funcs = ['pssm']
-xi = [0.00001, 0.0001, 0.001, 0.01, 0.1, 1, 10]
-kappa = [0.001, 0.01, 0.1, 1, 10, 100, 1000]
+xi = [0.0001, 0.001, 0.01, 0.1, 1]
+kappa = [0.01, 0.1, 1, 10, 100]
 
 for x, k in zip(xi, kappa):
     job_dir = '%s/.jobs' % os.getcwd()

@@ -1,8 +1,0 @@
-PyRosetta-4 2020 [Rosetta PyRosetta4.conda.linux.cxx11thread.serialization.CentOS.python38.Release 2020.39+release.9ee477a1d9d615da653167cf059551268713dda2 2020-09-24T22:05:54] retrieved from: http://www.pyrosetta.org
-(C) Copyright Rosetta Commons Member Institutions. Created in JHU by Sergey Lyskov and PyRosetta Team.
-core.init: {0} Checking for fconfig files in pwd and ./rosetta/flags 
-core.init: {0} Rosetta version: PyRosetta4.conda.linux.cxx11thread.serialization.CentOS.python38.Release r266 2020.39+release.9ee477a 9ee477a1d9d615da653167cf059551268713dda2 http://www.pyrosetta.org 2020-09-24T22:05:54
-core.init: {0} command: PyRosetta -ex1 -ex2 -mute core.pack.pack_rotamers core.pack.task -database /home/sc.uni-leipzig.de/je535nypy/.conda/envs/scfxn/lib/python3.8/site-packages/pyrosetta/database
-basic.random.init_random_generator: {0} 'RNG device' seed mode, using '/dev/urandom', seed=2078561868 seed_offset=0 real_seed=2078561868 thread_index=0
-basic.random.init_random_generator: {0} RandomGenerator:init: Normal mode, seed=2078561868 RG_type=mt19937
-_________start optimize_____________________GP________________

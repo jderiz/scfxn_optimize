@@ -7,14 +7,12 @@
 
 
 # TODO: 
-    1. Relax Script!!!
-    2. correlationsmatrix für alle ex_ex läufe
-    3. ex_ex läufe vergleichen
-    4. Wie soll die Kandidaten Config gewählt werden?
-    5. Gedanken machen wie das ganze gut generalisiert werden kann, sodass ein anwender minimalen config aufwand hat.
-    6. Cleanup Code Base
-
-
+    - correlationsmatrix für alle ex_ex läufe
+    - ex_ex läufe vergleichen
+    - Wie soll die Kandidaten Config gewählt werden?
+    - Relax Script!!!
+    - Gedanken machen wie das ganze gut generalisiert werden kann, sodass ein anwender minimalen config aufwand hat.
+     
 ## Code
     - add time component to loss
     - add cooldown of xi and kappa

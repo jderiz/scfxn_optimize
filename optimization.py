@@ -32,7 +32,7 @@ def init(
     kappa=1.69,
     cooldown=False,
     space_dimensions=None,
-    objective=None
+    save_pandas=True
 ):
     """
     Init Optimization 
@@ -69,6 +69,8 @@ def init(
     global base_estimator
     global tp
     global _cooldown
+    global pandas
+    pandas = save_pandas
 
     identify = identifier
     # cached_config = None
@@ -162,7 +164,7 @@ def save_and_exit() -> None:
     global tp
     global identify
 
-    # tell Pool to terminate
+    # tell pool its about to terminate
     tp.close()
     print(tp._state)
     print([job.ready() for job in jobs])
@@ -174,7 +176,12 @@ def save_and_exit() -> None:
             time.strftime("%H: %M: %S", time.gmtime(took))
         )
     )
-    # save custom results
+    # save custom results, as pandas or dict
+    if pandas:
+        df = pd.DataFrame(results)
+        weights = df.config.apply(lambda x: pd.Series(x))
+        weights.columns = [name for name, _ in hyperparams.ref15_weights] 
+        results = pd.concat([df, weights], axis=1)
     with open(
         "results/{}_{}_res_{}.pkl".format(
             time.strftime("%H_%M"), base_estimator, identify
@@ -207,7 +214,7 @@ def _callback(map_res, config=None, run=None) -> None:
     for res in map_res:
         res.update({'config': config})
         res.update({'c_hash': c_hash})
-        res.update({'run:': run})
+        res.update({'run': run})
     # print(map_res)
     results.extend(map_res)
     optimizer.tell(
@@ -244,9 +251,9 @@ def make_batch(config=None) -> None:
     calls += 1
     print('Make Batch: ', calls)
 
-    if _cooldown:
-        # implement cooldown 
-        optimizer.update_next()
+    # if _cooldown:
+    #     # implement cooldown 
+    #     optimizer.update_next()
     if not config:
         config = optimizer.ask()
     job = tp.map_async(
@@ -260,15 +267,42 @@ def make_batch(config=None) -> None:
     # increase calls counter
 
 
-def design(config_path, evals, mtpc):
+def design(config_path=None, identify=None, evals=150, mtpc=3, cores=cpu_count()):
     """
-        Do an actual design run with a single config
+        Do an actual design run with a single config.
+        The config either needs to be a list with weight values in 
+        correct order. Or a pd.Series or DataFrame object with corresponding 
+        column names.
     """
-    with open(config_path, 'rb') as h:
-        config = pickle.load(h)
-    with get_context('spawn').Pool(processes=_cores, maxtasksperchild=mtpc) as tp:
+    print(config_path)
+    if config_path == 'ref15':
+        # use ref15 as default weights 
+        config = [weight for _, weight in hyperparams.ref15_weights]
+    else:
+        with open(config_path, 'rb') as h:
+            config = pickle.load(h)
+            if type(config) == list:
+                pass
+            elif (type(config) == pd.DataFrame) and (len(config) == 1):
+                c = []
+                for w in [name for name, _ in hyperparams.ref15_weights]:
+                    c.append(config.iloc[0][w])
+                config = c
+                print(config)
+            else:
+                exit(TypeError('the config must be either in list or DataFrame (1, len(weights)) format'))
+            
+
+            # TODO: implement series case
+            # elif type(config) == pd.Series:
+            #     c = []
+            #     for w in [name for name, _ in hyperparams.ref15_weights]:
+            #         # TODO: handle series access by label.
+            #     config = c
+
+    with get_context('spawn').Pool(processes=cores, initializer=initialize, maxtasksperchild=mtpc) as tp:
         result_set = tp.map(design_with_config, [config for i in range(evals)])
-        with open('results/design_{}.pkl'.format(evals), 'wb') as h:
+        with open('results/design_{}_{}.pkl'.format(evals, identify), 'wb') as h:
             res = pickle.load(h)
             res.append(pd.DataFrame(result_set))
             pickle.dump(res)
@@ -291,7 +325,6 @@ def start_optimization():
         make_batch()
 
     while not _DONE:
-        # endless while consumes a lot of cpu
         # print('Wait...')
         time.sleep(5)
         pass
