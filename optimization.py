@@ -22,15 +22,16 @@ def init(
     identifier=None,
     test_run=False,
     number_calls=200,
-    rpc=5,
+    rpc=5, # runs_per_config
     result_dir="results",
     warm_start=None,
     cores=None,
-    mtpc=None,
+    mtpc=None, # maxtasksperchild
     weight_range=0.25,
     xi=0.01,
     kappa=1.69,
     cooldown=False,
+    space_dimensions=None,
     save_pandas=True
 ):
     """
@@ -98,9 +99,13 @@ def init(
     # overall Runtime measuring
     start_time = time.time()
 
-    # optimizer dimensions setup
-    hyperparams.set_range(weight_range)
-    dimensions = hyperparams.get_dimensions()
+    # optimizer dimensions setup, either take default ref15 or pickled from user input
+    if not space_dimensions:
+        hyperparams.set_range(weight_range)
+        dimensions = hyperparams.get_dimensions()
+    else: 
+        with open(space_dimensions, 'rb') as h:
+            dimensions = pickle.load(h)
 
     if test_run:
         print("DUMMY OBJECTIVE")
@@ -135,7 +140,8 @@ def init(
         x_0 = [x["weights"][0] for x in c_group]
         optimizer.tell(x_0, y_0)
 
-    tp = get_context("spawn").Pool(cores, initializer=init_method, maxtasksperchild=mtpc)
+    # always spawn:  https://pythonspeed.com/articles/python-multiprocessing/
+    tp = get_context('spawn').Pool(cores, initializer=init_method, maxtasksperchild=mtpc)
 
 
 def dummy_objective(config) -> dict:
@@ -245,10 +251,11 @@ def make_batch(config=None) -> None:
     calls += 1
     print('Make Batch: ', calls)
 
+    # if _cooldown:
+    #     # implement cooldown 
+    #     optimizer.update_next()
     if not config:
         config = optimizer.ask()
-    # needed if changes to optimizer are made during run
-    # optimizer.update_next()
     job = tp.map_async(
         objective,
         [config for _ in range(runs_per_config)],
@@ -260,14 +267,15 @@ def make_batch(config=None) -> None:
     # increase calls counter
 
 
-def design(config_path=None, identify=None, evals=150, mtpc=3, cores=cpu_count()):
+def design(config_path=None, identify=None, evals=1000, mtpc=3, cores=cpu_count()):
     """
         Do an actual design run with a single config.
         The config either needs to be a list with weight values in 
         correct order. Or a pd.Series or DataFrame object with corresponding 
         column names.
     """
-    if not config_path:
+    print(config_path)
+    if config_path == 'ref15':
         # use ref15 as default weights 
         config = [weight for _, weight in hyperparams.ref15_weights]
     else:
@@ -275,13 +283,16 @@ def design(config_path=None, identify=None, evals=150, mtpc=3, cores=cpu_count()
             config = pickle.load(h)
             if type(config) == list:
                 pass
-            elif type(config) == pd.DataFrame:
+            elif (type(config) == pd.DataFrame) and (len(config) == 1):
                 c = []
                 for w in [name for name, _ in hyperparams.ref15_weights]:
-                    c.append(config[w])
+                    c.append(config.iloc[0][w])
                 config = c
+                print(config)
             else:
-                raise TypeError('the config must be either in list or DataFrame format')
+                exit(TypeError('the config must be either in list or DataFrame (1, len(weights)) format'))
+            
+
             # TODO: implement series case
             # elif type(config) == pd.Series:
             #     c = []
@@ -291,10 +302,10 @@ def design(config_path=None, identify=None, evals=150, mtpc=3, cores=cpu_count()
 
     with get_context('spawn').Pool(processes=cores, initializer=initialize, maxtasksperchild=mtpc) as tp:
         result_set = tp.map(design_with_config, [config for i in range(evals)])
+        #TODO: refactor into helper function
+        res = pd.DataFrame(result_set)
         with open('results/design_{}_{}.pkl'.format(evals, identify), 'wb') as h:
-            res = pickle.load(h)
-            res.append(pd.DataFrame(result_set))
-            pickle.dump(res)
+            pickle.dump(res, h)
 
 
 def start_optimization():
@@ -314,7 +325,6 @@ def start_optimization():
         make_batch()
 
     while not _DONE:
-        # endless while consumes a lot of cpu
         # print('Wait...')
         time.sleep(5)
         pass

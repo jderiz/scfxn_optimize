@@ -104,6 +104,7 @@ if __name__ == "__main__":
         cores = args.cores
 
     if args.config:
+        # do design instead of optimization
         optimization.design(args.config, identify=args.id, evals=args.evals,
                             mtpc=args.max_tasks_per_child)
 
