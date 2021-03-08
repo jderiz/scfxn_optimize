@@ -289,16 +289,15 @@ def design(config_path=None, identify=None, evals=1000, mtpc=3, cores=cpu_count(
                     c.append(config.iloc[0][w])
                 config = c
                 print(config)
+            elif type(config) == pd.Series:
+                c = []
+                for w in [name for name, _ in hyperparams.ref15_weights]:
+                    c.append(config[w])
+                    # TODO: handle series access by label.
+                config = c
             else:
                 exit(TypeError('the config must be either in list or DataFrame (1, len(weights)) format'))
             
-
-            # TODO: implement series case
-            # elif type(config) == pd.Series:
-            #     c = []
-            #     for w in [name for name, _ in hyperparams.ref15_weights]:
-            #         # TODO: handle series access by label.
-            #     config = c
 
     with get_context('spawn').Pool(processes=cores, initializer=initialize, maxtasksperchild=mtpc) as tp:
         result_set = tp.map(design_with_config, [config for i in range(evals)])
