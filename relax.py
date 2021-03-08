@@ -13,10 +13,11 @@ logger.setLevel(logging.ERROR)
 
 def relax_with_config(fa_reps):
     script_manager = prs.rosetta.protocols.relax.RelaxScriptManager()
-    prs.rosetta.protocols.relax.FastRelax.
+    
 
     # get benchmark protein
-    pdbs = bechmark_prot_fetcher.get()
+    pdbs = benchmark_prot_fetcher.get_crystal()
+
 
     with open('relax_script', 'wb') as f:
         f.write("repeat 5 \n\

@@ -302,10 +302,10 @@ def design(config_path=None, identify=None, evals=150, mtpc=3, cores=cpu_count()
 
     with get_context('spawn').Pool(processes=cores, initializer=initialize, maxtasksperchild=mtpc) as tp:
         result_set = tp.map(design_with_config, [config for i in range(evals)])
+        #TODO: refactor into helper function
+        res = pd.DataFrame(result_set)
         with open('results/design_{}_{}.pkl'.format(evals, identify), 'wb') as h:
-            res = pickle.load(h)
-            res.append(pd.DataFrame(result_set))
-            pickle.dump(res)
+            pickle.dump(res, h)
 
 
 def start_optimization():

@@ -90,10 +90,10 @@ def design_with_config(**config) -> dict:
 
     # pick random
     # pose = random.choice(pdbs)
-    prot_name = random.choice(list(pdbs.keys()))
-    pose = pdbs[prot_name]
-    # pose = pdbs['1K9P']
-    # prot_name = '1K9P'
+    # prot_name = random.choice(list(pdbs.keys()))
+    # pose = pdbs[prot_name]
+    pose = pdbs['1K9P']
+    prot_name = '1K9P'
 
     # copy pose for comparison after design
     native_pose = Pose()
