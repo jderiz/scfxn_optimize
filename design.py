@@ -9,8 +9,8 @@ from Bio import pairwise2
 from Bio.Align import substitution_matrices
 from pyrosetta import (Pose, PyJobDistributor, get_fa_scorefxn, init,
                        pose_from_pdb)
-from pyrosetta.rosetta.utility import vector1_bool
 from pyrosetta.distributed.packed_pose.core import PackedPose
+from pyrosetta.rosetta.utility import vector1_bool
 from skopt.utils import use_named_args
 
 import create_scfxn
@@ -50,7 +50,6 @@ def initialize():
         # set ReturnResidueSubsetSelector with whole sequence
         names = pssm.split('_')[1]
 
-
         for prot_name in pdbs.keys():
             if prot_name in names:
                 # print(prot_name, names)
@@ -58,6 +57,7 @@ def initialize():
                 sub_vec = vector1_bool()
 
                 # except 6Q21 --> 168
+
                 if prot_name == '6Q21':
                     for _ in range(168):
                         sub_vec.append(1)
@@ -83,10 +83,13 @@ def initialize():
 def design_with_config(**config) -> dict:
     start_time = time.time()  # Runtime measuring
     print('DESIGNING')
-    ref15 = get_fa_scorefxn() # REF15 
-    scfxn = create_scfxn.creat_scfxn_from_config(
-        config=config
-    )  # optimization score Function
+    ref15 = get_fa_scorefxn()  # REF15
+    if config is None:
+        scfxn = ref15
+    else:
+        scfxn = create_scfxn.creat_scfxn_from_config(
+            config=config
+        )  # optimization score Function
 
     # pick random
     # pose = random.choice(pdbs)
@@ -126,6 +129,9 @@ def design_with_config(**config) -> dict:
     # moritz says its okay to return energy normalized by length
     # check if pose can be pickled fast and returned
 
+    took = time.time() - start_time
+
+    # This has to be serializable in order to get pickled and send back to parent
     result = {"sequence": pose.sequence(),
               "pose": PackedPose(pose),
               "prot_len": len(pose.sequence()),
@@ -134,13 +140,12 @@ def design_with_config(**config) -> dict:
               "ref15": (ref15(pose)/len(pose.sequence())),
               "scfxn": (scfxn(pose)/len(pose.sequence())),
               "pssm": -pssm_score,
+              "runtime": took
               }
 
     print('DESIGN_DONE: ', result)
-    took = time.time() - start_time
     print("Took: {} to run design on length {}".format(
         time.strftime("%H: %M: %S", time.gmtime(took)), len(pose.sequence())))
 
-    # This has to be serializable in order to get pickled and send back to parent
 
     return result
