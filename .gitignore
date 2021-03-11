@@ -5,7 +5,7 @@ analyze/*
 !analyze/imgs/
 !analyze/tex/
 !analyze/markdown/
-!analyze/pkl/candidates/
+!analyze/pkl/candidates/*
 __pycache__/
 slurm*
 py_out/
