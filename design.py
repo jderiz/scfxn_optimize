@@ -85,7 +85,7 @@ def design_with_config(**config) -> dict:
     start_time = time.time()  # Runtime measuring
     print('DESIGNING')
     ref15 = get_fa_scorefxn()  # REF15
-    if config is None:
+    if config is 'ref15':
         scfxn = ref15
     else:
         scfxn = create_scfxn.creat_scfxn_from_config(

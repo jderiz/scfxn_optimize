@@ -277,7 +277,7 @@ def design(config_path=None, identify=None, evals=1000, mtpc=3, cores=cpu_count(
     print(config_path)
     if config_path == 'ref15':
         # use ref15 as default weights 
-        config = [weight for _, weight in hyperparams.ref15_weights]
+        config = 'ref15' # [weight for _, weight in hyperparams.ref15_weights]
     else:
         with open(config_path, 'rb') as h:
             config = pickle.load(h)
