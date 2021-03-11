@@ -77,6 +77,7 @@ def initialize():
                 srm.set_residue_selector_ref(None)
                 pssms.update({prot_name: srm})
     # print(pdbs, pssms)
+    # return pssms
 
 
 @use_named_args(dimensions=hyperparams.get_dimensions())
