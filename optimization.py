@@ -43,9 +43,9 @@ def init(
     logger = multiprocessing.log_to_stderr()
     logger.setLevel(logging.WARNING)
     global final_xi 
-    final_xi = 0.0001
+    final_xi = 0.001
     global final_kappa 
-    final_kappa = 0.01 
+    final_kappa = 0.1 
     global _xi, _kappa
     _xi = xi
     _kappa = kappa
