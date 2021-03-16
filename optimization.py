@@ -28,8 +28,8 @@ def init(
     cores=None,
     mtpc=None, # maxtasksperchild
     weight_range=0.25,
-    xi=0.01,
-    kappa=1.69,
+    xi=0.01, # starting value if cooldown
+    kappa=1.69, # starting value if cooldown
     cooldown=False,
     space_dimensions=None,
     save_pandas=True
@@ -42,7 +42,13 @@ def init(
     # Setup Logging
     logger = multiprocessing.log_to_stderr()
     logger.setLevel(logging.WARNING)
-
+    global final_xi 
+    final_xi = 0.0001
+    global final_kappa 
+    final_kappa = 0.01 
+    global _xi, _kappa
+    _xi = xi
+    _kappa = kappa
     if not identifier:
         log_handler = logging.FileHandler('mp.log')
     else:
@@ -251,9 +257,17 @@ def make_batch(config=None) -> None:
     calls += 1
     print('Make Batch: ', calls)
 
-    # if _cooldown:
-    #     # implement cooldown 
-    #     optimizer.update_next()
+    if _cooldown:
+        # either lin or +,- log cooldown
+        global final_kappa, final_xi, n_calls
+        
+        new_xi = _xi - (((_xi-final_xi)/n_calls)*calls)
+        new_kappa = _kappa -(((_kappa-final_kappa)/n_calls)*calls)
+        print('UPDATE XI KAPPA \n', new_xi, new_kappa)
+        optimizer.acq_optimizer_kwargs.update({'xi': new_xi, 'kappa': new_kappa})
+
+        # implement cooldown 
+        optimizer.update_next()
     if not config:
         config = optimizer.ask()
     job = tp.map_async(

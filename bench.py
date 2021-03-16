@@ -95,6 +95,8 @@ if __name__ == "__main__":
         help="not saving the structures saves enormous amounts of space")
     parser.add_argument("-dict_out", action="store_true",
                         help="save result in dict format rather then pandas DataFrame")
+
+    parser.add_argument("-cooldown", type=str, help='specifies the if cooldown shoulf be applied to the explore exploit params and if so linnear or logarithmic', choices=['lin', 'poslog', 'neglog'])
     args = parser.parse_args()
     print(args)
 
@@ -121,5 +123,6 @@ if __name__ == "__main__":
             weight_range=args.range,
             xi=args.xi,
             kappa=args.kappa,
+            cooldown=args.cooldown
         )
         optimization.start_optimization()
