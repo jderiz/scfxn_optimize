@@ -76,6 +76,9 @@ def initialize():
                 # uses same as set_residue_selector
                 srm.set_residue_selector_ref(None)
                 pssms.update({prot_name: srm})
+        # BLOSS TODO: let blossum compute from prs
+        # bloss = prs.rosetta.proticils.analysis.simple_metrics.SequenceSimilarityMetric()
+
     # print(pdbs, pssms)
 
 
