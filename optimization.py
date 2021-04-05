@@ -22,15 +22,16 @@ def init(
     identifier=None,
     test_run=False,
     number_calls=200,
-    rpc=5,
+    rpc=5,  # runs_per_config
     result_dir="results",
     warm_start=None,
     cores=None,
-    mtpc=None,
+    mtpc=None,  # maxtasksperchild
     weight_range=0.25,
-    xi=0.01,
-    kappa=1.69,
+    xi=0.01,  # starting value if cooldown
+    kappa=1.69,  # starting value if cooldown
     cooldown=False,
+    space_dimensions=None,
     save_pandas=True
 ):
     """
@@ -41,6 +42,13 @@ def init(
     # Setup Logging
     logger = multiprocessing.log_to_stderr()
     logger.setLevel(logging.WARNING)
+    global final_xi
+    final_xi = 0.001
+    global final_kappa
+    final_kappa = 0.01
+    global _xi, _kappa
+    _xi = xi
+    _kappa = kappa
 
     if not identifier:
         log_handler = logging.FileHandler('mp.log')
@@ -98,16 +106,22 @@ def init(
     # overall Runtime measuring
     start_time = time.time()
 
-    # optimizer dimensions setup
-    hyperparams.set_range(weight_range)
-    dimensions = hyperparams.get_dimensions()
+    # optimizer dimensions setup, either take default ref15 or pickled from user input
+
+    if not space_dimensions:
+        hyperparams.set_range(weight_range)
+        dimensions = hyperparams.get_dimensions()
+    else:
+        with open(space_dimensions, 'rb') as h:
+            dimensions = pickle.load(h)
 
     if test_run:
         print("DUMMY OBJECTIVE")
         objective = dummy_objective
         loss_value = 'ref15'
         init_method = None
-        # n_calls = 200
+        pandas = False
+        # n_calls = 100
     else:
         objective = design_with_config
         init_method = initialize
@@ -135,7 +149,9 @@ def init(
         x_0 = [x["weights"][0] for x in c_group]
         optimizer.tell(x_0, y_0)
 
-    tp = get_context("spawn").Pool(cores, initializer=init_method, maxtasksperchild=mtpc)
+    # always spawn:  https://pythonspeed.com/articles/python-multiprocessing/
+    tp = get_context('spawn').Pool(
+        cores, initializer=init_method, maxtasksperchild=mtpc)
 
 
 def dummy_objective(config) -> dict:
@@ -171,10 +187,11 @@ def save_and_exit() -> None:
         )
     )
     # save custom results, as pandas or dict
+
     if pandas:
         df = pd.DataFrame(results)
         weights = df.config.apply(lambda x: pd.Series(x))
-        weights.columns = [name for name, _ in hyperparams.ref15_weights] 
+        weights.columns = [name for name, _ in hyperparams.ref15_weights]
         results = pd.concat([df, weights], axis=1)
     with open(
         "results/{}_{}_res_{}.pkl".format(
@@ -245,24 +262,21 @@ def make_batch(config=None) -> None:
     calls += 1
     print('Make Batch: ', calls)
 
-    # if config:
-    #     config = config
-    #     cached_config = config
-    #     jobs_for_current_config += 1
-    # elif cached_config and jobs_for_current_config < runs_per_config:
-    #     config = cached_config
-    #     jobs_for_current_config += 1
-    # else:  # make new config reset counter to 1
-    #     config = optimizer.ask()
-    #     optimizer.update_next()
-    #     cached_config = config
-    #     jobs_for_current_config = 1
-    # instantiate jobs knowing which config they belongs to.
+    if _cooldown:
+        # either lin or +,- log cooldown
+        global final_kappa, final_xi, n_calls
+
+        new_xi = _xi - (((_xi-final_xi)/n_calls)*calls)
+        new_kappa = _kappa - (((_kappa-final_kappa)/n_calls)*calls)
+        print('UPDATE XI KAPPA \n', new_xi, new_kappa)
+        optimizer.acq_optimizer_kwargs.update(
+            {'xi': new_xi, 'kappa': new_kappa})
+
+        # implement cooldown
+        optimizer.update_next()
 
     if not config:
         config = optimizer.ask()
-    # needed if changes to optimizer are made during run
-    # optimizer.update_next()
     job = tp.map_async(
         objective,
         [config for _ in range(runs_per_config)],
@@ -274,18 +288,48 @@ def make_batch(config=None) -> None:
     # increase calls counter
 
 
-def design(config_path, evals, mtpc):
+def design(config_path=None, identify=None, evals=1000, mtpc=3, cores=cpu_count()):
     """
-        Do an actual design run with a single config
+        Do an actual design run with a single config.
+        The config either needs to be a list with weight values in 
+        correct order. Or a pd.Series or DataFrame object with corresponding 
+        column names.
     """
-    with open(config_path, 'rb') as h:
-        config = pickle.load(h)
-    with get_context('spawn').Pool(processes=_cores, maxtasksperchild=mtpc) as tp:
+    print(config_path)
+
+    if config_path == 'ref15':
+        # use ref15 as default weights
+        config = 'ref15'  # [weight for _, weight in hyperparams.ref15_weights]
+    else:
+        with open(config_path, 'rb') as h:
+            config = pickle.load(h)
+
+            if type(config) == list:
+                pass
+            elif (type(config) == pd.DataFrame) and (len(config) == 1):
+                c = []
+
+                for w in [name for name, _ in hyperparams.ref15_weights]:
+                    c.append(config.iloc[0][w])
+                config = c
+                print(config)
+            elif type(config) == pd.Series:
+                c = []
+
+                for w in [name for name, _ in hyperparams.ref15_weights]:
+                    c.append(config[w])
+                    # TODO: handle series access by label.
+                config = c
+            else:
+                exit(TypeError(
+                    'the config must be either in list or DataFrame (1, len(weights)) format'))
+
+    with get_context('spawn').Pool(processes=cores, initializer=initialize, maxtasksperchild=mtpc) as tp:
         result_set = tp.map(design_with_config, [config for i in range(evals)])
-        with open('results/design_{}.pkl'.format(evals), 'wb') as h:
-            res = pickle.load(h)
-            res.append(pd.DataFrame(result_set))
-            pickle.dump(res)
+        # TODO: refactor into helper function
+        res = pd.DataFrame(result_set)
+        with open('results/design_{}_{}.pkl'.format(evals, identify), 'wb') as h:
+            pickle.dump(res, h)
 
 
 def start_optimization():
@@ -305,7 +349,6 @@ def start_optimization():
         make_batch()
 
     while not _DONE:
-        # endless while consumes a lot of cpu
         # print('Wait...')
         time.sleep(5)
         pass

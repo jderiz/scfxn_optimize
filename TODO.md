@@ -11,10 +11,12 @@
     - Wie soll die Kandidaten Config gewählt werden?
     - Relax Script!!!
     - Gedanken machen wie das ganze gut generalisiert werden kann, sodass ein anwender minimalen config aufwand hat.
+     
 ## Code
      - add time component to loss
      - add cooldown of xi and kappa
      - add SEED für replizierbarkeit
+     - format ouput into pandas DataFrame
 ## Analysis
      - show Convergence of Optimization on each loss.
      - Determine 'best' configuration
