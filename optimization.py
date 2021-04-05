@@ -8,7 +8,7 @@ import time
 from functools import partial
 from multiprocessing import (Pipe, Pool, active_children, cpu_count,
                              current_process, get_context)
-
+import numpy as np
 import pandas as pd
 from skopt import Optimizer, callbacks
 
@@ -121,7 +121,6 @@ def init(
         loss_value = 'ref15'
         init_method = None
         pandas = False
-        # n_calls = 100
     else:
         objective = design_with_config
         init_method = initialize
@@ -263,16 +262,27 @@ def make_batch(config=None) -> None:
     print('Make Batch: ', calls)
 
     if _cooldown:
-        # either lin or +,- log cooldown
+        # either lin, log(fast), neg exp(slow) or TODO:contract/expand cooldown
+        # TODO: precompute and store in optimizer singleton, make dependent on start /end values
         global final_kappa, final_xi, n_calls
+        if _cooldown == 'lin':
+            new_xi = _xi - (((_xi-final_xi)/n_calls)*calls)
+            new_kappa = _kappa - (((_kappa-final_kappa)/n_calls)*calls)
+        if _cooldown == 'fast':
+            new_xi = np.logspace(0.1, -3, num=n_calls, endpoint=True)[calls]
+            new_kappa = np.logspace(1, -1, num=n_calls, endpoint=True)[calls]
+        if _cooldown == 'slow':
+            # TODO: make proper
+            df = pd.DataFrame(None, index=range(n_calls))
+            df[1] = range(1, n_calls+1)
+            df[1].apply(lambda x: 1 - (x/n_calls*(x*0.999))/n_calls )
 
-        new_xi = _xi - (((_xi-final_xi)/n_calls)*calls)
-        new_kappa = _kappa - (((_kappa-final_kappa)/n_calls)*calls)
+            
+
+        # implement cooldown
         print('UPDATE XI KAPPA \n', new_xi, new_kappa)
         optimizer.acq_optimizer_kwargs.update(
             {'xi': new_xi, 'kappa': new_kappa})
-
-        # implement cooldown
         optimizer.update_next()
 
     if not config:
