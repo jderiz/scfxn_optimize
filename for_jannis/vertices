@@ -1,0 +1,4 @@
+VERT fa_elec 0.195 0.0001
+VERT orb_elec_B 5 0.0001 
+VERT orb_elec_C 3.1 0.0001
+VERT orb_elec_E 9 0.0001

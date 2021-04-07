@@ -1,0 +1,4 @@
+FLAG fa_elec set_weights fa_elec
+FLAG orb_elec_B orb_elec_B
+FLAG orb_elec_C orb_elec_C
+FLAG orb_elec_E orb_elec_E

@@ -1,0 +1,24 @@
+# I/O options
+-ignore_unrecognized_res
+-renumber_pdb
+-preserve_crystinfo
+
+# mem usage
+-jd2:delete_old_poses
+
+# density matching
+-mapreso 2
+-grid_spacing 0.8
+-atom_mask 2
+-sliding_window 1
+-unmask_bb
+
+# wannier
+-wannier
+-output_virtual
+-wannier_new_lib_style
+-wannier_fractional_path
+-wannier_orb_lib_dir orbital_geo_lib/
+-overwrite
+-elec_representative_cp 0
+-elec_representative_cp_flip 0

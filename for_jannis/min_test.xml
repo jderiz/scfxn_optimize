@@ -1,0 +1,21 @@
+<ROSETTASCRIPTS>
+	<SCOREFXNS>
+		<ScoreFunction name="myscore" weights="%%wts%%"/>
+	</SCOREFXNS>
+
+	<TASKOPERATIONS>
+	</TASKOPERATIONS>
+
+	<FILTERS>
+		<Rmsd name="rmsd" confidence="0.0"/>
+	</FILTERS>
+
+	<MOVERS>
+		<ScoreMover name="score" scorefxn="myscore"/>
+	</MOVERS>
+
+	<PROTOCOLS>
+		<Add mover_name="score"/>
+		<Add filter="rmsd"/>
+	</PROTOCOLS>
+</ROSETTASCRIPTS>

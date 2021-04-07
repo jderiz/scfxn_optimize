@@ -1,7 +1,8 @@
 import os
 
-optimizers = ['RF']  # 'GP'] #, 'RF', 'GBRT', 'ET']
+optimizers = ['GP'] #, 'RF', 'GBRT', 'ET']
 loss_funcs = ['pssm']
+
 xi = [0.0001, 0.001, 0.01, 0.1, 1]
 kappa = [0.01, 0.1, 1, 10, 100]
 
@@ -24,10 +25,10 @@ for x, k in zip(xi, kappa):
 #SBATCH --mail-user=jannis.deriz@gmail.com\n\
 #SBATCH -n 1\n\
 #SBATCH -c 64\n\
-#SBATCH --job-name=k'+str(k)+'\n\
+#SBATCH --job-name=k'+ks+'\n\
 module load Anaconda3\n\
 source /nfs/cluster/easybuild/software/Anaconda3/2020.02/etc/profile.d/conda.sh\n\
 conda activate scfxn\n\
-python bench.py -e RF -l pssm -evals 150 -rpc 7 -id xi_'+xs+'_kappa'+ks+' -xi '+xs+' -kappa '+ks+'\n\
+python bench.py -e GP -l pssm -evals 150 -rpc 8 -id xi_'+xs+'_kappa'+ks+' -xi '+xs+' -kappa '+ks+'\n\
 ')
     os.system("sbatch %s" % job_file)
