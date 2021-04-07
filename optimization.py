@@ -260,26 +260,29 @@ def make_batch(config=None) -> None:
 
     calls += 1
     print('Make Batch: ', calls)
-
+    
+    # scale xi & kapp(explore/exploite) according to chosen curve
     if _cooldown:
-        # either lin, log(fast), neg exp(slow) or TODO:contract/expand cooldown
+        # either lin, log(fast), neg exp(slow)
+        # TODO: contract/expand cooldown
         # TODO: precompute and store in optimizer singleton, make dependent on start /end values
         global final_kappa, final_xi, n_calls
         if _cooldown == 'lin':
             new_xi = _xi - (((_xi-final_xi)/n_calls)*calls)
             new_kappa = _kappa - (((_kappa-final_kappa)/n_calls)*calls)
-        if _cooldown == 'fast':
+        elif _cooldown == 'fast':
             new_xi = np.logspace(0.1, -3, num=n_calls, endpoint=True)[calls]
             new_kappa = np.logspace(1, -1, num=n_calls, endpoint=True)[calls]
-        if _cooldown == 'slow':
+        elif _cooldown == 'slow':
             # TODO: make proper
             df = pd.DataFrame(None, index=range(n_calls))
             df[1] = range(1, n_calls+1)
-            df[1].apply(lambda x: 1 - (x/n_calls*(x*0.999))/n_calls )
+            df['xi'] = df[1].apply(lambda x: _xi - (x/n_calls*(x*-(final_xi-_xi)))/n_calls )
+            df['kappa'] = df[1].apply(lambda x: _kappa - (x/n_calls*(x*-(final_kappa-_kappa)))/n_calls )
+            new_xi = df.xi[calls]
+            new_kappa = df.kappa[calls]
 
-            
 
-        # implement cooldown
         print('UPDATE XI KAPPA \n', new_xi, new_kappa)
         optimizer.acq_optimizer_kwargs.update(
             {'xi': new_xi, 'kappa': new_kappa})
@@ -302,7 +305,7 @@ def design(config_path=None, identify=None, evals=1000, mtpc=3, cores=cpu_count(
     """
         Do an actual design run with a single config.
         The config either needs to be a list with weight values in 
-        correct order. Or a pd.Series or DataFrame object with corresponding 
+        "correct" order. Or a pd.Series or DataFrame object with corresponding 
         column names.
     """
     print(config_path)
