@@ -38,15 +38,16 @@ def init(
     Init Optimization 
     """
 
-    global logger
+    # define global variables all functions can access
+    global _DONE, identify, _core, result_buffer, results, n_calls, calls, num_callbacks, 
+    jobs, start_time, objective, optimizer, runs_per_config, loss_value, base_estimator, tp, 
+    _cooldown, pandas, final_xi, final_kappa, _xi, _kappa, logger
     # Setup Logging
     logger = multiprocessing.log_to_stderr()
     logger.setLevel(logging.WARNING)
-    global final_xi
+    # EXPLORE/EXPLOIT 
     final_xi = 0.001
-    global final_kappa
     final_kappa = 0.01
-    global _xi, _kappa
     _xi = xi
     _kappa = kappa
 
@@ -56,27 +57,6 @@ def init(
         log_handler = logging.FileHandler('mp_'+identifier+'.log')
     log_handler.setLevel(logging.DEBUG)
     logger.addHandler(log_handler)
-    # define global variables all functions can access
-    global _DONE
-    global identify
-    global _cores
-    global result_buffer
-    global results
-    global n_calls
-    global calls
-    global num_callbacks
-    global jobs
-    global start_time
-    global objective
-    global optimizer
-    # global cached_config
-    global runs_per_config
-    global loss_value
-    # global jobs_for_current_config
-    global base_estimator
-    global tp
-    global _cooldown
-    global pandas
     pandas = save_pandas
 
     identify = identifier
