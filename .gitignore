@@ -3,6 +3,7 @@ results/
 !analyze/
 analyze/*
 !analyze/imgs/
+analyze/imgs/.ipy**
 !analyze/tex/
 !analyze/markdown/
 !analyze/pkl/candidates/*
