@@ -2,7 +2,6 @@ import logging
 import time
 
 import pyrosetta as prs
-from pyrosetta.rosetta.protocols.relax import ClassicRelaxCreator
 
 import benchmark_prot_fetcher
 
@@ -16,11 +15,11 @@ logger.setLevel(logging.ERROR)
 def init():
 
     # get benchmark protein crystal structures.
-    pdbs = benchmark_prot_fetcher.get_crystal()
+    pdbs = benchmark_prot_fetcher.get_crystals()
 
 def relax_with_config(fa_reps):
-    script_manager = prs.rosetta.protocols.relax.RelaxScriptManager()
-
+    prot = random.choice(pdbs) 
+    
 
     with open('relax_script', 'wb') as f:
         f.write("repeat 5 \n\

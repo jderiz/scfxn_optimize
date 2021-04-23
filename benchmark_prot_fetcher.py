@@ -19,7 +19,7 @@ def get_crystals():
     returns the crystal structure of the benchmark proteins as a dict
     """
 
-    return
+    return crystals
 
 
 def get_all():
