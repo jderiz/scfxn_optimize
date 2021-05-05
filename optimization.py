@@ -39,9 +39,29 @@ def init(
     """
 
     # define global variables all functions can access
-    global _DONE, identify, _core, result_buffer, results, n_calls, calls, num_callbacks, 
-    jobs, start_time, objective, optimizer, runs_per_config, loss_value, base_estimator, tp, 
-    _cooldown, pandas, final_xi, final_kappa, _xi, _kappa, logger
+    global _DONE 
+    global identify
+    global _cores
+    global result_buffer 
+    global results 
+    global n_calls 
+    global calls 
+    global num_callbacks 
+    global jobs 
+    global start_time 
+    global objective 
+    global optimizer 
+    global runs_per_config 
+    global loss_value 
+    global base_estimator 
+    global tp 
+    global _cooldown 
+    global pandas 
+    global final_xi 
+    global final_kappa 
+    global _xi 
+    global _kappa 
+    global logger
     # Setup Logging
     logger = multiprocessing.log_to_stderr()
     logger.setLevel(logging.WARNING)
