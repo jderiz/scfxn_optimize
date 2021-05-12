@@ -21,6 +21,8 @@ def get_crystals():
 
     return crystals
 
+def get_crystal_by_pdb(name):
+    return crystals[name]
 
 def get_all():
 
