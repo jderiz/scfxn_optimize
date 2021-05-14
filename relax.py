@@ -3,7 +3,6 @@ import time
 
 import pyrosetta as prs
 from pyrosetta import get_fa_scorefxn
-from pyrosetta.rosetta.protocols.relax import FastRelax
 import benchmark_prot_fetcher
 
 prs.init(
@@ -31,31 +30,34 @@ def relax_with_config(fa_reps):
     prot_name = random.choice(crystals.keys()) 
     pose = crystals[prot_name]
     default_pose = pre_relaxed[prot_name]
+    # empty file line vector
+    svec = prs.rosetta.std.vector_std_string()
 
-    relax_protocol = FastRelax()
-    with open('relax_script', 'wb') as f:
-        f.write("repeat 5 \n\
-                coord_cst_weight 1.0\n\
-                scale:fa_rep {}\n\
-                repack\n\
-                scale:fa_rep {}\n\
-                min 0.01\n\
-                coord_cst_weight 0.5\n\
-                scale:fa_rep {}\n\
-                repack\n\
-                scale:fa_rep {}\n\
-                min 0.01\n\
-                coord_cst_weight 0.0\n\
-                scale:fa_rep {}\n\
-                repack\n\
-                scale:fa_rep {}\n\
-                min 0.01\n\
-                coord_cst_weight 0.0\n\
-                scale:fa_rep {}\n\
-                repack\n\
-                min 0.00001\n\
-                accept_to_best\n\
-                endrepeat".format(*fa_reps))
+    relax_protocol = prs.rosetta.protocols.relax.FastRelax()
+    svec.append("repeat 5")
+    svec.append("coord_cst_weight 1.0")
+    svec.append("scale:fa_rep "+ fa_reps[0])
+    svec.append("repack")
+    svec.append("scale:fa_rep " + fa_reps[1])
+    svec.append("min 0.01")
+    svec.append("coord_cst_weight 0.5")
+    svec.append("scale:fa_rep " + fa_reps[2])
+    svec.append("repack")
+    svec.append("scale:fa_rep " + fa_reps[3]) 
+    svec.append("min 0.01")
+    svec.append("coord_cst_weight 0.0")
+    svec.append("scale:fa_rep " + fa_reps[4])
+    svec.append("repack")
+    svec.append("scale:fa_rep " + fa_reps[5])
+    svec.append("min 0.01")
+    svec.append("coord_cst_weight 0.0")
+    svec.append("scale:fa_rep " + fa_reps[6])
+    svec.append("repack")
+    svec.append("min 0.00001")
+    svec.append("accept_to_best")
+    svec.append("endrepeat")
+    
+    relax_protocol.set_script_from_lines(svec)
      
     scores = [scfxn(relax_protocol.apply(pose, scfxn))  for _ in range(avg_over)]
     score = sum(scores) / len(scores)
