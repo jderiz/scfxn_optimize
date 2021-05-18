@@ -8,13 +8,12 @@ import time
 from functools import partial
 from multiprocessing import (Pipe, Pool, active_children, cpu_count,
                              current_process, get_context)
-
 import numpy as np
 import pandas as pd
 from skopt import Optimizer, callbacks
 
 import hyperparams
-from config import _objective, _init_method
+from design import design_with_config, initialize
 
 
 def init(
@@ -40,13 +39,33 @@ def init(
     """
 
     # define global variables all functions can access
-    global _DONE, identify, _core, result_buffer, results, n_calls, calls, num_callbacks,
-    jobs, start_time, objective, optimizer, runs_per_config, loss_value, base_estimator, tp,
-    _cooldown, pandas, final_xi, final_kappa, _xi, _kappa, logger
+    global _DONE 
+    global identify
+    global _cores
+    global result_buffer 
+    global results 
+    global n_calls 
+    global calls 
+    global num_callbacks 
+    global jobs 
+    global start_time 
+    global objective 
+    global optimizer 
+    global runs_per_config 
+    global loss_value 
+    global base_estimator 
+    global tp 
+    global _cooldown 
+    global pandas 
+    global final_xi 
+    global final_kappa 
+    global _xi 
+    global _kappa 
+    global logger
     # Setup Logging
     logger = multiprocessing.log_to_stderr()
     logger.setLevel(logging.WARNING)
-    # EXPLORE/EXPLOIT
+    # EXPLORE/EXPLOIT 
     final_xi = 0.001
     final_kappa = 0.01
     _xi = xi
@@ -103,9 +122,8 @@ def init(
         init_method = None
         pandas = False
     else:
-        # set objective and initializer
-        objective = _objective
-        init_method = _init_method
+        objective = design_with_config
+        init_method = initialize
     # Higher values for xi, kapp --> more exploration
     # DEFAULTS: xi:0.01, kappa:1.96
     # TODO: implement cooldown [start_values, end_values]
@@ -242,15 +260,13 @@ def make_batch(config=None) -> None:
 
     calls += 1
     print('Make Batch: ', calls)
-
+    
     # scale xi & kapp(explore/exploite) according to chosen curve
-
     if _cooldown:
         # either lin, log(fast), neg exp(slow)
         # TODO: contract/expand cooldown
         # TODO: precompute and store in optimizer singleton, make dependent on start /end values
         global final_kappa, final_xi, n_calls
-
         if _cooldown == 'lin':
             new_xi = _xi - (((_xi-final_xi)/n_calls)*calls)
             new_kappa = _kappa - (((_kappa-final_kappa)/n_calls)*calls)
@@ -261,12 +277,11 @@ def make_batch(config=None) -> None:
             # TODO: make proper
             df = pd.DataFrame(None, index=range(n_calls))
             df[1] = range(1, n_calls+1)
-            df['xi'] = df[1].apply(
-                lambda x: _xi - (x/n_calls*(x*-(final_xi-_xi)))/n_calls)
-            df['kappa'] = df[1].apply(
-                lambda x: _kappa - (x/n_calls*(x*-(final_kappa-_kappa)))/n_calls)
+            df['xi'] = df[1].apply(lambda x: _xi - (x/n_calls*(x*-(final_xi-_xi)))/n_calls )
+            df['kappa'] = df[1].apply(lambda x: _kappa - (x/n_calls*(x*-(final_kappa-_kappa)))/n_calls )
             new_xi = df.xi[calls]
             new_kappa = df.kappa[calls]
+
 
         print('UPDATE XI KAPPA \n', new_xi, new_kappa)
         optimizer.acq_optimizer_kwargs.update(
