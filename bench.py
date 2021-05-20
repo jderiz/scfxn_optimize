@@ -2,7 +2,7 @@ import argparse
 from multiprocessing import Pool, cpu_count, get_context
 
 import optimization
-from design import initialize
+from relax import initialize
 
 if __name__ == "__main__":
     """
@@ -88,6 +88,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-id",
         default=None,
+        type=str,
         help="Identity string for storing the results")
     parser.add_argument(
         "-no_struct",
@@ -96,7 +97,7 @@ if __name__ == "__main__":
     parser.add_argument("-dict_out", action="store_true",
                         help="save result in dict format rather then pandas DataFrame")
 
-    parser.add_argument("-cooldown", type=str, help='specifies the if cooldown shoulf be applied to the explore exploit params and if so linnear or logarithmic', choices=['lin', 'poslog', 'neglog'])
+    parser.add_argument("-cooldown", type=str, help='specifies if cooldown should be applied to the explore exploit params and if so linnear or logarithmic', choices=['lin', 'slow', 'fast'])
     args = parser.parse_args()
     print(args)
 

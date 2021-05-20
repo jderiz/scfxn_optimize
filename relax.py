@@ -1,36 +1,38 @@
 import logging
 import time
-
+import os
 import pyrosetta as prs
 from pyrosetta import get_fa_scorefxn
-import benchmark_prot_fetcher
 import random
-prs.init(
-    options="-ex1 -ex2", set_logging_handler=True, extra_options="-linmem_ig 10 -archive_on_disk /tmp/rosetta"
-)  # no output from the design process
-prs.logging_support.set_logging_sink()
-logger = logging.getLogger("rosetta")
-logger.setLevel(logging.ERROR)
 
 
 
 
-def init():
+def initialize():
 
+    prs.init( 
+            options="-ex1 -ex2", set_logging_handler=True, extra_options="-linmem_ig 10 -archive_on_disk /tmp/rosetta -mute core -mute basic -mute protocols"
+    )  # no output from the design process
+    prs.logging_support.set_logging_sink()
+    logger = logging.getLogger("rosetta")
+    logger.setLevel(logging.ERROR)
     # get benchmark protein crystal structures.
-    global crystals 
-    global pre_relaxed
-    crystals = benchmark_prot_fetcher.get_crystals()
-    pre_relaxed = benchmark_prot_fetcher.get_all() 
+    global names 
+    names = []
+    for pdb in os.listdir("benchmark"):
+        if pdb.endswith(".pdb"):
+            #  store actual Pose() object
+            names.append(pdb)
+
+
 
 def relax_with_config(fa_reps):
 
     # relax the structure and compare to default fast relax
-    avg_over = 10
     scfxn  = get_fa_scorefxn()
-    prot_name = random.choice(crystals.keys()) 
-    pose = crystals[prot_name]
-    default_pose = pre_relaxed[prot_name]
+    pdb = random.choice(names) 
+    pose = prs.pose_from_pdb("benchmark/crystal/crystal_1K9P.pdb")
+    # default_pose = prs.pose_from_pdb("benchmark/1K9P.pdb")
     # empty file line vector
     svec = prs.rosetta.std.vector_std_string()
     # init relax with score func
@@ -38,34 +40,37 @@ def relax_with_config(fa_reps):
     # write relax script to vector_std_string
     svec.append("repeat 5")
     svec.append("coord_cst_weight 1.0")
-    svec.append("scale:fa_rep "+ fa_reps[0])
-    svec.append("repack") # TODO: WHY is rosetta complaining about repack (command unknown) 
-                                # when doing relax.set_script_from_lines(svec)
-    svec.append("scale:fa_rep " + fa_reps[1])
+    svec.append("scale:fa_rep "+ str(fa_reps[0]))
+    svec.append("repack") 
+    svec.append("scale:fa_rep " + str(fa_reps[1]))
     svec.append("min 0.01")
     svec.append("coord_cst_weight 0.5")
-    svec.append("scale:fa_rep " + fa_reps[2])
+    svec.append("scale:fa_rep " + str(fa_reps[2]))
     svec.append("repack")
-    svec.append("scale:fa_rep " + fa_reps[3]) 
+    svec.append("scale:fa_rep " + str(fa_reps[3]))
     svec.append("min 0.01")
     svec.append("coord_cst_weight 0.0")
-    svec.append("scale:fa_rep " + fa_reps[4])
+    svec.append("scale:fa_rep " + str(fa_reps[4]))
     svec.append("repack")
-    svec.append("scale:fa_rep " + fa_reps[5])
+    svec.append("scale:fa_rep " + str(fa_reps[5]))
     svec.append("min 0.01")
     svec.append("coord_cst_weight 0.0")
-    svec.append("scale:fa_rep " + fa_reps[6])
+    svec.append("scale:fa_rep " + str(fa_reps[6]))
     svec.append("repack")
     svec.append("min 0.00001")
     svec.append("accept_to_best")
     svec.append("endrepeat")
     # make relax use the script 
     relax_protocol.set_script_from_lines(svec)
-    # evaluate 
-    scores = [scfxn(relax_protocol.apply(pose, scfxn))  for _ in range(avg_over)]
-    score = sum(scores) / len(scores)
-    default_score = scfxn(default_pose)
-    return default_score - score
+    # evaluate
+    relax_protocol.apply(pose)
+    score = scfxn(pose)
+    # default_score = scfxn(default_pose)
+    # normalize by lenght
+    res = {"score": score/len(pose)}
+    # print(res)
+    return res
+
 
      
 
