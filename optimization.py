@@ -173,6 +173,7 @@ def save_and_exit() -> None:
     global base_estimator
     global tp
     global identify
+    global results
 
     # tell pool its about to terminate
     tp.close()
@@ -191,11 +192,11 @@ def save_and_exit() -> None:
     if pandas:
         df = pd.DataFrame(results)
         weights = df.config.apply(lambda x: pd.Series(x))
-        weights.columns = [name for name, _ in hyperparams.ref15_weights]
+        weights.columns = ["fa_rep_" +str(num) for num in range(7)]
         results = pd.concat([df, weights], axis=1)
     with open(
-        "results/{}_{}_res_{}.pkl".format(
-            time.strftime("%H_%M"), base_estimator, identify
+        "results/{}_res_{}.pkl".format(
+             identify, base_estimator
         ),
         "wb",
     ) as file:
@@ -231,7 +232,7 @@ def _callback(map_res, config=None, run=None) -> None:
     optimizer.tell(
         config, (sum([x[loss_value] for x in map_res]) / len(map_res))
     )
-
+    print(map_res)
     # make n_calls batches
 
     if calls < n_calls:
@@ -345,7 +346,7 @@ def cooldown():
 #         result_set = tp.map(design_with_config, [config for i in range(evals)])
 #         # TODO: refactor into helper function
 #         res = pd.DataFrame(result_set)
-#         with open('results/relax_{}_{}.pkl'.format(evals, identify), 'wb') as h:
+#         with open('results/design_{}_{}.pkl'.format(evals, identify), 'wb') as h:
 #             pickle.dump(res, h)
 
 
@@ -360,7 +361,7 @@ def start_optimization():
     
     # initial runs, starting with ref15
 
-    make_batch(hyperparams.relax_init_fa_reps)
+    make_batch()
 
     for _ in range(int(_cores/runs_per_config) - 1):
         make_batch()
