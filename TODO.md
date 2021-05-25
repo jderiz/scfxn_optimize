@@ -14,9 +14,16 @@
     - Gedanken machen wie das ganze gut generalisiert werden kann, sodass ein anwender minimalen config aufwand hat.
      
 ## Code
+<<<<<<< HEAD
     - add time component to loss
     - add cooldown of xi and kappa
     - add SEED für replizierbarkeit
+=======
+     - add time component to loss
+     - add cooldown of xi and kappa
+     - add SEED für replizierbarkeit
+     - format ouput into pandas DataFrame
+>>>>>>> master
 ## Analysis
     - show Convergence of Optimization on each loss.
     - Determine 'best' configuration
