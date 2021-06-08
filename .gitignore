@@ -1,4 +1,6 @@
-benchmark/
+!benchmark/
+benchmark/*
+!benchmark/crystal
 results/
 !analyze/
 analyze/*
