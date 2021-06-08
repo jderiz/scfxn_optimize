@@ -18,7 +18,7 @@ from relax import relax_with_config, initialize
 
 def init(
     loss,
-    estimator="RF",
+    estimator="RF", # "dummy" for random search
     identifier=None,
     test_run=False,
     number_calls=200,
@@ -349,7 +349,19 @@ def cooldown():
 #         with open('results/design_{}_{}.pkl'.format(evals, identify), 'wb') as h:
 #             pickle.dump(res, h)
 
+def relax(config_path=None, identify=None, evals=100, mtpc=3, cores=cpu_count()):
+    if not config_path:
+        config = hyperparams.relax_init_fa_reps
 
+    else:
+        with open(config_path, "rb") as h:
+            config = pickle.load(h)
+    with get_context('spawn').Pool(processes=cores, initializer=initialize, maxtasksperchild=mtpc) as tp:
+        result_set = tp.map(relax_with_config, [config[0] for i in range(evals)])
+        res = pd.DataFrame(result_set)
+        with open('results/relax_bench_{}_{}.pkl'.format(evals, identify), 'wb') as h:
+            pickle.dump(res, h)
+    
 def start_optimization():
     """
     start the optimization process, and wait for it to finish
@@ -359,8 +371,7 @@ def start_optimization():
     global runs_per_config
     _DONE = False
     
-    # initial runs, starting with ref15
-
+    # initial runs WITHOUT default config
     make_batch()
 
     for _ in range(int(_cores/runs_per_config) - 1):

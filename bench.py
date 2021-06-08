@@ -107,10 +107,11 @@ if __name__ == "__main__":
         cores = args.cores
 
     if args.config:
-        # do design instead of optimization
-        optimization.design(args.config, identify=args.id, evals=args.evals,
-                            mtpc=args.max_tasks_per_child)
-
+    #     # do design instead of optimization
+    #     optimization.design(args.config, identify=args.id, evals=args.evals,
+    #                         mtpc=args.max_tasks_per_child)
+        pass
+        optimization.relax(identify=args.id, config_path=args.config)
     else:
         optimization.init(
             args.loss,
