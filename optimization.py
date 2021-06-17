@@ -8,17 +8,19 @@ import time
 from functools import partial
 from multiprocessing import (Pipe, Pool, active_children, cpu_count,
                              current_process, get_context)
+
 import numpy as np
 import pandas as pd
-from skopt import Optimizer, callbacks
+from skopt import Optimizer, Space, callbacks
 
 import hyperparams
 # from design import design_with_config, initialize
-from relax import relax_with_config, initialize
+from relax import initialize, relax_with_config
+
 
 def init(
     loss,
-    estimator="RF", # "dummy" for random search
+    estimator="RF",  # "dummy" for random search
     identifier=None,
     test_run=False,
     number_calls=200,
@@ -39,33 +41,33 @@ def init(
     """
 
     # define global variables all functions can access
-    global _DONE 
+    global _DONE
     global identify
     global _cores
-    global result_buffer 
-    global results 
-    global n_calls 
-    global calls 
-    global num_callbacks 
-    global jobs 
-    global start_time 
-    global objective 
-    global optimizer 
-    global runs_per_config 
-    global loss_value 
-    global base_estimator 
-    global tp 
-    global _cooldown 
-    global pandas 
-    global final_xi 
-    global final_kappa 
-    global _xi 
-    global _kappa 
+    global result_buffer
+    global results
+    global n_calls
+    global calls
+    global num_callbacks
+    global jobs
+    global start_time
+    global objective
+    global optimizer
+    global runs_per_config
+    global loss_value
+    global base_estimator
+    global tp
+    global _cooldown
+    global pandas
+    global final_xi
+    global final_kappa
+    global _xi
+    global _kappa
     global logger
     # Setup Logging
     logger = multiprocessing.log_to_stderr()
     logger.setLevel(logging.WARNING)
-    # EXPLORE/EXPLOIT 
+    # EXPLORE/EXPLOIT
     final_xi = 0.001
     final_kappa = 0.01
     _xi = xi
@@ -111,7 +113,14 @@ def init(
     if not space_dimensions:
         # hyperparams.set_range(weight_range)
         # dimensions = hyperparams.get_dimensions()
-        dimensions = hyperparams.relax_dims
+        # dimensions = hyperparams.relax_dims
+        try:
+            dimensions = Space.from_yaml("space.yml")
+        except FileNotFoundError as e:
+            print(e, "\n Could not read file space.yml, \n \
+                    create it or supply another file path for searchspace creation")
+            pass
+
     else:
         with open(space_dimensions, 'rb') as h:
             dimensions = pickle.load(h)
@@ -192,11 +201,11 @@ def save_and_exit() -> None:
     if pandas:
         df = pd.DataFrame(results)
         weights = df.config.apply(lambda x: pd.Series(x))
-        weights.columns = ["fa_rep_" +str(num) for num in range(7)]
+        weights.columns = ["fa_rep_" + str(num) for num in range(7)]
         results = pd.concat([df, weights], axis=1)
     with open(
         "results/{}_res_{}.pkl".format(
-             identify, base_estimator
+            identify, base_estimator
         ),
         "wb",
     ) as file:
@@ -259,7 +268,7 @@ def make_batch(config=None) -> None:
 
     calls += 1
     print('Make Batch: ', calls)
-    
+
     if _cooldown:
         cooldown()
 
@@ -274,6 +283,7 @@ def make_batch(config=None) -> None:
     # Append map_result to jobs list
     jobs.append(job)
 
+
 def cooldown():
     global optimizer
     # scale xi & kapp(explore/exploite) according to chosen curve
@@ -283,6 +293,7 @@ def cooldown():
     global final_kappa
     global final_xi
     global n_calls
+
     if _cooldown == 'lin':
         new_xi = _xi - (((_xi-final_xi)/n_calls)*calls)
         new_kappa = _kappa - (((_kappa-final_kappa)/n_calls)*calls)
@@ -293,11 +304,12 @@ def cooldown():
         # TODO: make proper
         df = pd.DataFrame(None, index=range(n_calls))
         df[1] = range(1, n_calls+1)
-        df['xi'] = df[1].apply(lambda x: _xi - (x/n_calls*(x*-(final_xi-_xi)))/n_calls )
-        df['kappa'] = df[1].apply(lambda x: _kappa - (x/n_calls*(x*-(final_kappa-_kappa)))/n_calls )
+        df['xi'] = df[1].apply(
+            lambda x: _xi - (x/n_calls*(x*-(final_xi-_xi)))/n_calls)
+        df['kappa'] = df[1].apply(
+            lambda x: _kappa - (x/n_calls*(x*-(final_kappa-_kappa)))/n_calls)
         new_xi = df.xi[calls]
         new_kappa = df.kappa[calls]
-
 
     print('UPDATE XI KAPPA \n', new_xi, new_kappa)
     optimizer.acq_optimizer_kwargs.update(
@@ -305,12 +317,11 @@ def cooldown():
     optimizer.update_next()
 
 
-
 # def design(config_path=None, identify=None, evals=1000, mtpc=3, cores=cpu_count()):
 #     """
 #         Do an actual design run with a single config.
-#         The config either needs to be a list with weight values in 
-#         "correct" order. Or a pd.Series or DataFrame object with corresponding 
+#         The config either needs to be a list with weight values in
+#         "correct" order. Or a pd.Series or DataFrame object with corresponding
 #         column names.
 #     """
 #     print(config_path)
@@ -357,11 +368,13 @@ def relax(config_path=None, identify=None, evals=100, mtpc=3, cores=cpu_count())
         with open(config_path, "rb") as h:
             config = pickle.load(h)
     with get_context('spawn').Pool(processes=cores, initializer=initialize, maxtasksperchild=mtpc) as tp:
-        result_set = tp.map(relax_with_config, [config[0] for i in range(evals)])
+        result_set = tp.map(relax_with_config, [
+                            config[0] for i in range(evals)])
         res = pd.DataFrame(result_set)
         with open('results/relax_bench_{}_{}.pkl'.format(evals, identify), 'wb') as h:
             pickle.dump(res, h)
-    
+
+
 def start_optimization():
     """
     start the optimization process, and wait for it to finish
@@ -370,7 +383,7 @@ def start_optimization():
     global calls
     global runs_per_config
     _DONE = False
-    
+
     # initial runs WITHOUT default config
     make_batch()
 
