@@ -369,7 +369,7 @@ def relax(config_path=None, identify=None, evals=100, mtpc=3, cores=cpu_count())
             config = pickle.load(h)
     with get_context('spawn').Pool(processes=cores, initializer=initialize, maxtasksperchild=mtpc) as tp:
         result_set = tp.map(relax_with_config, [
-                            config[0] for i in range(evals)])
+                            config for i in range(evals)])
         res = pd.DataFrame(result_set)
         with open('results/relax_bench_{}_{}.pkl'.format(evals, identify), 'wb') as h:
             pickle.dump(res, h)
