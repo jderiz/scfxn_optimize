@@ -20,6 +20,7 @@ from relax import initialize, relax_with_config
 
 def init(
     loss,
+    pdb=None,
     estimator="RF",  # "dummy" for random search
     identifier=None,
     test_run=False,
@@ -39,7 +40,7 @@ def init(
     """
     Init Optimization 
     """
-
+    # TODO: this is more then bad code, Refactor this !!!
     # define global variables all functions can access
     global _DONE
     global identify
@@ -64,6 +65,7 @@ def init(
     global _xi
     global _kappa
     global logger
+    global prot_name
     # Setup Logging
     logger = multiprocessing.log_to_stderr()
     logger.setLevel(logging.WARNING)
@@ -83,6 +85,7 @@ def init(
 
     identify = identifier
     # cached_config = None
+    prot_name = pdb
     loss_value = loss
     # jobs_for_current_config = 0
     n_calls = number_calls
@@ -275,7 +278,7 @@ def make_batch(config=None) -> None:
     if not config:
         config = optimizer.ask()
     job = tp.map_async(
-        objective,
+        partial(objective, prot_name),
         [config for _ in range(runs_per_config)],
         callback=partial(_callback, config=config, run=calls),
         error_callback=error_callback,
