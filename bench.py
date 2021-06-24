@@ -30,6 +30,10 @@ if __name__ == "__main__":
         action="store_true",
         help="can be used as switch to evaluate dummy objctive",
     )
+    parser.add_argument("-pdb",
+            type=str,
+            default=None,
+            help="ONLY DEV: specify which protein should be used")
     parser.add_argument(
         "-evals",
         type=int,
@@ -115,6 +119,7 @@ if __name__ == "__main__":
     else:
         optimization.init(
             args.loss,
+            pdb=args.pdb,
             estimator=args.estimator,
             identifier=args.id,
             test_run=args.test_run,
