@@ -30,7 +30,8 @@ def relax_with_config(fa_reps, pdb=None):
     # relax the structure and compare to default fast relax
     scfxn  = get_fa_scorefxn()
     if pdb:
-        pass
+        # add ending for correct path
+        pdb = pdb+'.pdb'
     else:
         pdb = random.choice(names) 
     pose = prs.pose_from_pdb("benchmark/crystal/crystal_"+pdb)
