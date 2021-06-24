@@ -30,7 +30,7 @@ def relax_with_config(fa_reps):
     # relax the structure and compare to default fast relax
     scfxn  = get_fa_scorefxn()
     pdb = random.choice(names) 
-    pose = prs.pose_from_pdb("benchmark/crystal/crystal_"+pdb+".pdb")
+    pose = prs.pose_from_pdb("benchmark/crystal/crystal_"+pdb)
     # default_pose = prs.pose_from_pdb("benchmark/1K9P.pdb")
     # empty file line vector
     svec = prs.rosetta.std.vector_std_string()
