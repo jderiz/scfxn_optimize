@@ -87,7 +87,8 @@ if __name__ == "__main__":
         help="optimier argument to manage explore vs. exploit higher==> explore")
     parser.add_argument(
         "-config",
-        default=False,
+        type=str,
+        default="default", # uses the protocolls default config
         help="If a config path to a pickled list, series or DataFrame that holds it is supplied this particular config is evaluated -evals times and the results are stored with all information.")
     parser.add_argument(
         "-id",
@@ -114,8 +115,8 @@ if __name__ == "__main__":
     #     # do design instead of optimization
     #     optimization.design(args.config, identify=args.id, evals=args.evals,
     #                         mtpc=args.max_tasks_per_child)
-        pass
-        optimization.relax(identify=args.id, config_path=args.config)
+        # pass
+        optimization.relax(identify=args.id, config_path=args.config, evals=args.evals, pdb=args.pdb)
     else:
         optimization.init(
             args.loss,

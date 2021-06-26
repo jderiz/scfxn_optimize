@@ -277,6 +277,7 @@ def make_batch(config=None) -> None:
 
     if not config:
         config = optimizer.ask()
+    print('Map jobs')
     job = tp.map_async(
         partial(objective, prot_name),
         [config for _ in range(runs_per_config)],
@@ -363,15 +364,16 @@ def cooldown():
 #         with open('results/design_{}_{}.pkl'.format(evals, identify), 'wb') as h:
 #             pickle.dump(res, h)
 
-def relax(config_path=None, identify=None, evals=100, mtpc=3, cores=cpu_count()):
-    if not config_path:
+def relax(config_path=None, pdb=None, identify=None, evals=20, mtpc=3, cores=cpu_count()):
+    if config_path == "default" : 
+        print('use default fa_reps')
         config = hyperparams.relax_init_fa_reps
 
     else:
         with open(config_path, "rb") as h:
             config = pickle.load(h)
     with get_context('spawn').Pool(processes=cores, initializer=initialize, maxtasksperchild=mtpc) as tp:
-        result_set = tp.map(relax_with_config, [
+        result_set = tp.map(partial(relax_with_config, pdb), [
                             config for i in range(evals)])
         res = pd.DataFrame(result_set)
         with open('results/relax_bench_{}_{}.pkl'.format(evals, identify), 'wb') as h:
