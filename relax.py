@@ -29,6 +29,8 @@ def relax_with_config(pdb, fa_reps):
 
     # relax the structure and compare to default fast relax
     scfxn  = get_fa_scorefxn()
+    print('check pdb supplied: ', pdb)
+    print('fa_reps: ', fa_reps)
     if pdb:
         # add ending for correct path
         pdb = pdb+'.pdb'
@@ -66,11 +68,12 @@ def relax_with_config(pdb, fa_reps):
     # make relax use the script 
     relax_protocol.set_script_from_lines(svec)
     # evaluate
+    print('RUN RELAX')
     relax_protocol.apply(pose)
     score = scfxn(pose)
     # default_score = scfxn(default_pose)
     # normalize by lenght
-    res = {"score": score/len(pose), "prot": pdb}
+    res = {"score": score/len(pose), "prot": pdb.split('.')[0]}
     # print(res)
     return res
 
