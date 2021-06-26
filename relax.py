@@ -25,7 +25,7 @@ def initialize():
             names.append(pdb)
 
 
-def relax_with_config(fa_reps, pdb=None):
+def relax_with_config(pdb, fa_reps):
 
     # relax the structure and compare to default fast relax
     scfxn  = get_fa_scorefxn()
