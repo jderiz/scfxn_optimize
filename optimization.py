@@ -66,14 +66,11 @@ def init(
     global _kappa
     global logger
     global prot_name
+    global xi_kappa_lookup
     # Setup Logging
     logger = multiprocessing.log_to_stderr()
     logger.setLevel(logging.WARNING)
-    # EXPLORE/EXPLOIT
-    final_xi = 0.001
-    final_kappa = 0.01
-    _xi = xi
-    _kappa = kappa
+    
 
     if not identifier:
         log_handler = logging.FileHandler('mp.log')
@@ -161,12 +158,27 @@ def init(
         x_0 = [x["weights"][0] for x in c_group]
         optimizer.tell(x_0, y_0)
 
+
+    # setup lookup tables for cooldown
+
+    # EXPLORE/EXPLOIT
+    final_xi = 0.001
+    final_kappa = 0.01
+    _xi = xi
+    _kappa = kappa
+    
+    xi_kappa_lookup = pd.DataFrame(None, index=range(n_calls))
+    xi_kappa_lookup['iter'] = range(1, n_calls+1)
+    xi_kappa_lookup['geospace'] = np.geomspace(0.001, 1, num=n_calls)
+    xi_kappa_lookup['xi'] = xi - xi_kappa_lookup.geospace*(xi-final_xi)
+    xi_kappa_lookup['kappa'] = kappa - xi_kappa_lookup.geospace*(kappa-final_kappa)
+
     # always spawn:  https://pythonspeed.com/articles/python-multiprocessing/
     tp = get_context('spawn').Pool(
         cores, initializer=init_method, maxtasksperchild=mtpc)
 
 
-def dummy_objective(config) -> dict:
+def dummy_objective(pdb, config) -> dict:
     # print('TEST')
     # time.sleep(random.randint(5, 15))
 
@@ -174,6 +186,7 @@ def dummy_objective(config) -> dict:
         "bloss62": random.randint(1, 100),
         "ref15": random.randint(1, 50),
         "scfxn": random.randint(1, 46),
+        "score": random.randint(1, 20)
     }
 
 
@@ -298,23 +311,24 @@ def cooldown():
     global final_xi
     global n_calls
 
-    if _cooldown == 'lin':
-        new_xi = _xi - (((_xi-final_xi)/n_calls)*calls)
-        new_kappa = _kappa - (((_kappa-final_kappa)/n_calls)*calls)
-    elif _cooldown == 'fast':
-        new_xi = np.logspace(0.1, -3, num=n_calls, endpoint=True)[calls]
-        new_kappa = np.logspace(1, -1, num=n_calls, endpoint=True)[calls]
-    elif _cooldown == 'slow':
-        # TODO: make proper
-        df = pd.DataFrame(None, index=range(n_calls))
-        df[1] = range(1, n_calls+1)
-        df['xi'] = df[1].apply(
-            lambda x: _xi - (x/n_calls*(x*-(final_xi-_xi)))/n_calls)
-        df['kappa'] = df[1].apply(
-            lambda x: _kappa - (x/n_calls*(x*-(final_kappa-_kappa)))/n_calls)
-        new_xi = df.xi[calls]
-        new_kappa = df.kappa[calls]
 
+    # if _cooldown == 'lin':
+    #     new_xi = _xi - (((_xi-final_xi)/n_calls)*calls)
+    #     new_kappa = _kappa - (((_kappa-final_kappa)/n_calls)*calls)
+    # elif _cooldown == 'fast':
+    #     new_xi = np.logspace(0.1, -3, num=n_calls, endpoint=True)[calls]
+    #     new_kappa = np.logspace(1, -1, num=n_calls, endpoint=True)[calls]
+    # elif _cooldown == 'slow':
+    #     # TODO: make proper
+    #     df = pd.DataFrame(None, index=range(n_calls))
+    #     df[1] = range(1, n_calls+1)
+    #     df['xi'] = df[1].apply(
+    #         lambda x: _xi - (x/n_calls*(x*-(final_xi-_xi)))/n_calls)
+    #     df['kappa'] = df[1].apply(
+    #         lambda x: _kappa - (x/n_calls*(x*-(final_kappa-_kappa)))/n_calls)
+
+    new_kappa = xi_kappa_lookup.kappa[calls]
+    new_xi = xi_kappa_lookup.xi[calls]
     print('UPDATE XI KAPPA \n', new_xi, new_kappa)
     optimizer.acq_optimizer_kwargs.update(
         {'xi': new_xi, 'kappa': new_kappa})

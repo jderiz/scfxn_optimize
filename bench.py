@@ -31,9 +31,9 @@ if __name__ == "__main__":
         help="can be used as switch to evaluate dummy objctive",
     )
     parser.add_argument("-pdb",
-            type=str,
-            default=None,
-            help="ONLY DEV: specify which protein should be used")
+                        type=str,
+                        default=None,
+                        help="ONLY DEV: specify which protein should be used")
     parser.add_argument(
         "-evals",
         type=int,
@@ -88,7 +88,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-config",
         type=str,
-        default="default", # uses the protocolls default config
+        default=None,  # uses the protocolls default config
         help="If a config path to a pickled list, series or DataFrame that holds it is supplied this particular config is evaluated -evals times and the results are stored with all information.")
     parser.add_argument(
         "-id",
@@ -102,7 +102,10 @@ if __name__ == "__main__":
     parser.add_argument("-dict_out", action="store_true",
                         help="save result in dict format rather then pandas DataFrame")
 
-    parser.add_argument("-cooldown", type=str, help='specifies if cooldown should be applied to the explore exploit params and if so linnear or logarithmic', choices=['lin', 'slow', 'fast'])
+    parser.add_argument("-cooldown", type=bool,
+                        help='specifies if cooldown should be applied to the explore exploit params and if so linnear or logarithmic',
+                        default=False, )
+                        # choices=['lin', 'slow', 'fast'])
     args = parser.parse_args()
     print(args)
 
@@ -111,13 +114,15 @@ if __name__ == "__main__":
     else:
         cores = args.cores
 
-    if args.config:
-    #     # do design instead of optimization
-    #     optimization.design(args.config, identify=args.id, evals=args.evals,
-    #                         mtpc=args.max_tasks_per_child)
+    if args.config != None:
+        #     # do design instead of optimization
+        #     optimization.design(args.config, identify=args.id, evals=args.evals,
+        #                         mtpc=args.max_tasks_per_child)
         # pass
-        optimization.relax(identify=args.id, config_path=args.config, evals=args.evals, pdb=args.pdb)
+        optimization.relax(
+            identify=args.id, config_path=args.config, evals=args.evals, pdb=args.pdb)
     else:
+        print('RUN Optimizer')
         optimization.init(
             args.loss,
             pdb=args.pdb,
