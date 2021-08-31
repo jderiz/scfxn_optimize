@@ -4,7 +4,7 @@ benchmark/*
 results/
 !analyze/
 analyze/*
-analyze/imgs/
+analyze/imgs/*
 analyze/imgs/.ipy**
 !analyze/tex/
 !analyze/markdown/
