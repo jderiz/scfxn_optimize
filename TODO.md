@@ -1,5 +1,5 @@
 # Thema Masterarbeit
-    + "Developing a Framework for optimizing Rosetta Energy Function weights using Bayesian Optimization"
+    + "Developing a Framework for optimizing Rosetta Energy Function weights (on a per protein base) using Bayesian Optimization"
     + Energy Function
     + ML Model structure stable yes/no
     + Can there be any gradient based method ? levinstein

@@ -8,11 +8,11 @@ import time
 import numpy as np
 import pandas as pd
 from dask.distributed import as_completed
+from dask_jobqueue import SLURMCluster
+from skopt import Optimizer, Space, callbacks
 
 import hyperparams
-from dask_jobqueue import SLURMCluster
 from relax import initialize, relax_with_config
-from skopt import Optimizer, Space, callbacks
 
 
 class Optimizer:
@@ -46,11 +46,20 @@ class Optimizer:
         xi_kappa_lookup["iter"] = range(1, n_calls + 1)
         xi_kappa_lookup["geospace"] = np.geomspace(0.001, 1, num=n_calls)
         xi_kappa_lookup["xi"] = xi - xi_kappa_lookup.geospace * (xi - final_xi)
-        xi_kappa_lookup["kappa"] = kappa - xi_kappa_lookup.geospace * (kappa - final_kappa)
+        xi_kappa_lookup["kappa"] = kappa - \
+            xi_kappa_lookup.geospace * (kappa - final_kappa)
+        
+        # TEST CASE
+        if test_run:
+            print("DUMMY OBJECTIVE")
+            objective = dummy_objective
+            loss_value = 'ref15'
+            init_method = None
+            pandas = False
+        else:
+            objective = relax_with_config
+            init_method = initialize
 
-        # CLUSTER
-        cluster = SLURMCluster()
-        results = pd.DataFrame()
 
         # SEARCH SPACE
 
@@ -77,6 +86,10 @@ class Optimizer:
             n_initial_points=rpc * 2,
         )
 
+        # CLUSTER
+        cluster = SLURMCluster()
+        results = pd.DataFrame()
+
     def log_res(map_res: dict) -> None:
         # TODO: find type of future.result() in dask
 
@@ -87,11 +100,13 @@ class Optimizer:
             res.update({"c_hash": c_hash})
             res.update({"run": run})
         results.extend(map_res)
-        optimizer.tell(config, (sum([x[self.loss] for x in map_res]) / len(map_res)))
+        optimizer.tell(config, (sum([x[self.loss]
+                                     for x in map_res]) / len(map_res)))
 
     def run() -> None:
         # map initial runs
-        starting_batches = self.cluster.map(partial(objective(pdb)), [config for _ in range(rpc)])
+        starting_batches = self.cluster.map(
+            partial(objective(pdb)), [config for _ in range(rpc)])
         seq = as_completed(starting_batches)
 
         for res in seq:
@@ -123,7 +138,8 @@ class Optimizer:
         new_kappa = xi_kappa_lookup.kappa[self.calls]
         new_xi = xi_kappa_lookup.xi[self.calls]
         print("UPDATE XI KAPPA \n", new_xi, new_kappa)
-        self.optimizer.acq_optimizer_kwargs.update({"xi": new_xi, "kappa": new_kappa})
+        self.optimizer.acq_optimizer_kwargs.update(
+            {"xi": new_xi, "kappa": new_kappa})
         self.optimizer.update_next()
 
 
