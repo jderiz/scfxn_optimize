@@ -118,7 +118,7 @@ if __name__ == "__main__":
         #     # do design instead of optimization
         #     optimization.design(args.config, identify=args.id, evals=args.evals,
         #                         mtpc=args.max_tasks_per_child)
-        # pass
+        # pa
         optimization.relax(
             identify=args.id, config_path=args.config, evals=args.evals, pdb=args.pdb)
     else:

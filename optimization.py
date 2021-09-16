@@ -387,12 +387,12 @@ def relax(config_path=None, pdb=None, identify=None, evals=20, mtpc=3, cores=cpu
         with open(config_path, "rb") as h:
             config = pickle.load(h)
             #config = config[0] # hack cause wrongly saved
-        with get_context('spawn').Pool(processes=cores, initializer=initialize, maxtasksperchild=mtpc) as tp:
-            result_set = tp.map(partial(relax_with_config, pdb), [
-                                config for i in range(evals)])
-            res = pd.DataFrame(result_set)
-        with open('results/relax_bench_{}_{}.pkl'.format(evals, identify), 'wb') as h:
-            pickle.dump(res, h)
+    with get_context('spawn').Pool(processes=cores, initializer=initialize, maxtasksperchild=mtpc) as tp:
+        result_set = tp.map(partial(relax_with_config, pdb), [
+                            config for i in range(evals)])
+        res = pd.DataFrame(result_set)
+    with open('results/relax_bench_{}_{}.pkl'.format(evals, identify), 'wb') as h:
+        pickle.dump(res, h)
 
 
 def start_optimization():
