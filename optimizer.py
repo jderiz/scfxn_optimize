@@ -15,7 +15,7 @@ import hyperparams
 from relax import initialize, relax_with_config
 
 
-class Optimizer:
+class OptimizationManager:
     def __init__(
         self,
         loss,
@@ -24,16 +24,17 @@ class Optimizer:
         identifier=None,
         test_run=False,
         n_calls=200,
-        rpc=5,  # runs_per_config
+        rpc=5,  # runs_per_config n_calls/rpc = evals
         result_dir="results",
         warm_start=None,
-        cores=None,
+        n_cores=None,
         mtpc=None,  # maxtasksperchild
         xi=0.01,  # starting value if cooldown
         kappa=1.69,  # starting value if cooldown
         cooldown=False,
         space_dimensions=None,
         save_pandas=True,
+        use_hpc=False
     ):
         # counter
         calls = 0
@@ -42,14 +43,17 @@ class Optimizer:
         final_kappa = 0.01
         _xi = xi
         _kappa = kappa
+        # make DataFrame of lenght n_calls and populate with the geometric space (log scale)
+        # as well as xi and kappa values for cooldown. They will range from xi to final_xi and v.v.
         xi_kappa_lookup = pd.DataFrame(None, index=range(n_calls))
         xi_kappa_lookup["iter"] = range(1, n_calls + 1)
         xi_kappa_lookup["geospace"] = np.geomspace(0.001, 1, num=n_calls)
         xi_kappa_lookup["xi"] = xi - xi_kappa_lookup.geospace * (xi - final_xi)
         xi_kappa_lookup["kappa"] = kappa - \
             xi_kappa_lookup.geospace * (kappa - final_kappa)
-        
+
         # TEST CASE
+
         if test_run:
             print("DUMMY OBJECTIVE")
             objective = dummy_objective
@@ -59,7 +63,6 @@ class Optimizer:
         else:
             objective = relax_with_config
             init_method = initialize
-
 
         # SEARCH SPACE
 
@@ -74,9 +77,14 @@ class Optimizer:
                 )
                 pass
         else:
-            with open(space_dimensions, "rb") as h:
-                dimensions = pickle.load(h)
-        # setup OPTIMIZER
+            try:
+                dimensions = Space.from_yaml(sapce_dimensions)
+            except FileNotFoundError as e:
+                print(e)
+                print(
+                    "No space file has been defined the optimizer cannot be defined"
+                )
+        # OPTIMIZER
         acq_func_kwargs = {"xi": xi, "kappa": kappa}
         optimizer = Optimizer(
             random_state=5,
@@ -87,10 +95,15 @@ class Optimizer:
         )
 
         # CLUSTER
-        cluster = SLURMCluster()
+        if use_hpc : 
+            cluster = SLURMCluster(core=n_cores, mem_per_cpu="6G", partition=partition)
+
+
+
+
         results = pd.DataFrame()
 
-    def log_res(map_res: dict) -> None:
+    def log_res_and_update(map_res: dict) -> None:
         # TODO: find type of future.result() in dask
 
         print(map_res)
@@ -110,7 +123,7 @@ class Optimizer:
         seq = as_completed(starting_batches)
 
         for res in seq:
-            self.log_res(res.result())
+            self.log_res_and_update(res.result())
 
             if call <= n_calls:
                 config = self.optimizer.ask()
@@ -145,7 +158,7 @@ class Optimizer:
 
 # use for test purposes
 def dummy_objective(pdb, config) -> dict:
-    # print('TEST')
+    print('TEST RUN')
     # time.sleep(random.randint(5, 15))
 
     return {
