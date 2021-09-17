@@ -9,13 +9,13 @@ from Bio import pairwise2
 from Bio.Align import substitution_matrices
 from pyrosetta import (Pose, PyJobDistributor, get_fa_scorefxn, init,
                        pose_from_pdb)
-from pyrosetta.rosetta.utility import vector1_bool
 from pyrosetta.distributed.packed_pose.core import PackedPose
+from pyrosetta.rosetta.utility import vector1_bool
 from skopt.utils import use_named_args
 
 import create_scfxn
 import hyperparams
-
+import benchmark_prot_fetcher
 
 def initialize():
     """initialize pyrosetta
@@ -25,6 +25,8 @@ def initialize():
     prs.init(
         options="-ex1 -ex2", set_logging_handler=True, extra_options="-linmem_ig 10 -archive_on_disk /tmp/rosetta -mute core -mute basic -mute protocols"
     )  # no utput from the design process
+
+    # Setup Logging
     prs.logging_support.set_logging_sink()
     logger = logging.getLogger("rosetta")
     logger.setLevel(logging.ERROR)
@@ -33,15 +35,13 @@ def initialize():
     rosetta_log_handler = logging.FileHandler('rosetta.log')
     rosetta_log_handler.setLevel(logging.DEBUG)
     logger.addHandler(rosetta_log_handler)
+
+    # Setup proteins and their pssm matrices
+    # Proteins
     global pdbs
-    pdbs = {}
-
-    # get all protein pdbs
-
-    for pdb in os.listdir("benchmark"):
-        if pdb.endswith(".pdb"):
-            #  store actual Pose() object
-            pdbs.update({pdb.split('.')[0]: pose_from_pdb("benchmark/" + pdb)})
+    pdbs = benchmark_prot_fetcher.get()
+    
+    # PSSMS
     global pssms
     pssms = {}
 
@@ -50,16 +50,21 @@ def initialize():
         # set ReturnResidueSubsetSelector with whole sequence
         names = pssm.split('_')[1]
 
-
         for prot_name in pdbs.keys():
             if prot_name in names:
                 # print(prot_name, names)
                 seq_len = len(pdbs[prot_name].sequence())
                 sub_vec = vector1_bool()
 
-                for _ in range(seq_len):
-                    # make  as long as sequence
-                    sub_vec.append(1)
+                # except 6Q21 --> 168
+
+                if prot_name == '6Q21':
+                    for _ in range(168):
+                        sub_vec.append(1)
+                else:
+                    for _ in range(seq_len):
+                        # make  as long as sequence
+                        sub_vec.append(1)
                 srm = prs.rosetta.protocols.analysis.simple_metrics.SequenceRecoveryMetric()
                 # get ResidueSelector that selects entire Sequence
                 rselector = prs.rosetta.core.select.residue_selector.ReturnResidueSubsetSelector(
@@ -71,17 +76,24 @@ def initialize():
                 # uses same as set_residue_selector
                 srm.set_residue_selector_ref(None)
                 pssms.update({prot_name: srm})
+        # BLOSS TODO: let blossum compute from prs
+        # bloss = prs.rosetta.proticils.analysis.simple_metrics.SequenceSimilarityMetric()
+
     # print(pdbs, pssms)
+    # return pssms
 
 
 @use_named_args(dimensions=hyperparams.get_dimensions())
 def design_with_config(**config) -> dict:
     start_time = time.time()  # Runtime measuring
     print('DESIGNING')
-    ref15 = get_fa_scorefxn() # REF15 
-    scfxn = create_scfxn.creat_scfxn_from_config(
-        config=config
-    )  # optimization score Function
+    ref15 = get_fa_scorefxn()  # REF15
+    if config is 'ref15':
+        scfxn = ref15
+    else:
+        scfxn = create_scfxn.creat_scfxn_from_config(
+            config=config
+        )  # optimization score Function
 
     # pick same prot for same config
     h = hash(str(config)) % len(pdbs)
@@ -119,6 +131,9 @@ def design_with_config(**config) -> dict:
     # moritz says its okay to return energy normalized by length
     # check if pose can be pickled fast and returned
 
+    took = time.time() - start_time
+
+    # This has to be serializable in order to get pickled and send back to parent
     result = {"sequence": pose.sequence(),
               # "pose": PackedPose(pose),
               "prot_len": len(pose.sequence()),
@@ -127,6 +142,7 @@ def design_with_config(**config) -> dict:
               "ref15": (ref15(pose)/len(pose.sequence())),
               "scfxn": (scfxn(pose)/len(pose.sequence())),
               "pssm": -pssm_score,
+              "runtime": took
               }
 
     print('DESIGN_DONE: ')
@@ -134,6 +150,5 @@ def design_with_config(**config) -> dict:
     print("Took: {} to run design on length {}".format(
         time.strftime("%H: %M: %S", time.gmtime(took)), len(pose.sequence())))
 
-    # This has to be serializable in order to get pickled and send back to parent
 
     return result

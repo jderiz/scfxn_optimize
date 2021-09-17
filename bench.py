@@ -2,7 +2,7 @@ import argparse
 from multiprocessing import Pool, cpu_count, get_context
 
 import optimization
-from design import initialize
+from relax import initialize
 
 if __name__ == "__main__":
     """
@@ -30,8 +30,15 @@ if __name__ == "__main__":
         action="store_true",
         help="can be used as switch to evaluate dummy objctive",
     )
-    parser.add_argument("-evals", default=200,
-                        help="number of points to evaluate")
+    parser.add_argument("-pdb",
+                        type=str,
+                        default=None,
+                        help="ONLY DEV: specify which protein should be used")
+    parser.add_argument(
+        "-evals",
+        type=int,
+        default=200,
+        help="number of points to evaluate")
     parser.add_argument(
         "-rpc",
         "--runs-per-config",
@@ -53,19 +60,52 @@ if __name__ == "__main__":
         "-c",
         "--cores",
         default=0,
+        type=int,
         help="spcify number of cores to use if 0 then use all",
     )
     parser.add_argument(
         "-mtpc",
         "--max-tasks-per-child",
         default=3,
+        type=int,
         help="limit the number of task a worker process can complete before respawning a new process ( useful for freeing RAM)",
     )
-    parser.add_argument("-range", default=0.25, type=float,
-                        help="how much the optimization can deviate from ref15 weights, defaults to 0.25")
-    parser.add_argument("-xi", default=0.01, type=float, help="optimizer argument to manage explore vs. exploit higher==> explore")
-    parser.add_argument("-kappa", default=1.69, type=float, help="optimier argument to manage explore vs. exploit higher==> explore")
+    parser.add_argument(
+        "-range",
+        default=0.25,
+        type=float,
+        help="how much the optimization can deviate from ref15 weights, defaults to 0.25")
+    parser.add_argument(
+        "-xi",
+        default=0.01,
+        type=float,
+        help="optimizer argument to manage explore vs. exploit higher==> explore")
+    parser.add_argument(
+        "-kappa",
+        default=1.69,
+        type=float,
+        help="optimier argument to manage explore vs. exploit higher==> explore")
+    parser.add_argument(
+        "-config",
+        type=str,
+        default=None,  # uses the protocolls default config
+        help="If a config path to a pickled list, series or DataFrame that holds it is supplied this particular config is evaluated -evals times and the results are stored with all information.")
+    parser.add_argument(
+        "-id",
+        default=None,
+        type=str,
+        help="Identity string for storing the results")
+    parser.add_argument(
+        "-no_struct",
+        action="store_true",
+        help="not saving the structures saves enormous amounts of space")
+    parser.add_argument("-dict_out", action="store_true",
+                        help="save result in dict format rather then pandas DataFrame")
 
+    parser.add_argument("-cooldown", type=bool,
+                        help='specifies if cooldown should be applied to the explore exploit params and if so linnear or logarithmic',
+                        default=False, )
+                        # choices=['lin', 'slow', 'fast'])
     args = parser.parse_args()
     print(args)
 
@@ -74,16 +114,28 @@ if __name__ == "__main__":
     else:
         cores = args.cores
 
-    optimization.init(
-        args.loss,
-        estimator=args.estimator,
-        test_run=args.test_run,
-        cores=int(cores),
-        number_calls=int(args.evals),
-        rpc=int(args.runs_per_config),
-        mtpc=int(args.max_tasks_per_child),
-        weight_range=args.range,
-        xi=args.xi, 
-        kappa=args.kappa,
-    )
-    optimization.start()
+    if args.config != None:
+        #     # do design instead of optimization
+        #     optimization.design(args.config, identify=args.id, evals=args.evals,
+        #                         mtpc=args.max_tasks_per_child)
+        # pa
+        optimization.relax(
+            identify=args.id, config_path=args.config, evals=args.evals, pdb=args.pdb)
+    else:
+        print('RUN Optimizer')
+        optimization.init(
+            args.loss,
+            pdb=args.pdb,
+            estimator=args.estimator,
+            identifier=args.id,
+            test_run=args.test_run,
+            cores=int(cores),
+            number_calls=int(args.evals),
+            rpc=int(args.runs_per_config),
+            mtpc=int(args.max_tasks_per_child),
+            weight_range=args.range,
+            xi=args.xi,
+            kappa=args.kappa,
+            cooldown=args.cooldown
+        )
+        optimization.start_optimization()
