@@ -134,9 +134,8 @@ def init(
     else:
         objective = relax_with_config
         init_method = initialize
-    # Higher values for xi, kapp --> more exploration
-    # DEFAULTS: xi:0.01, kappa:1.96
-    # TODO: implement cooldown [start_values, end_values]
+    
+
     acq_func_kwargs = {"xi": xi, "kappa": kappa}
     print(base_estimator)
     optimizer = Optimizer(

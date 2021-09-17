@@ -48,6 +48,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-o",
         "--output-dir",
+        type=str,
         default="results",
         help="directory where the results get saved",
     )
@@ -98,13 +99,15 @@ if __name__ == "__main__":
     parser.add_argument(
         "-no_struct",
         action="store_true",
+        type=bool,
         help="not saving the structures saves enormous amounts of space")
     parser.add_argument("-dict_out", action="store_true",
                         help="save result in dict format rather then pandas DataFrame")
 
     parser.add_argument("-cooldown", type=bool,
                         help='specifies if cooldown should be applied to the explore exploit params and if so linnear or logarithmic',
-                        default=False, )
+                        default=False, 
+                        type=bool)
                         # choices=['lin', 'slow', 'fast'])
     args = parser.parse_args()
     print(args)
@@ -119,7 +122,7 @@ if __name__ == "__main__":
         #     optimization.design(args.config, identify=args.id, evals=args.evals,
         #                         mtpc=args.max_tasks_per_child)
         # pa
-        optimization.relax(
+        manager.no_optimize(
             identify=args.id, config_path=args.config, evals=args.evals, pdb=args.pdb)
     else:
         print('RUN Optimizer')
@@ -137,5 +140,6 @@ if __name__ == "__main__":
             xi=args.xi,
             kappa=args.kappa,
             cooldown=args.cooldown
+            out_dir=args.output_dir
         )
         optimization.start_optimization()
