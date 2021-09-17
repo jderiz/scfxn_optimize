@@ -138,6 +138,7 @@ def init(
     # DEFAULTS: xi:0.01, kappa:1.96
     # TODO: implement cooldown [start_values, end_values]
     acq_func_kwargs = {"xi": xi, "kappa": kappa}
+    print(base_estimator)
     optimizer = Optimizer(
         random_state=5,
         dimensions=dimensions,
