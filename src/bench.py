@@ -1,8 +1,6 @@
 import argparse
-from multiprocessing import Pool, cpu_count, get_context
 
-import optimization
-from relax import initialize
+from manager import Manager
 
 if __name__ == "__main__":
     """
@@ -99,47 +97,37 @@ if __name__ == "__main__":
     parser.add_argument(
         "-no_struct",
         action="store_true",
-        type=bool,
         help="not saving the structures saves enormous amounts of space")
     parser.add_argument("-dict_out", action="store_true",
                         help="save result in dict format rather then pandas DataFrame")
 
     parser.add_argument("-cooldown", type=bool,
                         help='specifies if cooldown should be applied to the explore exploit params and if so linnear or logarithmic',
-                        default=False, 
-                        type=bool)
-                        # choices=['lin', 'slow', 'fast'])
+                        default=False
+                        )
     args = parser.parse_args()
     print(args)
-
-    if not args.cores:
-        cores = cpu_count()
-    else:
-        cores = args.cores
 
     if args.config != None:
         #     # do design instead of optimization
         #     optimization.design(args.config, identify=args.id, evals=args.evals,
         #                         mtpc=args.max_tasks_per_child)
         # pa
-        manager.no_optimize(
+        Manager.no_optimize(
             identify=args.id, config_path=args.config, evals=args.evals, pdb=args.pdb)
     else:
         print('RUN Optimizer')
-        optimization.init(
+        Manager.init(
             args.loss,
             pdb=args.pdb,
             estimator=args.estimator,
             identifier=args.id,
             test_run=args.test_run,
-            cores=int(cores),
-            number_calls=int(args.evals),
+            n_cores=int(args.cores),
+            evals=int(args.evals),
             rpc=int(args.runs_per_config),
             mtpc=int(args.max_tasks_per_child),
-            weight_range=args.range,
-            xi=args.xi,
-            kappa=args.kappa,
-            cooldown=args.cooldown
+            cooldown=args.cooldown,
             out_dir=args.output_dir
         )
-        optimization.start_optimization()
+        Manager.run()

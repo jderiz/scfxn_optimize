@@ -4,54 +4,51 @@ import pickle
 import random
 import sys
 import time
+from functools import partial
 
 import numpy as np
 import pandas as pd
-from dask.distributed import as_completed
-from dask_jobqueue import SLURMCluster
-from skopt import Optimizer, Space, callbacks
 
-import hyperparams
-from relax import initialize, relax_with_config
+import config
+from bayesopt import BayesOpt
+from parallel import Distributor
 
 
 class OptimizationManager:
-    def __init__(
-        self,
-        loss,
-        pdb=None,
-        estimator="RF",  # "dummy" for random search
-        identifier=None,  # string to identify optimization run
-        test_run=False,  # if test run eval dummy_objective instead of real
-        n_calls=200,
-        rpc=5,  # runs_per_config n_calls/rpc = evals
-        out_dir="results",  # where results get saved
-        warm_start=None,  # continue previous optimization run
-        n_cores=None,
-        mtpc=None,  # maxtasksperchild
-        xi=0.01,  # starting value if cooldown
-        kappa=1.69,  # starting value if cooldown
-        cooldown=False,  # cooldown exploration to exploitation
-        space_dimensions=None,  # yaml file with optimizer dimensions
-        save_pandas=True,
-        use_hpc=False  # wether to use single node multiprocessing or some hpc manager
-    ):
-        # black box evaluation counter
-        calls = 0
-        # COOLDOWN LOOKUP
-        final_xi = 0.001
-        final_kappa = 0.01
-        _xi = xi
-        _kappa = kappa
-        # make DataFrame of lenght n_calls and populate with the geometric space (log scale)
-        # as well as xi and kappa values for cooldown. They will range from xi to final_xi and v.v.
-        xi_kappa_lookup = pd.DataFrame(None, index=range(n_calls))
-        xi_kappa_lookup["iter"] = range(1, n_calls + 1)
-        xi_kappa_lookup["geospace"] = np.geomspace(0.001, 1, num=n_calls)
-        xi_kappa_lookup["xi"] = xi - xi_kappa_lookup.geospace * (xi - final_xi)
-        xi_kappa_lookup["kappa"] = kappa - \
-            xi_kappa_lookup.geospace * (kappa - final_kappa)
+    # dummy init
+    def __init__(self):
+        pass
+    # INIT
 
+    def init(self,
+             loss,
+             pdb=None,
+             estimator="RF",  # "dummy" for random search
+             identifier=None,  # string to identify optimization run
+             test_run=False,  # if test run eval dummy_objective instead of real
+             evals=200,  # configuration evaluations on the objective
+             rpc=8,  # runs_per_config n_calls/rpc = evals
+             out_dir="results",  # where results get saved
+             warm_start=None,  # continue previous optimization run
+             n_cores=None,
+             mtpc=None,  # maxtasksperchild
+             cooldown=True,  # cooldown exploration to exploitation
+             space_dimensions=None,  # yaml file with optimizer dimensions
+             save_pandas=True,
+             hpc=False  # wether to use single node multiprocessing or some hpc manager
+             ):
+        self.logger = logging.getLogger('OptimizationManager')
+        self.identify = identifier
+        self.base_estimator = estimator
+        self.evals = evals
+        self._DONE = False
+        self.pandas = save_pandas
+        self.loss = loss
+        self.batches_done = 0
+        self.n_batches = evals/rpc
+        self.pdb = pdb
+        self.n_cores = n_cores
+        self.rpc = rpc
         # TEST CASE
 
         if test_run:
@@ -61,101 +58,94 @@ class OptimizationManager:
             init_method = None
             pandas = False
         else:
-            objective = relax_with_config
-            init_method = initialize
+            self.objective = config._objective
+            self.init_method = config._init_method
 
         # SEARCH SPACE
-        # if non supplied use default one
-        # has to match the objective function
 
-        if not space_dimensions:
-            try:
-                dimensions = Space.from_yaml("space.yml")
-            except FileNotFoundError as e:
-                print(
-                    e,
-                    "\n Could not read file space.yml, \n \
-                        create it or supply another file path for searchspace creation",
-                )
-                pass
-        else:
-            try:
-                dimensions = Space.from_yaml(sapce_dimensions)
-            except FileNotFoundError as e:
-                print(e)
-                print(
-                    "No space file has been defined the optimizer cannot be defined"
-                )
         # OPTIMIZER
-        acq_func_kwargs = {"xi": xi, "kappa": kappa}
-        optimizer = Optimizer(
+        self.optimizer = BayesOpt(
             random_state=5,
-            dimensions=dimensions,
+            dimensions=config.space_dimensions,
             base_estimator=estimator,
-            acq_func_kwargs=acq_func_kwargs,
-            n_initial_points=rpc * 2,
+            acq_func_kwargs=config.acq_func_kwargs,
+            n_initial_points=n_cores/rpc,
+            cooldown=cooldown,
+            evals=evals
         )
+        # DISTRIBUTOR
+        self.distributor = Distributor(
+            callback=self.log_res_and_update, hpc=hpc, workers=n_cores)
 
-        # CLUSTER
+        # BOOKKEEPING
+        self.results = pd.DataFrame()
+        self.logger.debug('initialized OptimizationManager')
 
-        if use_hpc:
-
-        results = pd.DataFrame()
-
-    def log_res_and_update(map_res: dict) -> None:
+    def log_res_and_update(self, config, run, map_res: dict) -> None:
         # TODO: find type of future.result() in dask
 
         print(map_res)
 
         for res in map_res:
             res.update({"config": config})
-            res.update({"c_hash": c_hash})
             res.update({"run": run})
-        results.extend(map_res)
-        optimizer.tell(config, (sum([x[self.loss]
-                                     for x in map_res]) / len(map_res)))
+        self.results.extend(map_res)
+        self.optimizer.update_prior(config, (sum([x[self.loss]
+                                                  for x in map_res]) / len(map_res)))
 
-    def run() -> None:
-        # map initial runs
-        starting_batches = self.cluster.map(
-            partial(objective(pdb)), [config for _ in range(rpc)])
-        seq = as_completed(starting_batches)
+        if self.batches_done < self.n_batches:
+            self.make_batch()
+        elif self.batches_done == self.n_batches:
+            self.save_and_exit()
 
-        for res in seq:
-            self.log_res_and_update(res.result())
+    def run(self) -> None:
 
-            if call <= n_calls:
-                config = self.optimizer.ask()
-                new_batch = self.cluster.submit(partial())
-            seq.add(new_batch)
-        pass
+        # map initial runs workers/rpc rpc times
 
-    def save_and_exit() -> bool:
-        print(cluster)
+        for _ in range(self.n_cores/self.rpc):
+            self.distributor.distribute(func=partial(
+                self.objective, pdb=self.pdb),
+                params=self.optimizer.get_next_config(),
+                num_workers=self.rpc,
+                run=self.batches_done+1)
+        self.batches_done+=1
+        # wait in this loop until DONE
+
+        while not self._DONE:
+            time.sleep(5)
+
+    def make_batch(self):
+        config = self.optimizer.get_next_config()
+        self.distributor.distribute(func=partial(
+            self.objective, self.pdb),
+            params=config,
+            num_workers=self.rpc,
+            run=self.batches_done+1)
+        self.batches_done+=1
+    def save_and_exit(self) -> bool:
 
         if self.pandas:
+            # save pandas DataFrame with correct column names
             df = pd.DataFrame(results)
             weights = df.config.apply(lambda x: pd.Series(x))
             weights.columns = ["fa_rep_" + str(num) for num in range(7)]
             results = pd.concat([df, weights], axis=1)
         with open(
-            "results/{}_res_{}.pkl".format(identify, base_estimator),
+            "results/{}_{}_res_{}.pkl".format(self.identify,
+                                              self.base_estimator, self.evals),
             "wb",
         ) as file:
             pickle.dump(results, file)
         print("TERMINATING")
+        self._DONE = True
 
-    def _cooldown() -> None:
-
-        new_kappa = xi_kappa_lookup.kappa[self.calls]
-        new_xi = xi_kappa_lookup.xi[self.calls]
-        print("UPDATE XI KAPPA \n", new_xi, new_kappa)
-        self.optimizer.acq_optimizer_kwargs.update(
-            {"xi": new_xi, "kappa": new_kappa})
-        self.optimizer.update_next()
-
+    @ staticmethod
+    def no_optimize(identify, config_path, pdb, evals):
+        pass
 
 # use for test purposes
+
+
 def dummy_objective(pdb, config) -> dict:
     print('TEST RUN')
     # time.sleep(random.randint(5, 15))
@@ -166,3 +156,7 @@ def dummy_objective(pdb, config) -> dict:
         "scfxn": random.randint(1, 46),
         "score": random.randint(1, 20),
     }
+
+
+# SINGLETON
+Manager = OptimizationManager()

@@ -15,9 +15,10 @@ from skopt.utils import use_named_args
 
 import create_scfxn
 import hyperparams
-import benchmark_prot_fetcher
 
-def initialize():
+pdbs_dict = {}
+
+def initialize(pdbs, pdb_path):
     """initialize pyrosetta
     """
     global prs
@@ -25,7 +26,6 @@ def initialize():
     prs.init(
         options="-ex1 -ex2", set_logging_handler=True, extra_options="-linmem_ig 10 -archive_on_disk /tmp/rosetta -mute core -mute basic -mute protocols"
     )  # no utput from the design process
-
     # Setup Logging
     prs.logging_support.set_logging_sink()
     logger = logging.getLogger("rosetta")
@@ -38,9 +38,8 @@ def initialize():
 
     # Setup proteins and their pssm matrices
     # Proteins
-    global pdbs
-    pdbs = benchmark_prot_fetcher.get()
-    
+    for pdb in pdbs:
+        pdbs_dict.update({pdb.split()[0]: prs.pose_from_pdb(pdb_path+'/'+pdb)})
     # PSSMS
     global pssms
     pssms = {}
@@ -83,22 +82,21 @@ def initialize():
     # return pssms
 
 
-@use_named_args(dimensions=hyperparams.get_dimensions())
-def design_with_config(**config) -> dict:
+def design_with_config(config) -> dict:
     start_time = time.time()  # Runtime measuring
     print('DESIGNING')
     ref15 = get_fa_scorefxn()  # REF15
-    if config is 'ref15':
+    if config == 'ref15':
         scfxn = ref15
     else:
         scfxn = create_scfxn.creat_scfxn_from_config(
             config=config
         )  # optimization score Function
 
-    # pick same prot for same config
-    h = hash(str(config)) % len(pdbs)
-    prot_name = list(pdbs.keys())[h]
-    pose = pdbs[prot_name]
+    # pick random protein from pdbs_dict
+    prot_name = random.choice(pdbs_dict.keys())
+    pose = pdbs_dict[prot_name]
+
 
     # copy pose for comparison after design
     native_pose = Pose()
@@ -108,7 +106,6 @@ def design_with_config(**config) -> dict:
         f.write("ALLAAxc \n")
         f.write("start\n")
 
-    # def run(pose):
     taskf = prs.rosetta.core.pack.task.TaskFactory()
     taskf.push_back(
         prs.rosetta.core.pack.task.operation.InitializeFromCommandline())
