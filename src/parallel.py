@@ -2,7 +2,6 @@ from multiprocessing import (Pipe, Pool, active_children, cpu_count,
                              current_process, get_context)
 
 from dask_jobqueue import SLURMCluster
-from config import _init_method 
 from functools import partial
 import logging 
 
@@ -15,10 +14,12 @@ class Distributor():
     holds results in a queue until the manager fetches them
     """
 
-    def __init__(self, callback, hpc, workers):
+    def __init__(self, callback, hpc, workers, initializer):
         self.hpc = hpc
+        if not workers:
+            workers = cpu_count()
         if not hpc:
-            self.setup_single_node(workers)
+            self.setup_single_node(workers, initializer)
         else:
             self.setup_multi_node(workers)
         self.result_list = []
@@ -27,9 +28,9 @@ class Distributor():
         self.logger = logging.getLogger('Distributor')
         self.manager_callback = callback
 
-    def setup_single_node(self, workers):
+    def setup_single_node(self, workers, initializer):
         self.mp = get_context('spawn').Pool(
-            workers, initializer=_init_method)
+            workers, initializer=initializer)
 
     def setup_multi_node(self, workers):
         # TODO: implement
@@ -54,8 +55,7 @@ class Distributor():
         self.result_list.append(result)
        
     def _error_callback(self, msg):
-        self.logger.log(msg)
-        print('ERROR: '+ msg)
+        self.logger.error(msg)
         exit(msg)
 
 

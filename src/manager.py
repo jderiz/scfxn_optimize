@@ -1,7 +1,6 @@
 import logging
 import os
 import pickle
-import random
 import sys
 import time
 from functools import partial
@@ -19,6 +18,7 @@ class OptimizationManager:
     def __init__(self):
         pass
     # INIT
+
 
     def init(self,
              loss,
@@ -38,6 +38,7 @@ class OptimizationManager:
              hpc=False  # wether to use single node multiprocessing or some hpc manager
              ):
         self.logger = logging.getLogger('OptimizationManager')
+        self.logger.setLevel(logging.INFO)
         self.identify = identifier
         self.base_estimator = estimator
         self.evals = evals
@@ -53,10 +54,10 @@ class OptimizationManager:
 
         if test_run:
             print("DUMMY OBJECTIVE")
-            objective = dummy_objective
-            loss_value = 'ref15'
-            init_method = None
-            pandas = False
+            self.objective = config._dummy_objective
+            self.loss_value = 'ref15'
+            self.init_method = None
+            self.pandas = False
         else:
             self.objective = config._objective
             self.init_method = config._init_method
@@ -75,7 +76,7 @@ class OptimizationManager:
         )
         # DISTRIBUTOR
         self.distributor = Distributor(
-            callback=self.log_res_and_update, hpc=hpc, workers=n_cores)
+            callback=self.log_res_and_update, hpc=hpc, workers=n_cores, initializer=self.init_method)
 
         # BOOKKEEPING
         self.results = pd.DataFrame()
@@ -96,19 +97,19 @@ class OptimizationManager:
         if self.batches_done < self.n_batches:
             self.make_batch()
         elif self.batches_done == self.n_batches:
-            self.save_and_exit()
+            self._save_and_exit()
 
     def run(self) -> None:
-
+        self.logger.info('RUN OptimizationManager')
         # map initial runs workers/rpc rpc times
-
-        for _ in range(self.n_cores/self.rpc):
+        
+        for _ in range(int(self.n_cores/self.rpc)):
             self.distributor.distribute(func=partial(
                 self.objective, pdb=self.pdb),
                 params=self.optimizer.get_next_config(),
                 num_workers=self.rpc,
                 run=self.batches_done+1)
-        self.batches_done+=1
+        self.batches_done += 1
         # wait in this loop until DONE
 
         while not self._DONE:
@@ -121,8 +122,9 @@ class OptimizationManager:
             params=config,
             num_workers=self.rpc,
             run=self.batches_done+1)
-        self.batches_done+=1
-    def save_and_exit(self) -> bool:
+        self.batches_done += 1
+
+    def _save_and_exit(self) -> bool:
 
         if self.pandas:
             # save pandas DataFrame with correct column names
@@ -142,20 +144,6 @@ class OptimizationManager:
     @ staticmethod
     def no_optimize(identify, config_path, pdb, evals):
         pass
-
-# use for test purposes
-
-
-def dummy_objective(pdb, config) -> dict:
-    print('TEST RUN')
-    # time.sleep(random.randint(5, 15))
-
-    return {
-        "bloss62": random.randint(1, 100),
-        "ref15": random.randint(1, 50),
-        "scfxn": random.randint(1, 46),
-        "score": random.randint(1, 20),
-    }
 
 
 # SINGLETON
