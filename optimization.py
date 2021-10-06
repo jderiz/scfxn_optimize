@@ -15,8 +15,8 @@ from skopt import Optimizer, Space, callbacks
 
 import hyperparams
 # from design import design_with_config, initialize
-from relax import initialize, relax_with_config
-
+# from relax import initialize, relax_with_config
+from davide import initialize, relax_with_config
 
 def init(
     loss,
@@ -71,7 +71,7 @@ def init(
     logger = multiprocessing.log_to_stderr()
     logger.setLevel(logging.WARNING)
     
-
+    
     if not identifier:
         log_handler = logging.FileHandler('mp.log')
     else:
@@ -176,7 +176,8 @@ def init(
     # always spawn:  https://pythonspeed.com/articles/python-multiprocessing/
     tp = get_context('spawn').Pool(
         cores, initializer=init_method, maxtasksperchild=mtpc)
-
+    
+    print('\n \n USING LOSS: '+ loss_value+'\n \n ')
 
 def dummy_objective(pdb, config) -> dict:
     # print('TEST')
@@ -405,7 +406,7 @@ def start_optimization():
     _DONE = False
 
     # initial runs WITHOUT default config
-    make_batch()
+    make_batch(hyperparams.relax_init_fa_reps)
 
     for _ in range(int(_cores/runs_per_config) - 1):
         make_batch()
