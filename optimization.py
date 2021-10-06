@@ -191,6 +191,22 @@ def dummy_objective(pdb, config) -> dict:
     }
 
 
+def cooldown():
+    global optimizer
+    # TODO: contract/expand cooldown
+    # TODO: precompute and store in optimizer singleton, make dependent on start /end values
+    global final_kappa
+    global final_xi
+    global n_calls
+    global xi_kappa_lookup
+
+    new_kappa = xi_kappa_lookup.kappa[calls]
+    new_xi = xi_kappa_lookup.xi[calls]
+    print('UPDATE XI KAPPA \n', new_xi, new_kappa)
+    optimizer.acq_optimizer_kwargs.update(
+        {'xi': new_xi, 'kappa': new_kappa})
+    optimizer.update_next()
+
 def save_and_exit() -> None:
     """All Callbacks have returned, tell all remaining jobs they are done, terminate pool and save results"""
     print(len(active_children()))
@@ -243,6 +259,7 @@ def _callback(map_res, config=None, run=None) -> None:
     global n_calls
     global calls
     global _DONE
+    global _cooldown
     num_callbacks += 1
     # print(map_res)
     # add weights to each entry as well as config hash for later analysis
@@ -264,6 +281,8 @@ def _callback(map_res, config=None, run=None) -> None:
     if calls < n_calls:
         print(calls, n_calls)
         # Make New Process batch
+        if _cooldown:
+            cooldown()
         make_batch()
     else:
         if len(results) == n_calls*runs_per_config:
@@ -302,38 +321,6 @@ def make_batch(config=None) -> None:
     jobs.append(job)
 
 
-def cooldown():
-    global optimizer
-    # scale xi & kapp(explore/exploite) according to chosen curve
-    # either lin, log(fast), neg exp(slow)
-    # TODO: contract/expand cooldown
-    # TODO: precompute and store in optimizer singleton, make dependent on start /end values
-    global final_kappa
-    global final_xi
-    global n_calls
-
-
-    # if _cooldown == 'lin':
-    #     new_xi = _xi - (((_xi-final_xi)/n_calls)*calls)
-    #     new_kappa = _kappa - (((_kappa-final_kappa)/n_calls)*calls)
-    # elif _cooldown == 'fast':
-    #     new_xi = np.logspace(0.1, -3, num=n_calls, endpoint=True)[calls]
-    #     new_kappa = np.logspace(1, -1, num=n_calls, endpoint=True)[calls]
-    # elif _cooldown == 'slow':
-    #     # TODO: make proper
-    #     df = pd.DataFrame(None, index=range(n_calls))
-    #     df[1] = range(1, n_calls+1)
-    #     df['xi'] = df[1].apply(
-    #         lambda x: _xi - (x/n_calls*(x*-(final_xi-_xi)))/n_calls)
-    #     df['kappa'] = df[1].apply(
-    #         lambda x: _kappa - (x/n_calls*(x*-(final_kappa-_kappa)))/n_calls)
-
-    new_kappa = xi_kappa_lookup.kappa[calls]
-    new_xi = xi_kappa_lookup.xi[calls]
-    print('UPDATE XI KAPPA \n', new_xi, new_kappa)
-    optimizer.acq_optimizer_kwargs.update(
-        {'xi': new_xi, 'kappa': new_kappa})
-    optimizer.update_next()
 
 
 # def design(config_path=None, identify=None, evals=1000, mtpc=3, cores=cpu_count()):

@@ -102,10 +102,10 @@ if __name__ == "__main__":
     parser.add_argument("-dict_out", action="store_true",
                         help="save result in dict format rather then pandas DataFrame")
 
-    parser.add_argument("-cooldown", type=bool,
+    parser.add_argument("-cooldown",
                         help='specifies if cooldown should be applied to the explore exploit params and if so linnear or logarithmic',
-                        default=False, )
-                        # choices=['lin', 'slow', 'fast'])
+                        action="store_true")
+    # choices=['lin', 'slow', 'fast'])
     args = parser.parse_args()
     print(args)
 
