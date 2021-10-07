@@ -11,6 +11,8 @@ analyze/imgs/.ipy**
 !analyze/pkl/candidates/*
 __pycache__/
 slurm*
+*.log
+*.png
 py_out/
 setup.py
 *.ipynb
