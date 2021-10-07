@@ -1,23 +1,26 @@
+import logging
+from functools import partial
 from multiprocessing import (Pipe, Pool, active_children, cpu_count,
                              current_process, get_context)
 
 from dask_jobqueue import SLURMCluster
-from functools import partial
-import logging 
 
+logger = logging.getLogger('Distributor')
+logger.setLevel(logging.DEBUG)
 
 
 class Distributor():
 
     """
-    This class manages the parallelization of work and 
-    holds results in a queue until the manager fetches them
+    This class manages the parallelization.
     """
 
-    def __init__(self, callback, hpc, workers, initializer):
+    def __init__(self, manager_callback, hpc, workers, initializer):
         self.hpc = hpc
+
         if not workers:
             workers = cpu_count()
+
         if not hpc:
             self.setup_single_node(workers, initializer)
         else:
@@ -25,8 +28,7 @@ class Distributor():
         self.result_list = []
         self.jobs = []
         self.batch_number = 0
-        self.logger = logging.getLogger('Distributor')
-        self.manager_callback = callback
+        self.manager_callback = manager_callback
 
     def setup_single_node(self, workers, initializer):
         self.mp = get_context('spawn').Pool(
@@ -48,16 +50,15 @@ class Distributor():
         )
         # Append map_result to jobs list
         self.jobs.append(job)
-        self.batch_number +=1
+        self.batch_number += 1
 
-    def _callback(self, config, run, result):
-        self.manager_callback(result)
+    def _callback(self, result, config, run):
+        self.manager_callback(map_res=result, config=config, run=run)
         self.result_list.append(result)
-       
-    def _error_callback(self, msg):
-        self.logger.error(msg)
-        exit(msg)
 
+    def _error_callback(self, msg):
+        logger.error(msg)
+        exit(msg)
 
     def has_result(self) -> bool:
         """
@@ -70,10 +71,12 @@ class Distributor():
         '''
         pop result batch from queue and return to manager
         '''
+
         return self.result_list.pop(0)
 
     def get_jobs(self) -> list:
         '''
-        return the list of jobs 
+        return the list of jobs
         '''
+
         return self.jobs

@@ -2,6 +2,7 @@ import logging
 import os
 import pickle
 import sys
+import threading
 import time
 from functools import partial
 
@@ -12,13 +13,18 @@ import config
 from bayesopt import BayesOpt
 from parallel import Distributor
 
+logger = logging.getLogger('OptimizationManager')
+logger.setLevel(logging.DEBUG)
+
+global _DONE
+_DONE = False
+
 
 class OptimizationManager:
     # dummy init
     def __init__(self):
         pass
     # INIT
-
 
     def init(self,
              loss,
@@ -37,23 +43,21 @@ class OptimizationManager:
              save_pandas=True,
              hpc=False  # wether to use single node multiprocessing or some hpc manager
              ):
-        self.logger = logging.getLogger('OptimizationManager')
-        self.logger.setLevel(logging.INFO)
         self.identify = identifier
         self.base_estimator = estimator
         self.evals = evals
         self._DONE = False
         self.pandas = save_pandas
         self.loss = loss
-        self.batches_done = 0
-        self.n_batches = evals/rpc
+        self.evals_done = 0
         self.pdb = pdb
         self.n_cores = n_cores
         self.rpc = rpc
+        self.test_run = test_run
         # TEST CASE
 
         if test_run:
-            print("DUMMY OBJECTIVE")
+            logger.info('TEST RUN')
             self.objective = config._dummy_objective
             self.loss_value = 'ref15'
             self.init_method = None
@@ -76,13 +80,13 @@ class OptimizationManager:
         )
         # DISTRIBUTOR
         self.distributor = Distributor(
-            callback=self.log_res_and_update, hpc=hpc, workers=n_cores, initializer=self.init_method)
+            manager_callback=self.log_res_and_update, hpc=hpc, workers=n_cores, initializer=self.init_method)
 
         # BOOKKEEPING
         self.results = pd.DataFrame()
-        self.logger.debug('initialized OptimizationManager')
+        logger.debug('initialized OptimizationManager')
 
-    def log_res_and_update(self, config, run, map_res: dict) -> None:
+    def log_res_and_update(self, map_res, config, run) -> None:
         # TODO: find type of future.result() in dask
 
         print(map_res)
@@ -90,30 +94,17 @@ class OptimizationManager:
         for res in map_res:
             res.update({"config": config})
             res.update({"run": run})
-        self.results.extend(map_res)
-        self.optimizer.update_prior(config, (sum([x[self.loss]
-                                                  for x in map_res]) / len(map_res)))
+        print('updated')
+        self.results.append(map_res)
+        print('res appended')
+        print(self.optimizer)
+        self.optimizer.update_prior(
+            config, (sum([x[self.loss] for x in map_res]) / len(map_res)))
 
-        if self.batches_done < self.n_batches:
+        if self.evals_done < self.evals:
             self.make_batch()
-        elif self.batches_done == self.n_batches:
+        elif self.evals_done == self.evals:
             self._save_and_exit()
-
-    def run(self) -> None:
-        self.logger.info('RUN OptimizationManager')
-        # map initial runs workers/rpc rpc times
-        
-        for _ in range(int(self.n_cores/self.rpc)):
-            self.distributor.distribute(func=partial(
-                self.objective, pdb=self.pdb),
-                params=self.optimizer.get_next_config(),
-                num_workers=self.rpc,
-                run=self.batches_done+1)
-        self.batches_done += 1
-        # wait in this loop until DONE
-
-        while not self._DONE:
-            time.sleep(5)
 
     def make_batch(self):
         config = self.optimizer.get_next_config()
@@ -121,30 +112,51 @@ class OptimizationManager:
             self.objective, self.pdb),
             params=config,
             num_workers=self.rpc,
-            run=self.batches_done+1)
-        self.batches_done += 1
+            run=self.evals_done+1)
+        self.evals_done += 1
 
     def _save_and_exit(self) -> bool:
+        """
+            Saves the results stored in the DataFrame and reports to console
+        """
+        logger.debug(' ')
 
-        if self.pandas:
-            # save pandas DataFrame with correct column names
-            df = pd.DataFrame(results)
-            weights = df.config.apply(lambda x: pd.Series(x))
-            weights.columns = ["fa_rep_" + str(num) for num in range(7)]
-            results = pd.concat([df, weights], axis=1)
-        with open(
-            "results/{}_{}_res_{}.pkl".format(self.identify,
-                                              self.base_estimator, self.evals),
-            "wb",
-        ) as file:
-            pickle.dump(results, file)
+        if not self.test_run:
+            if self.pandas:
+                # save pandas DataFrame with correct column names
+                df = pd.DataFrame(results)
+                weights = df.config.apply(lambda x: pd.Series(x))
+                weights.columns = ["fa_rep_" + str(num) for num in range(7)]
+                results = pd.concat([df, weights], axis=1)
+            with open(
+                "results/{}_{}_res_{}.pkl".format(self.identify,
+                                                  self.base_estimator, self.evals),
+                "wb",
+            ) as file:
+                pickle.dump(results, file)
+        else:
+            print(results.head())
         print("TERMINATING")
-        self._DONE = True
+    
+    def run(self) -> None:
+        """
+            Runs the Manager and 
+        """
+        logger.debug('RUN OptimizationManager')
+        # map initial runs workers/rpc rpc times
 
+        for _ in range(int(self.n_cores/self.rpc)):
+            self.distributor.distribute(func=partial(
+                self.objective, pdb=self.pdb),
+                params=self.optimizer.get_next_config(),
+                num_workers=self.rpc,
+                run=self.evals_done+1)
+        self.evals_done += 1
+   
     @ staticmethod
     def no_optimize(identify, config_path, pdb, evals):
         pass
 
-
-# SINGLETON
-Manager = OptimizationManager()
+    @staticmethod
+    def is_done() -> bool:
+        return _DONE

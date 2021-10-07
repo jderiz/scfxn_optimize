@@ -3,7 +3,10 @@ import logging
 import numpy as np
 import pandas as pd
 from skopt import Optimizer, Space, callbacks
-import config   
+
+import config
+
+logger = logging.getLogger('BayesOpt')
 
 class BayesOpt:
     """
@@ -15,7 +18,7 @@ class BayesOpt:
         self.logger = logging.getLogger('BayesOpt')
         self.logger.setLevel(logging.DEBUG)
 
-        # 
+        #
         try:
             dimensions = Space.from_yaml(kwargs['dimensions'])
         except FileNotFoundError as e:
@@ -42,9 +45,8 @@ class BayesOpt:
             self.xi_kappa_lookup.geospace * \
             (config.kappa - config.final_kappa)
 
-
-
     def handle_result(self, config, res) -> bool:
+        logger.debug(' ')
         self.opti.tell(config, res)
 
         if self.cooldown:
@@ -53,6 +55,8 @@ class BayesOpt:
         return True
 
     def get_next_config(self) -> list:
+        logger.debug(' ')
+
         return self.opti.ask()
 
     def _cooldown(self) -> None:
@@ -69,4 +73,5 @@ class BayesOpt:
         """
         updates the Optimizers prior 
         """
+        logger.debug(' ')
         self.opti.tell(x, y)

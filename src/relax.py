@@ -38,6 +38,7 @@ def relax_with_config(pdb, fa_reps):
         pdb = pdb+'.pdb'
     else:
         pdb = random.choice(names)
+    print(os.getcwd())
     pose = prs.pose_from_pdb("../benchmark/crystal/crystal_"+pdb)
     # default_pose = prs.pose_from_pdb("benchmark/1K9P.pdb")
     # empty file line vector
