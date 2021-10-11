@@ -15,12 +15,23 @@ from parallel import Distributor
 
 logger = logging.getLogger('OptimizationManager')
 logger.setLevel(logging.DEBUG)
-
-global _DONE
-_DONE = False
+lock = threading.Lock()
 
 
-class OptimizationManager:
+class Singleton(type):
+    """docstring for Singleton"""
+    _instances = {}
+    def __call__(cls, *args, **kwargs):
+        if cls not in cls._instances:
+            with lock:
+                if cls not in cls._instances:
+                    cls._instances[cls] = super(
+                        Singleton, cls).__call__(*args, **kwargs)
+
+        return cls._instances[cls]
+
+
+class OptimizationManager(metaclass=Singleton):
     # dummy init
     def __init__(self):
         pass
@@ -80,26 +91,20 @@ class OptimizationManager:
         )
         # DISTRIBUTOR
         self.distributor = Distributor(
-            manager_callback=self.log_res_and_update, hpc=hpc, workers=n_cores, initializer=self.init_method)
+            manager_callback=self.log_res_and_update, hpc=hpc, cpus=n_cores, initializer=self.init_method)
 
         # BOOKKEEPING
         self.results = pd.DataFrame()
         logger.debug('initialized OptimizationManager')
 
-    def log_res_and_update(self, map_res, config, run) -> None:
+    def log_res_and_update(self, map_res) -> None:
         # TODO: find type of future.result() in dask
-
-        print(map_res)
-
-        for res in map_res:
-            res.update({"config": config})
-            res.update({"run": run})
-        print('updated')
-        self.results.append(map_res)
-        print('res appended')
+        self.evals_done += 1
+        logger.debug('%s', map_res)
+        self.results = self.results.append(map_res, ignore_index=True)
         print(self.optimizer)
         self.optimizer.update_prior(
-            config, (sum([x[self.loss] for x in map_res]) / len(map_res)))
+            map_res['config'], map_res[self.loss_value])
 
         if self.evals_done < self.evals:
             self.make_batch()
@@ -108,12 +113,11 @@ class OptimizationManager:
 
     def make_batch(self):
         config = self.optimizer.get_next_config()
-        self.distributor.distribute(func=partial(
-            self.objective, self.pdb),
+        self.distributor.distribute(func=self.objective,
             params=config,
+            pdb=self.pdb,
             num_workers=self.rpc,
             run=self.evals_done+1)
-        self.evals_done += 1
 
     def _save_and_exit(self) -> bool:
         """
@@ -136,8 +140,9 @@ class OptimizationManager:
                 pickle.dump(results, file)
         else:
             print(results.head())
+        self.distributor.terminate()
         print("TERMINATING")
-    
+
     def run(self) -> None:
         """
             Runs the Manager and 
@@ -146,17 +151,13 @@ class OptimizationManager:
         # map initial runs workers/rpc rpc times
 
         for _ in range(int(self.n_cores/self.rpc)):
-            self.distributor.distribute(func=partial(
-                self.objective, pdb=self.pdb),
+            self.distributor.distribute(func=self.objective,
                 params=self.optimizer.get_next_config(),
+                pdb=self.pdb,
                 num_workers=self.rpc,
                 run=self.evals_done+1)
-        self.evals_done += 1
-   
-    @ staticmethod
-    def no_optimize(identify, config_path, pdb, evals):
-        pass
 
-    @staticmethod
-    def is_done() -> bool:
-        return _DONE
+        for job in self.distributor.get_jobs():
+            job.get()
+
+_manager = OptimizationManager()

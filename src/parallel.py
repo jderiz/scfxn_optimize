@@ -1,64 +1,55 @@
 import logging
 from functools import partial
-from multiprocessing import (Pipe, Pool, active_children, cpu_count,
-                             current_process, get_context)
+# from multiprocessing import Pool, get_context
 
-from dask_jobqueue import SLURMCluster
-
+from ray.util.multiprocessing import Pool
+import ray
 logger = logging.getLogger('Distributor')
 logger.setLevel(logging.DEBUG)
 
-
+ray.init(num_cpus=24)
 class Distributor():
 
     """
     This class manages the parallelization.
     """
 
-    def __init__(self, manager_callback, hpc, workers, initializer):
+    def __init__(self, manager_callback, hpc, cpus, initializer):
         self.hpc = hpc
 
-        if not workers:
-            workers = cpu_count()
-
-        if not hpc:
-            self.setup_single_node(workers, initializer)
-        else:
-            self.setup_multi_node(workers)
         self.result_list = []
         self.jobs = []
         self.batch_number = 0
         self.manager_callback = manager_callback
 
-    def setup_single_node(self, workers, initializer):
-        self.mp = get_context('spawn').Pool(
-            workers, initializer=initializer)
+        # self.mp = get_context('spawn').Pool(
+            # workers, initializer=initializer)
+        self.mp = Pool(processes=cpus)
 
-    def setup_multi_node(self, workers):
-        # TODO: implement
-        self.mp = SLURMCluster(
-            core=workers, mem_per_cpu="6G")
-        pass
+    def distribute(self, func, params, pdb, num_workers, run):
 
-    def distribute(self, func, params, num_workers, run):
-
-        job = self.mp.map_async(
+        job = self.mp.starmap_async(
             func,
-            [params for _ in range(num_workers)],
-            callback=partial(self._callback, config=params, run=run),
+            [(params, run, pdb)for _ in range(num_workers)],
+            callback=self._callback,
             error_callback=self._error_callback,
         )
         # Append map_result to jobs list
         self.jobs.append(job)
         self.batch_number += 1
 
-    def _callback(self, result, config, run):
-        self.manager_callback(map_res=result, config=config, run=run)
+    def _callback(self, result):
+        self.manager_callback(map_res=result)
         self.result_list.append(result)
 
     def _error_callback(self, msg):
         logger.error(msg)
         exit(msg)
+
+    def terminate(self):
+        logger.debug('TERMINATE Pool')
+        self.mp.close()
+        self.mp.terminate()
 
     def has_result(self) -> bool:
         """
@@ -73,6 +64,9 @@ class Distributor():
         '''
 
         return self.result_list.pop(0)
+
+    def get_result_list(self) -> list:
+        return self.result_list
 
     def get_jobs(self) -> list:
         '''

@@ -13,6 +13,7 @@ __pycache__/
 slurm*
 py_out/
 setup.py
+src/testray.py
 *.log
 *.ipynb
 design.resfile

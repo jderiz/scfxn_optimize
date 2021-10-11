@@ -2,19 +2,8 @@ import argparse
 import threading
 import time
 
-from manager import OptimizationManager
+from manager import OptimizationManager, _manager
 
-
-def wait():
-    """  
-    Simple wait function that returns when the Manager is Done. Needs to run 
-    in separate thread in order not to block the Manager execution
-    """
-
-    while not OptimizationManager.is_done():
-        time.sleep(10)
-
-    return True
 
 
 if __name__ == "__main__":
@@ -122,7 +111,7 @@ if __name__ == "__main__":
                         )
     args = parser.parse_args()
     print(args)
-    Manager = OptimizationManager()
+    Manager = _manager
     if args.config != None:
         #     # do design instead of optimization
         #     optimization.design(args.config, identify=args.id, evals=args.evals,
