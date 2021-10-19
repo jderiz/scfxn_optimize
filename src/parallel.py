@@ -4,10 +4,13 @@ from functools import partial
 
 from ray.util.multiprocessing import Pool
 import ray
+
+# print(ray.nodes(), ray.cluster_resources())
+
 logger = logging.getLogger('Distributor')
 logger.setLevel(logging.DEBUG)
 
-ray.init(num_cpus=24)
+# @ray.remote
 class Distributor():
 
     """
@@ -24,10 +27,9 @@ class Distributor():
 
         # self.mp = get_context('spawn').Pool(
             # workers, initializer=initializer)
-        self.mp = Pool(processes=cpus)
+        self.mp = Pool(cpus, ray_address='auto')
 
     def distribute(self, func, params, pdb, num_workers, run):
-
         job = self.mp.starmap_async(
             func,
             [(params, run, pdb)for _ in range(num_workers)],

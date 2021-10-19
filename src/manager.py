@@ -8,6 +8,7 @@ from functools import partial
 
 import numpy as np
 import pandas as pd
+import ray
 
 import config
 from bayesopt import BayesOpt
@@ -21,6 +22,7 @@ lock = threading.Lock()
 class Singleton(type):
     """docstring for Singleton"""
     _instances = {}
+
     def __call__(cls, *args, **kwargs):
         if cls not in cls._instances:
             with lock:
@@ -31,7 +33,9 @@ class Singleton(type):
         return cls._instances[cls]
 
 
-class OptimizationManager(metaclass=Singleton):
+@ray.remote
+class OptimizationManager():
+
     # dummy init
     def __init__(self):
         pass
@@ -100,24 +104,24 @@ class OptimizationManager(metaclass=Singleton):
     def log_res_and_update(self, map_res) -> None:
         # TODO: find type of future.result() in dask
         self.evals_done += 1
-        logger.debug('%s', map_res)
-        self.results = self.results.append(map_res, ignore_index=True)
-        print(self.optimizer)
+        # logger.debug('%s', map_res)
+        self.results = self.results.append(
+            pd.DataFrame(map_res), ignore_index=True)
         self.optimizer.update_prior(
-            map_res['config'], map_res[self.loss_value])
+            map_res[0]['config'], sum(x[self.loss_value] for x in map_res)/len(map_res))
 
         if self.evals_done < self.evals:
             self.make_batch()
-        elif self.evals_done == self.evals:
+        elif self.evals_done >= self.evals:
             self._save_and_exit()
 
     def make_batch(self):
         config = self.optimizer.get_next_config()
         self.distributor.distribute(func=self.objective,
-            params=config,
-            pdb=self.pdb,
-            num_workers=self.rpc,
-            run=self.evals_done+1)
+                                    params=config,
+                                    pdb=self.pdb,
+                                    num_workers=self.rpc,
+                                    run=self.evals_done+1)
 
     def _save_and_exit(self) -> bool:
         """
@@ -127,8 +131,8 @@ class OptimizationManager(metaclass=Singleton):
 
         if not self.test_run:
             if self.pandas:
-                # save pandas DataFrame with correct column names
-                df = pd.DataFrame(results)
+                # save pandas DataFrame with correct column names if already DataFrame then nothing changes
+                df = pd.DataFrame(self.results)
                 weights = df.config.apply(lambda x: pd.Series(x))
                 weights.columns = ["fa_rep_" + str(num) for num in range(7)]
                 results = pd.concat([df, weights], axis=1)
@@ -137,9 +141,10 @@ class OptimizationManager(metaclass=Singleton):
                                                   self.base_estimator, self.evals),
                 "wb",
             ) as file:
-                pickle.dump(results, file)
+                pickle.dump(self.results, file)
         else:
-            print(results.head())
+            print(self.results.head())
+        self._DONE = True
         self.distributor.terminate()
         print("TERMINATING")
 
@@ -152,12 +157,18 @@ class OptimizationManager(metaclass=Singleton):
 
         for _ in range(int(self.n_cores/self.rpc)):
             self.distributor.distribute(func=self.objective,
-                params=self.optimizer.get_next_config(),
-                pdb=self.pdb,
-                num_workers=self.rpc,
-                run=self.evals_done+1)
+                                        params=self.optimizer.get_next_config(),
+                                        pdb=self.pdb,
+                                        num_workers=self.rpc,
+                                        run=self.evals_done+1)
 
-        for job in self.distributor.get_jobs():
-            job.get()
+        # logger.debug("distributor.jobs. len %s",
+        #              self.distributor.jobs.__len__())
+        # logger.debug("job.wait() result %s",
+        #              self.distributor.jobs.pop().wait())
 
-_manager = OptimizationManager()
+    def is_done(self):
+        return self._DONE
+
+
+_manager = OptimizationManager.options(name='manager').remote()

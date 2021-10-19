@@ -28,7 +28,7 @@ class BayesOpt:
             )
             exit()
         self.opti: Optimizer = Optimizer(
-            base_estimator=estimator, dimensions=dimensions)
+            base_estimator=estimator, dimensions=dimensions, n_initial_points=24)
         self.logger.info("Optimizer initialized")
         self.cooldown = kwargs['cooldown']
         self.evals = kwargs['evals']
@@ -73,5 +73,9 @@ class BayesOpt:
         """
         updates the Optimizers prior 
         """
-        logger.debug(' ')
-        self.opti.tell(x, y)
+        logger.debug('update prior x=%s, y=%s ', x, y)
+        try:
+            self.opti.tell(x, y)
+        except Exception as e:
+            logger.warn('models: %s \n \n Xi %s  \n \n yi %s', self.opti.models, self.opti.Xi, self.opti.yi)
+            logger.error(e)

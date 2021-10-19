@@ -1,12 +1,14 @@
 import argparse
 import threading
 import time
-
+import ray
 from manager import OptimizationManager, _manager
 
 
 
 if __name__ == "__main__":
+    
+    ray.init(local_mode=True, address='auto', ignore_reinit_error=True)
     """
 
     Main execution script for Optimization run
@@ -121,7 +123,7 @@ if __name__ == "__main__":
             identify=args.id, config_path=args.config, evals=args.evals, pdb=args.pdb)
     else:
         print('RUN Optimizer')
-        Manager.init(
+        Manager.init.remote(
             args.loss,
             pdb=args.pdb,
             estimator=args.estimator,
@@ -135,8 +137,7 @@ if __name__ == "__main__":
             out_dir=args.output_dir
         )
         
-        # thread = threading.Thread(target=Manager.run)
-        # thread.start()
-        # thread.join()
-        Manager.run()
+        Manager.run.remote()
 
+        while Manager:
+            pass
