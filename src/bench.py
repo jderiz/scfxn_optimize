@@ -1,9 +1,15 @@
 import argparse
-import threading
+import logging
 import time
 
-from manager import OptimizationManager, _manager
+import ray
 
+from bayesopt import BayesOpt
+from manager import OptimizationManager
+from parallel import Distributor
+
+logger = logging.getLogger("APP")
+logger.setLevel(logging.DEBUG)
 
 
 if __name__ == "__main__":
@@ -111,19 +117,38 @@ if __name__ == "__main__":
                         )
     args = parser.parse_args()
     print(args)
-    Manager = _manager
+    # SETUP CLUSTER
+    # TODO: SLURM ?
+    ray.init(address='auto', _redis_password='5241590000000000')
+    print('''This cluster consists of
+        {} nodes in total
+        {} CPU resources in total
+    '''.format(len(ray.nodes()), ray.cluster_resources()['CPU']))
+    # DISTRIBUTOR
+    distributor = Distributor.remote()
+    distributor_ref = ray.put(distributor)
+    # OPTIMIZER
+    optimizer = BayesOpt.remote()
+    optimizer_ref = ray.put(optimizer)
+    # MANAGER
+    manager = OptimizationManager.remote()
+    manager_ref = ray.put(manager)
+    logger.info('\n manager %s \n distributor %s \n optimizer %s', ray.get(
+        manager_ref), ray.get(distributor_ref), ray.get(optimizer_ref))
+
     if args.config != None:
         #     # do design instead of optimization
         #     optimization.design(args.config, identify=args.id, evals=args.evals,
         #                         mtpc=args.max_tasks_per_child)
         # pa
-        Manager.no_optimize(
+        manager.no_optimize.remote(
             identify=args.id, config_path=args.config, evals=args.evals, pdb=args.pdb)
     else:
-        print('RUN Optimizer')
-        Manager.init(
+        manager.init.remote(
             args.loss,
             pdb=args.pdb,
+            distributor=distributor_ref,
+            optimizer=optimizer_ref,
             estimator=args.estimator,
             identifier=args.id,
             test_run=args.test_run,
@@ -134,9 +159,8 @@ if __name__ == "__main__":
             cooldown=args.cooldown,
             out_dir=args.output_dir
         )
-        
-        # thread = threading.Thread(target=Manager.run)
-        # thread.start()
-        # thread.join()
-        Manager.run()
+        logger.info('RUN Optimizer')
+        manager.run.remote()
 
+        while True:
+            pass

@@ -2,19 +2,27 @@ import logging
 
 import numpy as np
 import pandas as pd
+import ray
 from skopt import Optimizer, Space, callbacks
 
 import config
 
-logger = logging.getLogger('BayesOpt')
 
+
+@ray.remote
 class BayesOpt:
     """
         This class holds the optimizer instance and manages incorporating new results 
         as well as supplying the manager with new configurations to test 
     """
 
-    def __init__(self, estimator='RF', **kwargs):
+    def __init__(self):
+        """
+        DUMMY INIT
+        """
+        pass
+
+    def init(self, estimator='RF', **kwargs):
         self.logger = logging.getLogger('BayesOpt')
         self.logger.setLevel(logging.DEBUG)
 
@@ -46,7 +54,6 @@ class BayesOpt:
             (config.kappa - config.final_kappa)
 
     def handle_result(self, config, res) -> bool:
-        logger.debug(' ')
         self.opti.tell(config, res)
 
         if self.cooldown:
@@ -55,7 +62,7 @@ class BayesOpt:
         return True
 
     def get_next_config(self) -> list:
-        logger.debug(' ')
+        self.logger.debug(' ')
 
         return self.opti.ask()
 
@@ -73,5 +80,5 @@ class BayesOpt:
         """
         updates the Optimizers prior 
         """
-        logger.debug(' ')
+        self.logger.debug('\n x:: %s \n y:: %s', x, y)
         self.opti.tell(x, y)
