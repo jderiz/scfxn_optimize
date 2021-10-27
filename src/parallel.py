@@ -2,87 +2,91 @@ import logging
 from functools import partial
 
 import ray
-from ray.util.multiprocessing import Pool
-
-# from multiprocessing import Pool, get_context
-
-
+from mypool import Pool
+from ray.util import inspect_serializability
+# from rosetta_worker import PRSActor
 
 @ray.remote
 class Distributor():
 
     """
-    This class manages the parallelization.
+    This Actor manages the parallelization.
     """
 
     def __init__(self):
         pass
 
-    def init(self, manager_callback, cpus, hpc, initializer):
-        self.hpc = hpc
-
-        self.result_list = []
-        self.batches = {}
-        self.batch_number = 0
-        self.manager_callback = manager_callback
-
-        # self.mp = get_context('spawn').Pool(
-        # workers, initializer=initializer)
-        # self.mp = Pool(processes=cpus)
-
+    def init(self, manager_callback, workers, rpc, evals, hpc, initializer):
         self.logger = logging.getLogger('Distributor')
         self.logger.setLevel(logging.DEBUG)
-    def distribute(self, func, params, pdb, num_workers, run):
+        # init batch dict with empty list for each batch
+        self.batches = {}  # storing single results
+        self.manager_callback = manager_callback
+        self.batch_size = rpc
+        # minus our three actors dist, manage, opti
+        # self.workers = [PRSActor.remote() for _ in range(workers)]
+        self.mp = Pool(processes=workers, initializer=initializer)
+        self.logger.info('INTITIALIZED DISTRIBUTOR')
+        self.logger.info(' batches %s', self.batches)
+
+    def distribute(self, func, params, pdb, run, num_workers=None):
         """
             distribute a function 
         """
-        # jobs = self.mp.starmap_async(
-        #     func,
-        #     [(params, run, pdb)for _ in [0]*num_workers],
-        #     callback=self._callback,
-        #     error_callback=self._error_callback,
-        # )
-        batch_refs = [func.remote(params, run, pdb) for _ in range(num_workers)]
-        # Append AsyncResult to jobs list
-        # self.logger.debug('%s', jobs)
-        #TODO: make into list dann pop und put oder sowas
-        self.batches.update({run: batch_refs})
-        self.batch_number += 1
+
+        if not num_workers:
+            num_workers = self.batch_size
+        self.logger.debug('map config for run %s %s times', run, num_workers)
+        for _ in [0]*num_workers:
+            self.mp.apply_async(
+                func,
+                args=(params, run, pdb),
+                # [(params, run, pdb)for _ in [0]*num_workers],
+                callback=self._callback,
+                error_callback=self._error_callback,
+            )
+
+    def add_res_to_batch(self, result, batch_number):
+        if batch_number in self.batches.keys():
+            self.batches[batch_number].append(result)
+        else:
+            self.batches.update({batch_number: [result]})
 
     def _callback(self, result):
-        # logger.debug("%s", ray.get(result[0]))
-        self.manager_callback(map_res=result)
-        self.result_list.append(result)
+        """
+        Aggregate batch results and call manager callback once a batch is complete
+        """
+
+        # result = ray.get(result)
+
+        if isinstance(result, list):
+            # handle properly this callback is only called once all jobs finish from pool batch
+            self.manager_callback(result)
+
+        else:
+            # save single result in batch and call manager_callback once #rpc results
+            run = result['run']
+
+            self.add_res_to_batch(result, run)
+            try:
+                self.logger.warning('%s', [(key, len(val))
+                                           for key, val in self.batches.items()])
+            except Exception as e:
+                self.logger.error('len self.batches %s %s',
+                                  len(self.batches), self.batches)
+
+            if len(self.batches[run]) == self.batch_size:
+                # call manager_callback with completed batch and remove batch from batches
+                self.logger.info('CALLING MANAGER CALLBACK for run %s', run)
+                self.manager_callback(map_res=self.batches[run])
+                self.logger.debug(
+                    'removing key %s from batches dict', run)
+                del self.batches[run]
 
     def _error_callback(self, msg):
         self.logger.error(msg)
-        exit(msg)
 
     def terminate(self):
         self.logger.debug('TERMINATE Pool')
-        # self.mp.close()
-        # self.mp.terminate()
-
-    def has_batch(self) -> bool:
-        """
-        returns true if there is something in the result list
-        """
-
-        return not self.result_list
-
-    def get_result(self) -> dict:
-        '''
-        pop result batch from queue and return to manager
-        '''
-
-        return self.result_list.pop(0)
-    
-    def get_result_list(self) -> list:
-        return self.result_list
-
-    def get_jobs(self) -> list:
-        '''
-        return the list of jobs
-        '''
-
-        return self.jobs
+        self.mp.close()
+        self.mp.terminate()

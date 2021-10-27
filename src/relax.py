@@ -1,11 +1,15 @@
+
 import logging
 import os
 import random
 import time
 
 import pyrosetta as prs
+import ray
 from pyrosetta import get_fa_scorefxn
 from pyrosetta.distributed.packed_pose.core import PackedPose
+
+# @ray.remote
 
 
 def initialize():
@@ -25,20 +29,23 @@ def initialize():
             #  store actual Pose() object
             names.append(pdb)
 
+# @ray.remote
 
-def relax_with_config(pdb, fa_reps):
+
+def relax_with_config(fa_reps, run, pdb):
 
     # relax the structure and compare to default fast relax
+    #
     scfxn = get_fa_scorefxn()
-    print('check pdb supplied: ', pdb)
-    print('fa_reps: ', fa_reps)
+    # print('check pdb supplied: ', pdb)
+    # print('fa_reps: ', fa_reps)
 
     if pdb:
         # add ending for correct path
         pdb = pdb+'.pdb'
     else:
         pdb = random.choice(names)
-    print(os.getcwd())
+    # print(os.getcwd())
     pose = prs.pose_from_pdb("../benchmark/crystal/crystal_"+pdb)
     # default_pose = prs.pose_from_pdb("benchmark/1K9P.pdb")
     # empty file line vector
@@ -72,14 +79,16 @@ def relax_with_config(pdb, fa_reps):
     # make relax use the script
     relax_protocol.set_script_from_lines(svec)
     # evaluate
-    print('RUN RELAX')
     relax_protocol.apply(pose)
+    # time.sleep(2)
     score = scfxn(pose)
     # default_score = scfxn(default_pose)
     # normalize by lenght
 
     res = {
-        "score": score/len(pose),
+        "run": run,
+        "config": fa_reps,
+        "score": score,
         "prot": pdb.split('.')[0],
         "pose": PackedPose(pose)
     }

@@ -3,13 +3,17 @@ import logging
 import time
 
 import ray
-
+from ray._private.test_utils import SignalActor 
 from bayesopt import BayesOpt
 from manager import OptimizationManager
 from parallel import Distributor
 
 logger = logging.getLogger("APP")
 logger.setLevel(logging.DEBUG)
+
+def wait(signal):
+    logger.debug('call wait on signal')
+    ray.get(signal.wait.remote())
 
 
 if __name__ == "__main__":
@@ -119,23 +123,29 @@ if __name__ == "__main__":
     print(args)
     # SETUP CLUSTER
     # TODO: SLURM ?
-    ray.init(address='auto', _redis_password='5241590000000000')
+    ray.init(address='auto', namespace='bench',
+             _redis_password='5241590000000000')
     print('''This cluster consists of
         {} nodes in total
         {} CPU resources in total
     '''.format(len(ray.nodes()), ray.cluster_resources()['CPU']))
+    # SIGNAL 
+    signal = SignalActor.remote()
+
     # DISTRIBUTOR
+    Distributor.options(name='distributor', lifetime='detached')
     distributor = Distributor.remote()
     distributor_ref = ray.put(distributor)
     # OPTIMIZER
+    BayesOpt.options(name='bayesopt', lifetime='detached')
     optimizer = BayesOpt.remote()
     optimizer_ref = ray.put(optimizer)
     # MANAGER
+    OptimizationManager.options(name='manager', lifetime='detached')
     manager = OptimizationManager.remote()
     manager_ref = ray.put(manager)
     logger.info('\n manager %s \n distributor %s \n optimizer %s', ray.get(
         manager_ref), ray.get(distributor_ref), ray.get(optimizer_ref))
-
     if args.config != None:
         #     # do design instead of optimization
         #     optimization.design(args.config, identify=args.id, evals=args.evals,
@@ -157,10 +167,14 @@ if __name__ == "__main__":
             rpc=int(args.runs_per_config),
             mtpc=int(args.max_tasks_per_child),
             cooldown=args.cooldown,
-            out_dir=args.output_dir
+            out_dir=args.output_dir, 
+            signal=signal
         )
         logger.info('RUN Optimizer')
         manager.run.remote()
 
-        while True:
-            pass
+    wait(signal)
+    logger.debug('FINISHED WAITING')
+    # while signal.wait.remote():
+    #     logger.debug('WAIT ON SIGNAL')
+    #     time.sleep(10)

@@ -62,7 +62,6 @@ class BayesOpt:
         return True
 
     def get_next_config(self) -> list:
-        self.logger.debug(' ')
 
         return self.opti.ask()
 
@@ -80,5 +79,5 @@ class BayesOpt:
         """
         updates the Optimizers prior 
         """
-        self.logger.debug('\n x:: %s \n y:: %s', x, y)
+        # self.logger.debug('\n x:: %s \n y:: %s', x, y)
         self.opti.tell(x, y)

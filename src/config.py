@@ -39,7 +39,8 @@ _objective = relax_with_config
 _init_method = relax_init
 # SPACE DIMENSIONS
 space_dimensions = "space.yml"
-
+# Directory where results should get saved
+result_path="../results"
 # OPTIMIZER args,
 xi = 0.01
 kappa = 1.69

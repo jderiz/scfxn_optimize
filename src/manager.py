@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import os
 import pickle
@@ -8,6 +9,7 @@ import time
 import numpy as np
 import pandas as pd
 import ray
+from ray.util import inspect_serializability
 
 import config
 
@@ -43,20 +45,25 @@ class OptimizationManager():
              cooldown=True,  # cooldown exploration to exploitation
              space_dimensions=None,  # yaml file with optimizer dimensions
              save_pandas=True,
-             hpc=False  # wether to use single node multiprocessing or some hpc manager
+             hpc=False,
+             signal=None
              ):
         self.identify = identifier
         self.base_estimator = estimator
-        self.evals = evals
-        self._DONE = False
         self.pandas = save_pandas
         self.loss = loss
-        self.evals_done = 0
         self.pdb = pdb
+        self.results = None
+        self.signal = signal
+        # CONSTANTS
         self.n_cores = n_cores
         self.rpc = rpc
+        self.evals = evals
         self.test_run = test_run
-        self.results = None
+        # COUNTER
+        self.batch_counter = int(self.n_cores/self.rpc)
+        self.evals_done = 0
+        # MEMBER CLASSES
         self.distributor = distributor
         self.optimizer = optimizer
         self.logger = logging.getLogger('OptimizationManager')
@@ -65,7 +72,7 @@ class OptimizationManager():
 
         if test_run:
             self.logger.info('TEST RUN')
-            self.objective = config._dummy_objective
+            self.objective = config._dummy_objective.remote
             self.loss_value = 'ref15'
             self.init_method = None
             self.pandas = False
@@ -74,6 +81,8 @@ class OptimizationManager():
             self.objective = config._objective
             self.init_method = config._init_method
 
+        self.logger.debug('CHECK SERIALIZABLE ACTOR INITIALIZER FUNCTION')
+        inspect_serializability(self.init_method, 'initializer method')
         # SEARCH SPACE
 
         # OPTIMIZER
@@ -89,36 +98,33 @@ class OptimizationManager():
 
         # DISTRIBUTOR
         self.distributor.init.remote(
-            manager_callback=self.log_res_and_update, hpc=hpc, cpus=n_cores, initializer=self.init_method)
+            manager_callback=self.log_res_and_update,
+            hpc=hpc,
+            workers=n_cores,
+            rpc=rpc,
+            evals=evals,
+            initializer=self.init_method)
 
         # BOOKKEEPING
         # make empty array
-        self.results = np.empty(self.evals)
-        self.results_ref = ray.put(self.results)
+        # self.results = np.array(self.evals)
         self.logger.debug('initialized Manager')
 
     def log_res_and_update(self, map_res: list) -> None:
-        self.logger.debug(self.__dict__)
-        self.evals_done += 1
+        self.evals_done += 1 # we need separate counters for made and returned batches
         self.results = np.append(self.results, map_res)
         self.logger.debug('self.results %s', self.results)
-        # try:
-        #     results = ray.get(map_res)
-        # except Exception as e:
-        #     self.logger.error(e)
-        # self.logger.debug(" results %s", results)
 
         if len(map_res) == self.rpc:
             self.optimizer.update_prior.remote(
-                map_res[0]['config'], sum(res[self.loss_value] for res in map_res)/len(map_res))
+                map_res[0]['config'], sum(res[self.loss] for res in map_res)/len(map_res))
         else:
             self.logger.error(
                 'Distributor returned %d results but self.rpc is %d', len(map_res), self.rpc)
             # raise Exception('Distributor returned %d results but self.rpc is %d'.format(
             #     len(map_res), self.rpc))
-        # TODO: remove once distribute returns batch instead of each result independently
 
-        if self.evals_done < self.evals * self.rpc:
+        if self.batch_counter < self.evals:
             self.make_batch()
         elif self.evals_done == self.evals:
             self._save_and_exit()
@@ -129,7 +135,8 @@ class OptimizationManager():
                                            params=config,
                                            pdb=self.pdb,
                                            num_workers=self.rpc,
-                                           run=self.evals_done+1)
+                                           run=self.batch_counter+1)
+        self.batch_counter += 1
 
     def _save_and_exit(self) -> bool:
         """
@@ -140,21 +147,24 @@ class OptimizationManager():
         if not self.test_run:
             if self.pandas:
                 # save pandas DataFrame with correct column names
-                df = pd.DataFrame(results)
+                df = pd.DataFrame(self.results.tolist()[1:])
+                breakpoint()
+                self.logger.debug(df)
                 weights = df.config.apply(lambda x: pd.Series(x))
                 weights.columns = ["fa_rep_" + str(num) for num in range(7)]
                 results = pd.concat([df, weights], axis=1)
             with open(
-                "results/{}_{}_res_{}.pkl".format(self.identify,
+                config.result_path+"/{}_{}_res_{}.pkl".format(self.identify,
                                                   self.base_estimator, self.evals),
                 "wb",
             ) as file:
                 pickle.dump(results, file)
         else:
-            print(self.results)
+            self.logger.info('len results %d', len(self.results))
         self.logger.warning(
-            ';;;;;FINAL STATE;;;;;; \n evals: %s ', self.evals_done)
+            ';;;;;FINAL STATE;;;;;; \n evals: %s \n  results: %s ', self.evals_done, self.results)
         self.distributor.terminate.remote()
+        ray.get(self.signal.send.remote())
         print("TERMINATING")
 
     def run(self) -> None:
@@ -163,19 +173,14 @@ class OptimizationManager():
         """
         self.logger.debug('RUN OptimizationManager')
         # map initial runs workers/rpc rpc times
+        self.logger.debug('CHECK PICKABLE OBJECTIVE')
+        inspect_serializability(self.objective, name='objective_func')
 
-        for _ in range(int(self.n_cores/self.rpc)):
+        for run in range(int(self.n_cores/self.rpc)):
 
             self.distributor.distribute.remote(func=self.objective,
                                                params=self.optimizer.get_next_config.remote(),
                                                pdb=self.pdb,
                                                num_workers=self.rpc,
-                                               run=self.evals_done+1)
-            self.evals += self.rpc
-
-        while self.evals_done < self.evals:
-            if self.distributor.has_batch():
-                self.log_res_and_update(self.distributor.consume_batch())
-            else:
-                pass
-
+                                               run=run+1)
+        self.logger.info('INITIAL DISTRIBUTION DONE GOING TO CYCLIC')
