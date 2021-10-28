@@ -28,6 +28,8 @@ class Distributor():
         self.mp = Pool(processes=workers, initializer=initializer)
         self.logger.info('INTITIALIZED DISTRIBUTOR')
         self.logger.info(' batches %s', self.batches)
+        self.rpc_counter = 0
+        self.futures = []
 
     def distribute(self, func, params, pdb, run, num_workers=None):
         """
@@ -37,14 +39,17 @@ class Distributor():
         if not num_workers:
             num_workers = self.batch_size
         self.logger.debug('map config for run %s %s times', run, num_workers)
+
         for _ in [0]*num_workers:
-            self.mp.apply_async(
+            self.logger.debug("run %d apply_async %d", run, _)
+            self.futures.append(self.mp.apply_async(
                 func,
                 args=(params, run, pdb),
                 # [(params, run, pdb)for _ in [0]*num_workers],
                 callback=self._callback,
                 error_callback=self._error_callback,
-            )
+            ))
+        self.logger.debug(len(self.futures))
 
     def add_res_to_batch(self, result, batch_number):
         if batch_number in self.batches.keys():
@@ -54,34 +59,36 @@ class Distributor():
 
     def _callback(self, result):
         """
-        Aggregate batch results and call manager callback once a batch is complete
+        Aggregate batch results and call manager callback once rpc workers have returned a result, 
+        when a batch is completed distinguish if we just update the BayesOpt or if we also make a new batch
         """
 
-        # result = ray.get(result)
+        self.rpc_counter += 1
+        run = result['run']
 
-        if isinstance(result, list):
-            # handle properly this callback is only called once all jobs finish from pool batch
-            self.manager_callback(result)
+        self.add_res_to_batch(result, run)
+        try:
+            self.logger.warning('%s', [(key, len(val))
+                                       for key, val in self.batches.items()])
+        except Exception as e:
+            self.logger.error('len self.batches %s %s',
+                              len(self.batches), self.batches)
 
-        else:
-            # save single result in batch and call manager_callback once #rpc results
-            run = result['run']
-
-            self.add_res_to_batch(result, run)
-            try:
-                self.logger.warning('%s', [(key, len(val))
-                                           for key, val in self.batches.items()])
-            except Exception as e:
-                self.logger.error('len self.batches %s %s',
-                                  len(self.batches), self.batches)
-
-            if len(self.batches[run]) == self.batch_size:
+        if (len(self.batches[run]) == self.batch_size):
+            if (self.rpc_counter == self.batch_size):
                 # call manager_callback with completed batch and remove batch from batches
-                self.logger.info('CALLING MANAGER CALLBACK for run %s', run)
+                self.logger.debug('CALLING MANAGER CALLBACK for run %s', run)
                 self.manager_callback(map_res=self.batches[run])
                 self.logger.debug(
                     'removing key %s from batches dict', run)
                 del self.batches[run]
+            else:  # call manager callback to update BayesOpt but dont make a new batch just jet.
+                self.manager_callback(
+                    map_res=self.batches[run], make_batch=False)
+                del self.batches[run]
+        elif self.rpc_counter == self.batch_size:
+            # TODO: make a new batch but dont save anything
+            self.manager_callback(map_res=None)
 
     def _error_callback(self, msg):
         self.logger.error(msg)

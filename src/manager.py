@@ -110,24 +110,26 @@ class OptimizationManager():
         # self.results = np.array(self.evals)
         self.logger.debug('initialized Manager')
 
-    def log_res_and_update(self, map_res: list) -> None:
+    def log_res_and_update(self, map_res: list = None, make_batch: bool = True) -> None:
         self.evals_done += 1 # we need separate counters for made and returned batches
         self.results = np.append(self.results, map_res)
         self.logger.debug('self.results %s', self.results)
-
-        if len(map_res) == self.rpc:
-            self.optimizer.update_prior.remote(
-                map_res[0]['config'], sum(res[self.loss] for res in map_res)/len(map_res))
-        else:
-            self.logger.error(
-                'Distributor returned %d results but self.rpc is %d', len(map_res), self.rpc)
-            # raise Exception('Distributor returned %d results but self.rpc is %d'.format(
-            #     len(map_res), self.rpc))
-
-        if self.batch_counter < self.evals:
+        if not map_res:
             self.make_batch()
-        elif self.evals_done == self.evals:
-            self._save_and_exit()
+        else:
+            if len(map_res) == self.rpc:
+                self.optimizer.update_prior.remote(
+                    map_res[0]['config'], sum(res[self.loss] for res in map_res)/len(map_res))
+            else:
+                self.logger.error(
+                    'Distributor returned %d results but self.rpc is %d', len(map_res), self.rpc)
+                raise Exception('Distributor returned %d results but self.rpc is %d'.format(
+                    len(map_res), self.rpc))
+
+            if self.batch_counter < self.evals:
+                self.make_batch()
+            elif self.evals_done == self.evals:
+                self._save_and_exit()
 
     def make_batch(self):
         config = self.optimizer.get_next_config.remote()
