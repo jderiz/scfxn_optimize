@@ -15,14 +15,16 @@ class PRSActor(object):
         objective(config, run, pdb)
 
         
-    def __init__(self, initializer=None, initargs=None):
+    def __init__(self, initializer=None, initargs=None, idx=None):
         if initializer:
             initargs = initargs or ()
             initializer(*initargs)
+        self.idx = idx
 
     def ping(self):
         # Used to wait for this actor to be initialized.
-        pass
+        # Also used to check if busy
+        return self.idx
 
     def run_batch(self, func, batch):
         results = []

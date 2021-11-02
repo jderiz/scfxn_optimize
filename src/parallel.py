@@ -38,10 +38,10 @@ class Distributor():
 
         if not num_workers:
             num_workers = self.batch_size
-        self.logger.debug('map config for run %s %s times', run, num_workers)
+        # self.logger.debug('map config for run %s %s times', run, num_workers)
 
         for _ in [0]*num_workers:
-            self.logger.debug("run %d apply_async %d", run, _)
+            # self.logger.debug("run %d apply_async %d", run, _)
             self.futures.append(self.mp.apply_async(
                 func,
                 args=(params, run, pdb),
@@ -65,7 +65,6 @@ class Distributor():
 
         self.rpc_counter += 1
         run = result['run']
-
         self.add_res_to_batch(result, run)
         try:
             self.logger.warning('%s', [(key, len(val))
@@ -75,6 +74,7 @@ class Distributor():
                               len(self.batches), self.batches)
 
         if (len(self.batches[run]) == self.batch_size):
+            # batch complete
             if (self.rpc_counter == self.batch_size):
                 # call manager_callback with completed batch and remove batch from batches
                 self.logger.debug('CALLING MANAGER CALLBACK for run %s', run)
@@ -82,13 +82,15 @@ class Distributor():
                 self.logger.debug(
                     'removing key %s from batches dict', run)
                 del self.batches[run]
+                self.rpc_counter = 0
             else:  # call manager callback to update BayesOpt but dont make a new batch just jet.
                 self.manager_callback(
                     map_res=self.batches[run], make_batch=False)
                 del self.batches[run]
         elif self.rpc_counter == self.batch_size:
-            # TODO: make a new batch but dont save anything
+            # make new batch but dont update optimizer
             self.manager_callback(map_res=None)
+            self.rpc_counter = 0
 
     def _error_callback(self, msg):
         self.logger.error(msg)

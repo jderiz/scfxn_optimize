@@ -1,16 +1,21 @@
-from typing import Callable, List, Tuple, Optional, Any, Dict, Hashable
-import logging
-from multiprocessing import TimeoutError
-import os
-import time
-import random
 import collections
-import threading
-import queue
 import copy
 import gc
+import logging
+import os
+import queue
+import random
 import sys
+import threading
+import time
+from multiprocessing import TimeoutError
+from typing import Any, Callable, Dict, Hashable, List, Optional, Tuple
+
+import ray
+from ray.util import log_once
+
 from rosetta_worker import PRSActor
+
 try:
     from joblib.parallel import BatchedCalls, parallel_backend
     from joblib._parallel_backends import SafeFunction
@@ -19,8 +24,6 @@ except ImportError:
     parallel_backend = None
     SafeFunction = None
 
-import ray
-from ray.util import log_once
 
 logger = logging.getLogger(__name__)
 
@@ -30,11 +33,13 @@ RAY_ADDRESS_ENV = "RAY_ADDRESS"
 def _put_in_dict_registry(
         obj: Any,
         registry_hashable: Dict[Hashable, ray.ObjectRef]) -> ray.ObjectRef:
+
     if obj not in registry_hashable:
         ret = ray.put(obj)
         registry_hashable[obj] = ret
     else:
         ret = registry_hashable[obj]
+
     return ret
 
 
@@ -45,6 +50,7 @@ def _put_in_list_registry(
     except StopIteration:
         ret = ray.put(obj)
         registry.append((obj, ret))
+
     return ret
 
 
@@ -55,9 +61,11 @@ def ray_put_if_needed(
 ) -> ray.ObjectRef:
     """ray.put obj in object store if it's not an ObjRef and bigger than 100 bytes,
     with support for list and dict registries"""
+
     if isinstance(obj, ray.ObjectRef) or sys.getsizeof(obj) < 100:
         return obj
     ret = obj
+
     if registry_hashable is not None:
         try:
             ret = _put_in_dict_registry(obj, registry_hashable)
@@ -66,13 +74,16 @@ def ray_put_if_needed(
                 ret = _put_in_list_registry(obj, registry)
     elif registry is not None:
         ret = _put_in_list_registry(obj, registry)
+
     return ret
 
 
 def ray_get_if_needed(obj: Any) -> Any:
     """If obj is an ObjectRef, do ray.get, otherwise return obj"""
+
     if isinstance(obj, ray.ObjectRef):
         return ray.get(obj)
+
     return obj
 
 
@@ -101,13 +112,16 @@ if BatchedCalls is not None:
             If an arg or kwarg is already in a registry, it will not be
             put again, and instead, the cached object ref will be used."""
             new_items = []
+
             for func, args, kwargs in self.items:
                 args = [
                     ray_put_if_needed(arg, registry, registry_hashable)
+
                     for arg in args
                 ]
                 kwargs = {
                     k: ray_put_if_needed(v, registry, registry_hashable)
+
                     for k, v in kwargs.items()
                 }
                 new_items.append((func, args, kwargs))
@@ -127,6 +141,7 @@ if BatchedCalls is not None:
                         *[ray_get_if_needed(arg) for arg in args],
                         **{k: ray_get_if_needed(v)
                            for k, v in kwargs.items()})
+
                     for func, args, kwargs in self.items
                 ]
 
@@ -134,9 +149,11 @@ if BatchedCalls is not None:
             # Exactly the same as in BatchedCalls, with the
             # difference being that it returns RayBatchedCalls
             # instead
+
             if self._reducer_callback is not None:
                 self._reducer_callback()
             # no need pickle the callback.
+
             return (RayBatchedCalls, (self.items, (self._backend,
                                                    self._n_jobs), None,
                                       self._pickle_cache))
@@ -175,6 +192,7 @@ class ResultThread(threading.Thread):
         # Thread-safe queue used to add ObjectRefs to fetch after creating
         # this thread (used to lazily submit for imap and imap_unordered).
         self._new_object_refs = queue.Queue()
+
         for object_ref in object_refs:
             self._add_object_ref(object_ref)
 
@@ -189,9 +207,11 @@ class ResultThread(threading.Thread):
     def run(self):
         unready = copy.copy(self._object_refs)
         aggregated_batch_results = []
+
         while self._num_ready < self._total_object_refs:
             # Get as many new IDs from the queue as possible without blocking,
             # unless we have no IDs to wait on, in which case we block.
+
             while True:
                 try:
                     block = len(unready) == 0
@@ -200,6 +220,7 @@ class ResultThread(threading.Thread):
                     unready.append(new_object_ref)
                 except queue.Empty:
                     # queue.Empty means no result was retrieved if block=False.
+
                     break
 
             [ready_id], unready = ray.wait(unready, num_returns=1)
@@ -210,12 +231,15 @@ class ResultThread(threading.Thread):
 
             # The exception callback is called only once on the first result
             # that errors. If no result errors, it is never called.
+
             if not self._got_error:
                 for result in batch:
                     if isinstance(result, Exception):
                         self._got_error = True
+
                         if self._error_callback is not None:
                             self._error_callback(result)
+
                         break
                     else:
                         aggregated_batch_results.append(result)
@@ -231,6 +255,7 @@ class ResultThread(threading.Thread):
         #
         # This callback is called outside the while loop to ensure that it's
         # called on the entire list of results– not just a single batch.
+
         if not self._got_error and self._callback is not None:
             if not self._single_result:
                 self._callback(aggregated_batch_results)
@@ -242,14 +267,17 @@ class ResultThread(threading.Thread):
 
     def got_error(self):
         # Should only be called after the thread finishes.
+
         return self._got_error
 
     def result(self, index):
         # Should only be called on results that are ready.
+
         return self._results[index]
 
     def results(self):
         # Should only be called after the thread finishes.
+
         return self._results
 
     def next_ready_index(self, timeout=None):
@@ -289,10 +317,12 @@ class AsyncResult:
 
     def get(self, timeout=None):
         self.wait(timeout)
+
         if self._result_thread.is_alive():
             raise TimeoutError
 
         results = []
+
         for batch in self._result_thread.results():
             for result in batch:
                 if isinstance(result, PoolTaskError):
@@ -322,6 +352,7 @@ class AsyncResult:
 
         if not self.ready():
             raise ValueError(f"{self!r} not ready")
+
         return not self._result_thread.got_error()
 
 
@@ -336,6 +367,7 @@ class IMapIterator:
         # submitted chunks. Ordering mirrors that in the in the ResultThread.
         self._submitted_chunks = []
         self._ready_objects = collections.deque()
+
         if not hasattr(iterable, "__len__"):
             iterable = [iterable]
         self._iterator = iter(iterable)
@@ -350,6 +382,7 @@ class IMapIterator:
 
     def _submit_next_chunk(self):
         # The full iterable has been submitted, so no-op.
+
         if len(self._submitted_chunks) >= self._total_chunks:
             return
 
@@ -388,11 +421,13 @@ class OrderedIMapIterator(IMapIterator):
             # This loop will break when the next index in order is ready or
             # self._result_thread.next_ready_index() raises a timeout.
             index = -1
+
             while index != self._next_chunk_index:
                 start = time.time()
                 index = self._result_thread.next_ready_index(timeout=timeout)
                 self._submit_next_chunk()
                 self._submitted_chunks[index] = True
+
                 if timeout is not None:
                     timeout = max(0, timeout - (time.time() - start))
 
@@ -447,6 +482,7 @@ class PoolActor:
 
     def run_batch(self, func, batch):
         results = []
+
         for args, kwargs in batch:
             args = args or ()
             kwargs = kwargs or {}
@@ -454,6 +490,7 @@ class PoolActor:
                 results.append(func(*args, **kwargs))
             except Exception as e:
                 results.append(PoolTaskError(e))
+
         return results
 
 
@@ -503,8 +540,10 @@ class Pool:
         # Initialize ray. If ray is already initialized, we do nothing.
         # Else, the priority is:
         # ray_address argument > RAY_ADDRESS > start new local cluster.
+
         if not ray.is_initialized():
             # Cluster mode.
+
             if ray_address is None and RAY_ADDRESS_ENV in os.environ:
                 logger.info("Connecting to ray cluster at address='{}'".format(
                     os.environ[RAY_ADDRESS_ENV]))
@@ -519,10 +558,13 @@ class Pool:
                 ray.init(num_cpus=processes)
 
         ray_cpus = int(ray.state.cluster_resources()["CPU"])
+
         if processes is None:
             processes = ray_cpus
+
         if processes <= 0:
             raise ValueError("Processes in the pool must be >0.")
+
         if ray_cpus < processes:
             raise ValueError("Tried to start a pool with {} processes on an "
                              "existing ray cluster, but there are only {} "
@@ -532,12 +574,16 @@ class Pool:
         return processes
 
     def _start_actor_pool(self, processes):
-        self._actor_pool = [self._new_actor_entry() for _ in range(processes)]
+        # HACK: make all but one actor have separate ressources and one actor that shares with framework actors
+        self._actor_pool = [self._new_actor_entry(
+            num_cpus=1, idx=idx) for idx in range(processes-1)]
+        self._actor_pool.append(self._new_actor_entry(False, idx=processes-1))
         ray.get([actor.ping.remote() for actor, _ in self._actor_pool])
 
     def _wait_for_stopping_actors(self, timeout=None):
         if len(self._actor_deletion_ids) == 0:
             return
+
         if timeout is not None:
             timeout = float(timeout)
 
@@ -554,25 +600,49 @@ class Pool:
         # all pending tasks.
         self._actor_deletion_ids.append(actor.__ray_terminate__.remote())
 
-    def _new_actor_entry(self):
+    def _new_actor_entry(self, num_cpus, idx=None):
         # NOTE(edoakes): The initializer function can't currently be used to
         # modify the global namespace (e.g., import packages or set globals)
         # due to a limitation in cloudpickle.
-        return (PRSActor.remote(self._initializer, self._initargs), 0)
+
+        if num_cpus:
+            return(PRSActor.options(num_cpus=1).remote(self._initializer, self._initargs, idx=idx), 0)
+        else:
+            return (PRSActor.remote(self._initializer, self._initargs, idx=idx), 0)
 
     def _random_actor_index(self):
         return random.randrange(len(self._actor_pool))
 
+    def _idle_actor_index(self):
+        #  iterate over pool return index of actor that has no task
+        idx = 0
+        try:
+            # found idle actor, return its index
+            idx_ready, _ = ray.wait([actor.ping.remote() for actor, _ in self._actor_pool],
+                           num_returns=1, timeout=5)
+            logger.debug(ray.get(idx_ready))
+            # breakpoint()
+            return ray.get(idx_ready)[0]
+        except ray.exceptions.GetTimeoutError:
+            return None  # found no idle actor
+
     # Batch should be a list of tuples: (args, kwargs).
+
     def _run_batch(self, actor_index, func, batch):
-        actor, count = self._actor_pool[actor_index]
+        try:
+            actor, count = self._actor_pool[actor_index]
+        except IndexError as e:
+            self.logger.error("tried to get actor with index %d from actor pool of length %d", actor_index, len(self._actor_pool))
+            self.logger.error(e)
         object_ref = actor.run_batch.remote(func, batch)
         count += 1
         assert self._maxtasksperchild == -1 or count <= self._maxtasksperchild
+
         if count == self._maxtasksperchild:
             self._stop_actor(actor)
             actor, count = self._new_actor_entry()
         self._actor_pool[actor_index] = (actor, count)
+
         return object_ref
 
     def apply(self, func, args=None, kwargs=None):
@@ -596,8 +666,8 @@ class Pool:
                     kwargs=None,
                     callback: Callable[[Any], None] = None,
                     error_callback: Callable[[Exception], None] = None):
-        """Run the given function on a random actor process and return an
-        asynchronous interface to the result.
+        """Run the given function on an idle actor process if there is one and return an
+        asynchronous interface to the result. If no idle actor pick a random actor.
 
         Args:
             func: function to run.
@@ -615,8 +685,15 @@ class Pool:
 
         self._check_running()
         func = self._convert_to_ray_batched_calls_if_needed(func)
-        object_ref = self._run_batch(self._random_actor_index(), func,
-                                     [(args, kwargs)])
+        idle_idx = self._idle_actor_index()
+
+        if idle_idx is not None:  # apply to idle actor
+            object_ref = self._run_batch(idle_idx, func,
+                                         [(args, kwargs)])
+        else:  # if all actors busy, which should not happen, just append it to an actor
+            object_ref = self._run_batch(self._random_actor_index(), func,
+                                         [(args, kwargs)])
+
         return AsyncResult(
             [object_ref], callback, error_callback, single_result=True)
 
@@ -636,13 +713,16 @@ class Pool:
         The ObjectRefs are cached inside two registries (_registry and
         _registry_hashable), which are common for the entire Pool and are
         cleaned on close."""
+
         if RayBatchedCalls is None:
             return func
         orginal_func = func
         # SafeFunction is a Python 2 leftover and can be
         # safely removed.
+
         if isinstance(func, SafeFunction):
             func = func.func
+
         if isinstance(func, BatchedCalls):
             func = RayBatchedCalls(func.items, (func._backend, func._n_jobs),
                                    func._reducer_callback, func._pickle_cache)
@@ -652,12 +732,15 @@ class Pool:
                                            self._registry_hashable)
         else:
             func = orginal_func
+
         return func
 
     def _calculate_chunksize(self, iterable):
         chunksize, extra = divmod(len(iterable), len(self._actor_pool) * 4)
+
         if extra:
             chunksize += 1
+
         return chunksize
 
     def _submit_chunk(self,
@@ -667,9 +750,11 @@ class Pool:
                       actor_index,
                       unpack_args=False):
         chunk = []
+
         while len(chunk) < chunksize:
             try:
                 args = next(iterator)
+
                 if not unpack_args:
                     args = (args, )
                 chunk.append((args, {}))
@@ -683,6 +768,7 @@ class Pool:
 
     def _chunk_and_run(self, func, iterable, chunksize=None,
                        unpack_args=False):
+
         if not hasattr(iterable, "__len__"):
             iterable = list(iterable)
 
@@ -691,6 +777,7 @@ class Pool:
 
         iterator = iter(iterable)
         chunk_object_refs = []
+
         while len(chunk_object_refs) * chunksize < len(iterable):
             actor_index = len(chunk_object_refs) % len(self._actor_pool)
             chunk_object_refs.append(
@@ -713,6 +800,7 @@ class Pool:
         self._check_running()
         object_refs = self._chunk_and_run(
             func, iterable, chunksize=chunksize, unpack_args=unpack_args)
+
         return AsyncResult(object_refs, callback, error_callback)
 
     def map(self, func, iterable, chunksize=None):
@@ -760,6 +848,7 @@ class Pool:
         Returns:
             AsyncResult
         """
+
         return self._map_async(
             func,
             iterable,
@@ -807,6 +896,7 @@ class Pool:
         """
 
         self._check_running()
+
         return OrderedIMapIterator(self, func, iterable, chunksize=chunksize)
 
     def imap_unordered(self, func, iterable, chunksize=1):
@@ -823,6 +913,7 @@ class Pool:
         """
 
         self._check_running()
+
         return UnorderedIMapIterator(self, func, iterable, chunksize=chunksize)
 
     def _check_running(self):
@@ -831,6 +922,7 @@ class Pool:
 
     def __enter__(self):
         self._check_running()
+
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -845,6 +937,7 @@ class Pool:
 
         self._registry.clear()
         self._registry_hashable.clear()
+
         for actor, _ in self._actor_pool:
             self._stop_actor(actor)
         self._closed = True
@@ -859,6 +952,7 @@ class Pool:
 
         if not self._closed:
             self.close()
+
         for actor, _ in self._actor_pool:
             ray.kill(actor)
 
@@ -874,4 +968,3 @@ class Pool:
         if not self._closed:
             raise ValueError("Pool is still running")
         self._wait_for_stopping_actors()
-
