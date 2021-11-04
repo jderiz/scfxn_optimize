@@ -8,8 +8,7 @@ from skopt import Optimizer, Space, callbacks
 import config
 
 
-
-@ray.remote
+# @ray.remote
 class BayesOpt:
     """
         This class holds the optimizer instance and manages incorporating new results 

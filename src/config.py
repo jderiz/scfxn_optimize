@@ -28,9 +28,6 @@ formatter = ColoredFormatter(
 color_handler = logging.StreamHandler()
 color_handler.setFormatter(formatter)
 logging.getLogger().addHandler(color_handler)
-# logging.basicConfig(
-#     format='%(levelname)s:-PID%(process)d[%(threadName)s]::%(name)s:%(funcName)s:%(message)s', level=logging.DEBUG)
-# coloredlogs.install(fmt='%(levelname)s:-PID%(process)d[%(threadName)s]::%(name)s:%(funcName)s:%(message)s', level="DEBUG")
 RAY_DASHBOARD_IP = '172.22.180.238:6379'
 # OBJECTIVE FUNCTION TO EVALUATE
 _dummy_objective = dummy_objective
@@ -40,7 +37,7 @@ _init_method = relax_init
 # SPACE DIMENSIONS
 space_dimensions = "space.yml"
 # Directory where results should get saved
-result_path="../results"
+result_path = "../results"
 # OPTIMIZER args,
 xi = 0.01
 kappa = 1.69

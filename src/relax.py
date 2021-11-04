@@ -79,8 +79,8 @@ def relax_with_config(fa_reps, run, pdb):
     # make relax use the script
     relax_protocol.set_script_from_lines(svec)
     # evaluate
-    relax_protocol.apply(pose)
-    # time.sleep(2)
+    # relax_protocol.apply(pose)
+    time.sleep(random.randint(2, 4))
     score = scfxn(pose)
     # default_score = scfxn(default_pose)
     # normalize by lenght
@@ -92,6 +92,5 @@ def relax_with_config(fa_reps, run, pdb):
         "prot": pdb.split('.')[0],
         "pose": PackedPose(pose)
     }
-    # print(res)
 
     return res

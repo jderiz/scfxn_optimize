@@ -604,6 +604,7 @@ class Pool:
         # NOTE(edoakes): The initializer function can't currently be used to
         # modify the global namespace (e.g., import packages or set globals)
         # due to a limitation in cloudpickle.
+        # HACK: all actors but one that shares with manager, distributor etc        # are exclusive on cpu
 
         if num_cpus:
             return(PRSActor.options(num_cpus=1).remote(self._initializer, self._initargs, idx=idx), 0)
@@ -614,25 +615,45 @@ class Pool:
         return random.randrange(len(self._actor_pool))
 
     def _idle_actor_index(self):
-        #  iterate over pool return index of actor that has no task
-        idx = 0
+
         try:
             # found idle actor, return its index
             idx_ready, _ = ray.wait([actor.ping.remote() for actor, _ in self._actor_pool],
-                           num_returns=1, timeout=5)
+                                    num_returns=1, timeout=5)
             logger.debug(ray.get(idx_ready))
             # breakpoint()
-            return ray.get(idx_ready)[0]
+
+            return ray.get(idx_ready[0])
         except ray.exceptions.GetTimeoutError:
             return None  # found no idle actor
 
-    # Batch should be a list of tuples: (args, kwargs).
+    def evaluate_config(self, params, run, pdb, error_callback=None, callback=None) -> tuple:
+        # breakpoint()
+        logger.debug('EVAL', exc_info=True)
+        self._check_running()
+        logger.debug(self._actor_pool)
+        actor_idx = self._idle_actor_index()
+        logger.debug(actor_idx, exc_info=True)
 
+        if actor_idx != None:
+            actor, count = self._actor_pool[actor_idx]
+            object_ref = actor.evaluate_config.remote(params, run, pdb)
+            # breakpoint()
+            # _result_thread = ResultThread(object_ref, True,
+            #                               callback, error_callback)
+            # _result_thread.start()
+
+            return object_ref
+        else:
+            raise Exception('could not find an actor_idx to use')
+
+    # Batch should be a list of tuples: (args, kwargs).
     def _run_batch(self, actor_index, func, batch):
         try:
             actor, count = self._actor_pool[actor_index]
         except IndexError as e:
-            self.logger.error("tried to get actor with index %d from actor pool of length %d", actor_index, len(self._actor_pool))
+            self.logger.error(
+                "tried to get actor with index %d from actor pool of length %d", actor_index, len(self._actor_pool))
             self.logger.error(e)
         object_ref = actor.run_batch.remote(func, batch)
         count += 1

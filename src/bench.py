@@ -3,13 +3,15 @@ import logging
 import time
 
 import ray
-from ray._private.test_utils import SignalActor 
+from ray._private.test_utils import SignalActor
+
 from bayesopt import BayesOpt
 from manager import OptimizationManager
 from parallel import Distributor
 
 logger = logging.getLogger("APP")
 logger.setLevel(logging.DEBUG)
+
 
 def wait(signal):
     logger.debug('call wait on signal')
@@ -129,36 +131,36 @@ if __name__ == "__main__":
         {} nodes in total
         {} CPU resources in total
     '''.format(len(ray.nodes()), ray.cluster_resources()['CPU']))
-    # SIGNAL 
+    # SIGNAL
     signal = SignalActor.remote()
 
     # DISTRIBUTOR
-    Distributor.options(name='distributor', lifetime='detached')
-    distributor = Distributor.remote()
-    distributor_ref = ray.put(distributor)
+    # Distributor.options(name='distributor', lifetime='detached')
+    distributor = Distributor()
+    # distributor_ref = ray.put(distributor)
     # OPTIMIZER
-    BayesOpt.options(name='bayesopt', lifetime='detached')
-    optimizer = BayesOpt.remote()
-    optimizer_ref = ray.put(optimizer)
+    # BayesOpt.options(name='bayesopt', lifetime='detached')
+    optimizer = BayesOpt()
+    # optimizer_ref = ray.put(optimizer)
     # MANAGER
-    OptimizationManager.options(name='manager', lifetime='detached')
-    manager = OptimizationManager.remote()
-    manager_ref = ray.put(manager)
-    logger.info('\n manager %s \n distributor %s \n optimizer %s', ray.get(
-        manager_ref), ray.get(distributor_ref), ray.get(optimizer_ref))
+    # OptimizationManager.options(name='manager', lifetime='detached')
+    manager = OptimizationManager()
+    # manager_ref = ray.put(manager)
+    # logger.info('\n manager %s \n distributor %s \n optimizer %s', ray.get(
+    #     manager_ref), ray.get(distributor_ref), ray.get(optimizer_ref))
     if args.config != None:
         #     # do design instead of optimization
         #     optimization.design(args.config, identify=args.id, evals=args.evals,
         #                         mtpc=args.max_tasks_per_child)
         # pa
-        manager.no_optimize.remote(
+        manager.no_optimize(
             identify=args.id, config_path=args.config, evals=args.evals, pdb=args.pdb)
     else:
-        manager.init.remote(
+        manager.init(
             args.loss,
             pdb=args.pdb,
-            distributor=distributor_ref,
-            optimizer=optimizer_ref,
+            distributor=distributor,
+            optimizer=optimizer,
             estimator=args.estimator,
             identifier=args.id,
             test_run=args.test_run,
@@ -167,11 +169,11 @@ if __name__ == "__main__":
             rpc=int(args.runs_per_config),
             mtpc=int(args.max_tasks_per_child),
             cooldown=args.cooldown,
-            out_dir=args.output_dir, 
+            out_dir=args.output_dir,
             signal=signal
         )
         logger.info('RUN Optimizer')
-        manager.run.remote()
+        manager.run()
 
     wait(signal)
     logger.debug('FINISHED WAITING')

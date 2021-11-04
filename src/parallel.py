@@ -2,11 +2,14 @@ import logging
 from functools import partial
 
 import ray
-from mypool import Pool
 from ray.util import inspect_serializability
+
+from mypool import Pool
+
 # from rosetta_worker import PRSActor
 
-@ray.remote
+
+# @ray.remote
 class Distributor():
 
     """
@@ -23,17 +26,16 @@ class Distributor():
         self.batches = {}  # storing single results
         self.manager_callback = manager_callback
         self.batch_size = rpc
-        # minus our three actors dist, manage, opti
-        # self.workers = [PRSActor.remote() for _ in range(workers)]
-        self.mp = Pool(processes=workers, initializer=initializer)
         self.logger.info('INTITIALIZED DISTRIBUTOR')
         self.logger.info(' batches %s', self.batches)
         self.rpc_counter = 0
-        self.futures = []
+        self.futures = []  # this holds our object_refs to the worker tasks
+        # MAKE POOL
+        self.mp = Pool(processes=workers, initializer=initializer)
 
     def distribute(self, func, params, pdb, run, num_workers=None):
         """
-            distribute a function 
+            distribute a function to the Pool and hold the object_refs to the results somewhere such that done, undone = ray.wait(all_refs, num_returns=batch_size) --> ray.get(the_done_ones) retrieves the results 
         """
 
         if not num_workers:
@@ -42,13 +44,13 @@ class Distributor():
 
         for _ in [0]*num_workers:
             # self.logger.debug("run %d apply_async %d", run, _)
-            self.futures.append(self.mp.apply_async(
-                func,
-                args=(params, run, pdb),
-                # [(params, run, pdb)for _ in [0]*num_workers],
-                callback=self._callback,
+            object_ref = self.mp.evaluate_config(
+                params=params,
+                run=run,
+                pdb=pdb,
                 error_callback=self._error_callback,
-            ))
+            )
+            self.futures.append(object_ref)
         self.logger.debug(len(self.futures))
 
     def add_res_to_batch(self, result, batch_number):
@@ -56,6 +58,20 @@ class Distributor():
             self.batches[batch_number].append(result)
         else:
             self.batches.update({batch_number: [result]})
+
+    def get_batch(self):
+        """
+        block until self.batches tasks are completed and return their result. the rest of the futures becomes the new futures list where new tasks get appended to.
+        """
+        # blocks until batch_size results are done 
+        ready_batch, undone = ray.wait(
+            self.futures, num_returns=self.batch_size)
+        self.logger.debug(ready_batch)
+        batch = ray.get(ready_batch)
+        self.logger.debug(batch)
+        self.futures = undone
+
+        return batch
 
     def _callback(self, result):
         """
@@ -75,6 +91,7 @@ class Distributor():
 
         if (len(self.batches[run]) == self.batch_size):
             # batch complete
+
             if (self.rpc_counter == self.batch_size):
                 # call manager_callback with completed batch and remove batch from batches
                 self.logger.debug('CALLING MANAGER CALLBACK for run %s', run)
