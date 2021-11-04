@@ -628,18 +628,14 @@ class Pool:
             return None  # found no idle actor
 
     def evaluate_config(self, params, run, pdb, error_callback=None, callback=None) -> tuple:
-        # breakpoint()
-        logger.debug('EVAL', exc_info=True)
         self._check_running()
-        logger.debug(self._actor_pool)
         actor_idx = self._idle_actor_index()
-        logger.debug(actor_idx, exc_info=True)
 
         if actor_idx != None:
             actor, count = self._actor_pool[actor_idx]
             object_ref = actor.evaluate_config.remote(params, run, pdb)
-            # breakpoint()
-            # _result_thread = ResultThread(object_ref, True,
+            # # Use ResultThread for error propagation
+            # _result_thread = ResultThread([object_ref], True,
             #                               callback, error_callback)
             # _result_thread.start()
 

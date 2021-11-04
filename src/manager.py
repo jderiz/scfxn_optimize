@@ -62,7 +62,6 @@ class OptimizationManager():
         self.test_run = test_run
         # COUNTER
         self.batch_counter = 0
-        self.evals_done = 0
         # MEMBER CLASSES
         self.distributor = distributor
         self.optimizer = optimizer
@@ -112,9 +111,8 @@ class OptimizationManager():
         self.results = []
 
     def log_res_and_update(self, map_res: list = None, make_batch: bool = True) -> None:
-        self.evals_done += 1  # we need separate counters for made and returned batches
+        self.logger.info('RUN %d DONE', map_res[0]['run'])
         self.results.extend(map_res)
-        # self.logger.debug('self.results %s', self.results)
         self.optimizer.update_prior(
             map_res[0]['config'], sum(res[self.loss] for res in map_res)/len(map_res))
 
@@ -131,8 +129,8 @@ class OptimizationManager():
         """
             Saves the results stored in the DataFrame and reports to console
         """
-        self.logger.debug('DONE \n test %s \n results %d', 
-                self.test_run, len(self.results))
+        self.logger.debug('DONE \n test %s \n results %d',
+                          self.test_run, len(self.results))
 
         if not self.test_run:
             if self.pandas:
@@ -152,9 +150,11 @@ class OptimizationManager():
         else:
             self.logger.info('len results %d', len(self.results))
         self.logger.warning(
-            ';;;;;FINAL STATE;;;;;; \n evals: %s \n  results: %s ', self.evals_done, self.results)
+            '-------- FINAL STATE -------- \n \
+            Got %d Results',
+            len(self.results))
         self.distributor.terminate()
-        ray.get(self.signal.send.remote())
+        # ray.get(self.signal.send.remote())
         print("TERMINATING")
 
     def add_res_to_batch(self, result, batch_number):
@@ -180,14 +180,15 @@ class OptimizationManager():
         for run in range(self.evals):
             # blocks until batch is ready and update
             batch = self.distributor.get_batch()
-            
+
             for r in batch:
                 self.add_res_to_batch(r, r['run'])
 
                 if len(self.batches[r['run']]) == self.rpc:
                     self.log_res_and_update(self.batches[r['run']])
 
-            # make batch 
+            # make batch
+
             if run < (self.evals - initial_runs):
                 self.make_batch()
         # finally save the result and exit

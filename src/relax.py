@@ -9,8 +9,6 @@ import ray
 from pyrosetta import get_fa_scorefxn
 from pyrosetta.distributed.packed_pose.core import PackedPose
 
-# @ray.remote
-
 
 def initialize():
 
@@ -29,16 +27,10 @@ def initialize():
             #  store actual Pose() object
             names.append(pdb)
 
-# @ray.remote
-
 
 def relax_with_config(fa_reps, run, pdb):
 
-    # relax the structure and compare to default fast relax
-    #
     scfxn = get_fa_scorefxn()
-    # print('check pdb supplied: ', pdb)
-    # print('fa_reps: ', fa_reps)
 
     if pdb:
         # add ending for correct path
@@ -47,7 +39,6 @@ def relax_with_config(fa_reps, run, pdb):
         pdb = random.choice(names)
     # print(os.getcwd())
     pose = prs.pose_from_pdb("../benchmark/crystal/crystal_"+pdb)
-    # default_pose = prs.pose_from_pdb("benchmark/1K9P.pdb")
     # empty file line vector
     svec = prs.rosetta.std.vector_std_string()
     # init relax with score func
@@ -79,8 +70,8 @@ def relax_with_config(fa_reps, run, pdb):
     # make relax use the script
     relax_protocol.set_script_from_lines(svec)
     # evaluate
-    # relax_protocol.apply(pose)
-    time.sleep(random.randint(2, 4))
+    relax_protocol.apply(pose)
+    # time.sleep(random.randint(2, 4))
     score = scfxn(pose)
     # default_score = scfxn(default_pose)
     # normalize by lenght

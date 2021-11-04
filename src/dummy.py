@@ -7,10 +7,11 @@ import ray
 logger = logging.getLogger('Dummy')
 logger.setLevel(logging.DEBUG)
 
-@ray.remote
+# @ray.remote
+
+
 def dummy_objective(config, run, pdb) -> dict:
     time.sleep(random.randint(2, 3))
-    logger.debug('EVAL: %s:::: RUN: %s', config, run)
 
     return {
         "bloss62": random.randint(1, 100),

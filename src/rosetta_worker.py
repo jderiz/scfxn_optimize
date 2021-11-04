@@ -1,7 +1,7 @@
 import pyrosetta as prs
 import ray
 
-from config import _init_method, _objective
+from config import _init_method, _objective, dummy_objective
 
 
 @ray.remote
@@ -12,8 +12,6 @@ class PRSActor(object):
         super(PRSActor, self).__init__()
         self.arg = arg
         prs.init()
-        # self.ref_scfxn = get_fa_scorefxn()
-        # initialize()
 
     def __init__(self, initializer=None, initargs=None, idx=None):
         if initializer:
@@ -28,7 +26,7 @@ class PRSActor(object):
         return self.idx
 
     def evaluate_config(self, config, run, pdb):
-        return _objective(config, run, pdb)
+        return dummy_objective(config, run, pdb)
 
     def run_batch(self, func, batch):
         results = []

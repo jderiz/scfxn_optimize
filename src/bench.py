@@ -135,19 +135,11 @@ if __name__ == "__main__":
     signal = SignalActor.remote()
 
     # DISTRIBUTOR
-    # Distributor.options(name='distributor', lifetime='detached')
     distributor = Distributor()
-    # distributor_ref = ray.put(distributor)
     # OPTIMIZER
-    # BayesOpt.options(name='bayesopt', lifetime='detached')
     optimizer = BayesOpt()
-    # optimizer_ref = ray.put(optimizer)
     # MANAGER
-    # OptimizationManager.options(name='manager', lifetime='detached')
     manager = OptimizationManager()
-    # manager_ref = ray.put(manager)
-    # logger.info('\n manager %s \n distributor %s \n optimizer %s', ray.get(
-    #     manager_ref), ray.get(distributor_ref), ray.get(optimizer_ref))
     if args.config != None:
         #     # do design instead of optimization
         #     optimization.design(args.config, identify=args.id, evals=args.evals,
@@ -175,8 +167,8 @@ if __name__ == "__main__":
         logger.info('RUN Optimizer')
         manager.run()
 
-    wait(signal)
-    logger.debug('FINISHED WAITING')
+    # wait(signal)
+    logger.debug('FINISHED OPTIMIZATION')
     # while signal.wait.remote():
     #     logger.debug('WAIT ON SIGNAL')
     #     time.sleep(10)
