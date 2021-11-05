@@ -3,8 +3,10 @@ from functools import partial
 
 import ray
 from ray.util import inspect_serializability
+
 from rosetta_worker import PRSActor
-from mypool import Pool
+
+# from mypool import Pool
 
 # from rosetta_worker import PRSActor
 
@@ -124,7 +126,11 @@ class Distributor():
     def _error_callback(self, msg):
         self.logger.error(msg)
 
-    def terminate(self):
-        self.logger.debug('TERMINATE Pool')
-        # self.mp.close()
-        # self.mp.terminate()
+    def report(self):
+        self.logger.info('TERMINATE Pool')
+        self.logger.info('Outstanding Futures %d::: %s',
+                         len(self.futures), self.futures)
+
+    def terminate_pool(self):
+        for a, c in self._actor_pool:
+            a.shutdown.remote()

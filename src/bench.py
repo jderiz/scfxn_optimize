@@ -3,11 +3,13 @@ import logging
 import time
 
 import ray
-from ray._private.test_utils import SignalActor
 
 from bayesopt import BayesOpt
 from manager import OptimizationManager
 from parallel import Distributor
+
+# from ray._private.test_utils import SignalActor
+
 
 logger = logging.getLogger("APP")
 logger.setLevel(logging.DEBUG)
@@ -117,7 +119,8 @@ if __name__ == "__main__":
     parser.add_argument("-dict_out", action="store_true",
                         help="save result in dict format rather then pandas DataFrame")
 
-    parser.add_argument("-cooldown", type=bool,
+    parser.add_argument("-cooldown",
+                        action='store_true',
                         help='specifies if cooldown should be applied to the explore exploit params and if so linnear or logarithmic',
                         default=False
                         )
@@ -131,8 +134,8 @@ if __name__ == "__main__":
         {} nodes in total
         {} CPU resources in total
     '''.format(len(ray.nodes()), ray.cluster_resources()['CPU']))
-    # SIGNAL
-    signal = SignalActor.remote()
+    # # SIGNAL
+    # signal = SignalActor.remote()
 
     # DISTRIBUTOR
     distributor = Distributor()
@@ -162,7 +165,7 @@ if __name__ == "__main__":
             mtpc=int(args.max_tasks_per_child),
             cooldown=args.cooldown,
             out_dir=args.output_dir,
-            signal=signal
+            # signal=signal
         )
         logger.info('RUN Optimizer')
         manager.run()

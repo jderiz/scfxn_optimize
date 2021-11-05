@@ -92,7 +92,7 @@ class OptimizationManager():
             dimensions=config.space_dimensions,
             base_estimator=estimator,
             acq_func_kwargs=config.acq_func_kwargs,
-            n_initial_points=n_cores/rpc,
+            n_initial_points=int(n_cores//rpc),
             cooldown=cooldown,
             evals=evals
         )
@@ -113,7 +113,7 @@ class OptimizationManager():
     def log_res_and_update(self, map_res: list = None, make_batch: bool = True) -> None:
         self.logger.info('RUN %d DONE', map_res[0]['run'])
         self.results.extend(map_res)
-        self.optimizer.update_prior(
+        self.optimizer.handle_result(
             map_res[0]['config'], sum(res[self.loss] for res in map_res)/len(map_res))
 
     def make_batch(self):
@@ -150,12 +150,12 @@ class OptimizationManager():
         else:
             self.logger.info('len results %d', len(self.results))
         self.logger.warning(
-            '-------- FINAL STATE -------- \n \
+            '\n -------- FINAL STATE -------- \n \
             Got %d Results',
             len(self.results))
-        self.distributor.terminate()
-        # ray.get(self.signal.send.remote())
-        print("TERMINATING")
+        self.distributor.report()
+        self.optimizer.report()
+        self.distributor.terminate_pool()
 
     def add_res_to_batch(self, result, batch_number):
         if batch_number in self.batches.keys():

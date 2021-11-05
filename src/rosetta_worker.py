@@ -44,3 +44,6 @@ class PRSActor(object):
                     results.append(PoolTaskError(e))
 
         return results
+
+    def shutdown(self):
+        ray.actor.exit_actor()
