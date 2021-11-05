@@ -29,7 +29,7 @@ def initialize():
 
 
 def relax_with_config(fa_reps, run, pdb):
-
+    st = time.time()
     scfxn = get_fa_scorefxn()
 
     if pdb:
@@ -75,13 +75,14 @@ def relax_with_config(fa_reps, run, pdb):
     score = scfxn(pose)
     # default_score = scfxn(default_pose)
     # normalize by lenght
-
+    took = time.strftime(time.time()-st)
     res = {
         "run": run,
         "config": fa_reps,
         "score": score,
         "prot": pdb.split('.')[0],
-        "pose": PackedPose(pose)
+        "pose": PackedPose(pose),
+        "took": took
     }
 
     return res

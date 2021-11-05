@@ -144,10 +144,6 @@ if __name__ == "__main__":
     # MANAGER
     manager = OptimizationManager()
     if args.config != None:
-        #     # do design instead of optimization
-        #     optimization.design(args.config, identify=args.id, evals=args.evals,
-        #                         mtpc=args.max_tasks_per_child)
-        # pa
         manager.no_optimize(
             identify=args.id, config_path=args.config, evals=args.evals, pdb=args.pdb)
     else:
