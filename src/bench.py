@@ -49,7 +49,7 @@ if __name__ == "__main__":
     parser.add_argument("-pdb",
                         type=str,
                         default=None,
-                        help="ONLY DEV: specify which protein should be used")
+                        help="specify which protein should be used")
     parser.add_argument(
         "-evals",
         type=int,
@@ -128,12 +128,15 @@ if __name__ == "__main__":
     print(args)
     # SETUP CLUSTER
     # TODO: SLURM ?
-    ray.init(address='auto', namespace='bench',
-             _redis_password='5241590000000000')
+    ray.init(address='auto')
     print('''This cluster consists of
         {} nodes in total
         {} CPU resources in total
     '''.format(len(ray.nodes()), ray.cluster_resources()['CPU']))
+    if not args.cores:
+        cores = ray.cluster_resources()['CPU']
+    else:
+        cores = args.cores
     # # SIGNAL
     # signal = SignalActor.remote()
 
@@ -155,7 +158,7 @@ if __name__ == "__main__":
             estimator=args.estimator,
             identifier=args.id,
             test_run=args.test_run,
-            n_cores=int(args.cores),
+            n_cores=int(cores),
             evals=int(args.evals),
             rpc=int(args.runs_per_config),
             mtpc=int(args.max_tasks_per_child),
