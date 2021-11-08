@@ -67,6 +67,7 @@ class OptimizationManager():
         self.optimizer = optimizer
         self.logger = logging.getLogger('OptimizationManager')
         self.logger.setLevel(logging.DEBUG)
+        self.logger.debug('CWD %s', os.getcwd())
         # TEST CASE
 
         if test_run:

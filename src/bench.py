@@ -1,23 +1,18 @@
+import sys
+import os
+sys.path.append(os.getcwd())
 import argparse
 import logging
 import time
-
 import ray
 
 from bayesopt import BayesOpt
 from manager import OptimizationManager
 from parallel import Distributor
 
-# from ray._private.test_utils import SignalActor
-
 
 logger = logging.getLogger("APP")
 logger.setLevel(logging.DEBUG)
-
-
-def wait(signal):
-    logger.debug('call wait on signal')
-    ray.get(signal.wait.remote())
 
 
 if __name__ == "__main__":
@@ -29,6 +24,13 @@ if __name__ == "__main__":
     description = "Run optimization of Energy Function weights for some objective\n\
                     function in parallel."
     parser = argparse.ArgumentParser(description=description)
+    parser.add_argument(
+        "-r_pw",
+        "--redis_password",
+        default=None,
+        type=str,
+        help="password to use for ray cluster redis authentication"
+        )
     parser.add_argument(
         "-e",
         "--estimator",
@@ -128,7 +130,11 @@ if __name__ == "__main__":
     print(args)
     # SETUP CLUSTER
     # TODO: SLURM ?
-    ray.init(address='auto')
+    if args.redis_password:
+
+        ray.init(address='auto', _redis_password=args.redis_password)
+    else:
+        ray.init(address='auto')
     print('''This cluster consists of
         {} nodes in total
         {} CPU resources in total

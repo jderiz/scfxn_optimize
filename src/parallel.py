@@ -1,6 +1,6 @@
 import logging
-from functools import partial
 
+import os
 import ray
 from ray.util import inspect_serializability
 
@@ -35,7 +35,7 @@ class Distributor():
         self._initargs = None
         self._start_actor_pool(workers)
         # self.mp = Pool(processes=workers, initializer=initializer)
-
+        self.logger.debug('CWD %s', os.getcwd())      
         self.logger.info('INTITIALIZED DISTRIBUTOR')
 
     def _start_actor_pool(self, processes):

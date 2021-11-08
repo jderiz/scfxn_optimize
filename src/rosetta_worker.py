@@ -26,7 +26,7 @@ class PRSActor(object):
         return self.idx
 
     def evaluate_config(self, config, run, pdb):
-        return dummy_objective(config, run, pdb)
+        return _objective(config, run, pdb)
 
     def run_batch(self, func, batch):
         results = []

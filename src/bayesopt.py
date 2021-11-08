@@ -6,9 +6,9 @@ import ray
 from skopt import Optimizer, Space, callbacks
 
 import config
+import os
 
 
-# @ray.remote
 class BayesOpt:
     """
         This class holds the optimizer instance and manages incorporating new results 
@@ -28,7 +28,7 @@ class BayesOpt:
              n_initial_points=None):
         self.logger = logging.getLogger('BayesOpt')
         self.logger.setLevel(logging.DEBUG)
-
+        self.logger.debug('CWD %s', os.getcwd())
         #
         try:
             dimensions = Space.from_yaml(dimensions)
