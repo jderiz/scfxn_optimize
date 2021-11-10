@@ -71,6 +71,13 @@ def relax_with_config(fa_reps, run, pdb):
     relax_protocol.set_script_from_lines(svec)
     # evaluate
     relax_protocol.apply(pose)
+
+    # RMSD
+    rmsd_metric = prs.rosetta.core.simple_metrics.metrics.RMSDMetric()
+    rmsd_metric.set_comparison_pose(unbound_pose)
+    rmsd_metric.apply(pose)
+
+    # TORSION ANGLES
     # time.sleep(random.randint(2, 4))
     score = scfxn(pose)
     # default_score = scfxn(default_pose)
