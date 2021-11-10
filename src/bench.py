@@ -1,8 +1,19 @@
+import sys
+import os
+sys.path.append(os.getcwd())
 import argparse
-from multiprocessing import Pool, cpu_count, get_context
+import logging
+import time
+import ray
 
-import optimization
-from design import initialize
+from bayesopt import BayesOpt
+from manager import OptimizationManager
+from parallel import Distributor
+
+
+logger = logging.getLogger("APP")
+logger.setLevel(logging.DEBUG)
+
 
 if __name__ == "__main__":
     """
@@ -13,6 +24,13 @@ if __name__ == "__main__":
     description = "Run optimization of Energy Function weights for some objective\n\
                     function in parallel."
     parser = argparse.ArgumentParser(description=description)
+    parser.add_argument(
+        "-r_pw",
+        "--redis_password",
+        default=None,
+        type=str,
+        help="password to use for ray cluster redis authentication"
+        )
     parser.add_argument(
         "-e",
         "--estimator",
@@ -30,6 +48,10 @@ if __name__ == "__main__":
         action="store_true",
         help="can be used as switch to evaluate dummy objctive",
     )
+    parser.add_argument("-pdb",
+                        type=str,
+                        default=None,
+                        help="specify which protein should be used")
     parser.add_argument(
         "-evals",
         type=int,
@@ -44,6 +66,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-o",
         "--output-dir",
+        type=str,
         default="results",
         help="directory where the results get saved",
     )
@@ -83,11 +106,13 @@ if __name__ == "__main__":
         help="optimier argument to manage explore vs. exploit higher==> explore")
     parser.add_argument(
         "-config",
-        default=False,
+        type=str,
+        default=None,  # uses the protocolls default config
         help="If a config path to a pickled list, series or DataFrame that holds it is supplied this particular config is evaluated -evals times and the results are stored with all information.")
     parser.add_argument(
         "-id",
         default=None,
+        type=str,
         help="Identity string for storing the results")
     parser.add_argument(
         "-no_struct",
@@ -96,33 +121,63 @@ if __name__ == "__main__":
     parser.add_argument("-dict_out", action="store_true",
                         help="save result in dict format rather then pandas DataFrame")
 
-    parser.add_argument("-cooldown", type=str, help='specifies the if cooldown shoulf be applied to the explore exploit params and if so linnear or logarithmic', choices=['lin', 'poslog', 'neglog'])
+    parser.add_argument("-cooldown",
+                        action='store_true',
+                        help='specifies if cooldown should be applied to the explore exploit params and if so linnear or logarithmic',
+                        default=False
+                        )
     args = parser.parse_args()
     print(args)
+    # SETUP CLUSTER
+    # TODO: SLURM ?
+    if args.redis_password:
 
-    if not args.cores:
-        cores = cpu_count()
+        ray.init(address='auto', _redis_password=args.redis_password)
+    else:
+        ray.init(address='auto')
+    print('''This cluster consists of
+        {} nodes in total
+        {} CPU resources in total
+    '''.format(len(ray.nodes()), ray.cluster_resources()['CPU']))
+    if args.cores == 0: # no cores defined
+        cores = ray.cluster_resources()['CPU']
     else:
         cores = args.cores
+    logger.debug('Running on %d cores', cores)
+    # # SIGNAL
+    # signal = SignalActor.remote()
 
-    if args.config:
-        # do design instead of optimization
-        optimization.design(args.config, identify=args.id, evals=args.evals,
-                            mtpc=args.max_tasks_per_child)
-
+    # DISTRIBUTOR
+    distributor = Distributor()
+    # OPTIMIZER
+    optimizer = BayesOpt()
+    # MANAGER
+    manager = OptimizationManager()
+    if args.config != None:
+        manager.no_optimize(
+            identify=args.id, config_path=args.config, evals=args.evals, pdb=args.pdb)
     else:
-        optimization.init(
+        manager.init(
             args.loss,
+            pdb=args.pdb,
+            distributor=distributor,
+            optimizer=optimizer,
             estimator=args.estimator,
             identifier=args.id,
             test_run=args.test_run,
-            cores=int(cores),
-            number_calls=int(args.evals),
+            n_cores=int(cores),
+            evals=int(args.evals),
             rpc=int(args.runs_per_config),
             mtpc=int(args.max_tasks_per_child),
-            weight_range=args.range,
-            xi=args.xi,
-            kappa=args.kappa,
-            cooldown=args.cooldown
+            cooldown=args.cooldown,
+            out_dir=args.output_dir,
+            # signal=signal
         )
-        optimization.start_optimization()
+        logger.info('RUN Optimizer')
+        manager.run()
+
+    # wait(signal)
+    logger.debug('FINISHED OPTIMIZATION')
+    # while signal.wait.remote():
+    #     logger.debug('WAIT ON SIGNAL')
+    #     time.sleep(10)

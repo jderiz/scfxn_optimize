@@ -1,4 +1,5 @@
 # Thema Masterarbeit
+    + "Developing a Framework for optimizing Rosetta Energy Function weights using Bayesian Optimization"
     + Energy Function
     + ML Model structure stable yes/no
     + Can there be any gradient based method ? levinstein
@@ -13,16 +14,22 @@
     - Gedanken machen wie das ganze gut generalisiert werden kann, sodass ein anwender minimalen config aufwand hat.
      
 ## Code
+<<<<<<< HEAD
+    - add time component to loss
+    - add cooldown of xi and kappa
+    - add SEED für replizierbarkeit
+=======
      - add time component to loss
      - add cooldown of xi and kappa
      - add SEED für replizierbarkeit
      - format ouput into pandas DataFrame
+>>>>>>> master
 ## Analysis
-     - show Convergence of Optimization on each loss.
-     - Determine 'best' configuration
-     - je mehr gute configs ich nehme desto unwahrscheinlicher das sie alle durch zufall entstanden sind. Wenn dann die Configurationen noch näher beieinander legen als zur outroup dann ist das ein weiteres indiz für "echt" gute configs
-     - Entfernungsmß für Configs
-        - normalisierte distanz anhand der range jedes gewichts.
+    - show Convergence of Optimization on each loss.
+    - Determine 'best' configuration
+    - je mehr gute configs ich nehme desto unwahrscheinlicher das sie alle durch zufall entstanden sind. Wenn dann die Configurationen noch näher beieinander legen als zur outroup dann ist das ein weiteres indiz für "echt" gute configs
+    - Entfernungsmß für Configs
+    - normalisierte distanz anhand der range jedes gewichts.
 
 ## Ideas
     - PSO for guiding Monte Carlo

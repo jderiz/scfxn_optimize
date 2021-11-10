@@ -16,8 +16,9 @@ from skopt.utils import use_named_args
 import create_scfxn
 import hyperparams
 
+pdbs_dict = {}
 
-def initialize():
+def initialize(pdbs, pdb_path):
     """initialize pyrosetta
     """
     global prs
@@ -25,6 +26,7 @@ def initialize():
     prs.init(
         options="-ex1 -ex2", set_logging_handler=True, extra_options="-linmem_ig 10 -archive_on_disk /tmp/rosetta -mute core -mute basic -mute protocols"
     )  # no utput from the design process
+    # Setup Logging
     prs.logging_support.set_logging_sink()
     logger = logging.getLogger("rosetta")
     logger.setLevel(logging.ERROR)
@@ -33,15 +35,12 @@ def initialize():
     rosetta_log_handler = logging.FileHandler('rosetta.log')
     rosetta_log_handler.setLevel(logging.DEBUG)
     logger.addHandler(rosetta_log_handler)
-    global pdbs
-    pdbs = {}
 
-    # get all protein pdbs
-
-    for pdb in os.listdir("benchmark"):
-        if pdb.endswith(".pdb"):
-            #  store actual Pose() object
-            pdbs.update({pdb.split('.')[0]: pose_from_pdb("benchmark/" + pdb)})
+    # Setup proteins and their pssm matrices
+    # Proteins
+    for pdb in pdbs:
+        pdbs_dict.update({pdb.split()[0]: prs.pose_from_pdb(pdb_path+'/'+pdb)})
+    # PSSMS
     global pssms
     pssms = {}
 
@@ -83,24 +82,21 @@ def initialize():
     # return pssms
 
 
-@use_named_args(dimensions=hyperparams.get_dimensions())
-def design_with_config(**config) -> dict:
+def design_with_config(config) -> dict:
     start_time = time.time()  # Runtime measuring
     print('DESIGNING')
     ref15 = get_fa_scorefxn()  # REF15
-    if config is 'ref15':
+    if config == 'ref15':
         scfxn = ref15
     else:
         scfxn = create_scfxn.creat_scfxn_from_config(
             config=config
         )  # optimization score Function
 
-    # pick random
-    # pose = random.choice(pdbs)
-    prot_name = random.choice(list(pdbs.keys()))
-    pose = pdbs[prot_name]
-    # pose = pdbs['1K9P']
-    # prot_name = '1K9P'
+    # pick random protein from pdbs_dict
+    prot_name = random.choice(pdbs_dict.keys())
+    pose = pdbs_dict[prot_name]
+
 
     # copy pose for comparison after design
     native_pose = Pose()
@@ -110,7 +106,6 @@ def design_with_config(**config) -> dict:
         f.write("ALLAAxc \n")
         f.write("start\n")
 
-    # def run(pose):
     taskf = prs.rosetta.core.pack.task.TaskFactory()
     taskf.push_back(
         prs.rosetta.core.pack.task.operation.InitializeFromCommandline())
@@ -137,7 +132,7 @@ def design_with_config(**config) -> dict:
 
     # This has to be serializable in order to get pickled and send back to parent
     result = {"sequence": pose.sequence(),
-              "pose": PackedPose(pose),
+              # "pose": PackedPose(pose),
               "prot_len": len(pose.sequence()),
               "prot_name": prot_name,
               "bloss62": -similar,
@@ -147,7 +142,8 @@ def design_with_config(**config) -> dict:
               "runtime": took
               }
 
-    print('DESIGN_DONE: ', result)
+    print('DESIGN_DONE: ')
+    took = time.time() - start_time
     print("Took: {} to run design on length {}".format(
         time.strftime("%H: %M: %S", time.gmtime(took)), len(pose.sequence())))
 
