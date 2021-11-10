@@ -75,7 +75,8 @@ def relax_with_config(fa_reps, run, pdb):
     score = scfxn(pose)
     # default_score = scfxn(default_pose)
     # normalize by lenght
-    took = time.strftime(time.time()-st)
+    score = score/len(pose)
+    took = time.strftime("%H:%M:%S", time.gmtime(time.time()-st))
     res = {
         "run": run,
         "config": fa_reps,

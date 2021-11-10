@@ -65,7 +65,6 @@ class Distributor():
             # found idle actor, return its index
             idx_ready, _ = ray.wait([actor.ping.remote() for actor, _ in self._actor_pool],
                                     num_returns=1, timeout=5)
-            self.logger.debug(ray.get(idx_ready))
 
             return ray.get(idx_ready[0])
         except ray.exceptions.GetTimeoutError:

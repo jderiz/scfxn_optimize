@@ -139,10 +139,11 @@ if __name__ == "__main__":
         {} nodes in total
         {} CPU resources in total
     '''.format(len(ray.nodes()), ray.cluster_resources()['CPU']))
-    if not args.cores:
+    if args.cores == 0: # no cores defined
         cores = ray.cluster_resources()['CPU']
     else:
         cores = args.cores
+    logger.debug('Running on %d cores', cores)
     # # SIGNAL
     # signal = SignalActor.remote()
 

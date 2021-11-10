@@ -137,7 +137,6 @@ class OptimizationManager():
             if self.pandas:
                 # save pandas DataFrame with correct column names
                 df = pd.DataFrame(self.results)
-                breakpoint()
                 self.logger.debug(df)
                 weights = df.config.apply(lambda x: pd.Series(x))
                 weights.columns = ["fa_rep_" + str(num) for num in range(7)]
