@@ -55,7 +55,7 @@ def relax_with_config(fa_reps, run, pdb):
                "6q21A": "4Q21",
                "1avsA": "1TOP.clean.pdb",
                "1d5wA": "1DBW"}
-    unbound = prs.pose_from_pdb("../alleosteric_bench/"+ub_dict[pdb])
+    unbound = prs.pose_from_pdb("../benchmark/allosteric/"+ub_dict[pdb])
     # print(os.getcwd())
     pose = prs.pose_from_pdb("../benchmark/crystal/crystal_"+pdb)
     # empty file line vector
@@ -118,6 +118,7 @@ def relax_with_config(fa_reps, run, pdb):
     ref15 = scfxn(pose)
     ref15 = ref15/len(pose)
     took = time.strftime("%H:%M:%S", time.gmtime(time.time()-st))
+    score = (phi_deviation+psi_deviation)/2 + (1+rmsd)**2 + ref15
     res = {
         "run": run,
         "config": fa_reps,
