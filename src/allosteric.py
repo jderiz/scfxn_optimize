@@ -45,11 +45,8 @@ def relax_with_config(fa_reps, run, pdb):
     st = time.time()
     scfxn = get_fa_scorefxn()
 
-    if pdb:
-        # add ending for correct path
-        pdb = pdb+'.pdb'
-    else:
-        pdb = random.choice(names)
+    # add ending for correct path
+    pdb_path = pdb+'.pdb'
 
     ub_dict = {"1k9kA": "1K9P.clean.pdb",
                "6q21A": "4Q21",
@@ -57,7 +54,7 @@ def relax_with_config(fa_reps, run, pdb):
                "1d5wA": "1DBW"}
     unbound = prs.pose_from_pdb("../benchmark/allosteric/"+ub_dict[pdb])
     # print(os.getcwd())
-    pose = prs.pose_from_pdb("../benchmark/crystal/crystal_"+pdb)
+    pose = prs.pose_from_pdb("../benchmark/allosteric/"+pdb_path)
     # empty file line vector
     svec = prs.rosetta.std.vector_std_string()
     # init relax with score func
@@ -89,7 +86,7 @@ def relax_with_config(fa_reps, run, pdb):
     # make relax use the script
     relax_protocol.set_script_from_lines(svec)
     # evaluate
-    relax_protocol.apply(pose)
+    # relax_protocol.apply(pose)
 
     # select all residues for superimpose
     si_vec = prs.rosetta.utility.vector1_unsigned_long()

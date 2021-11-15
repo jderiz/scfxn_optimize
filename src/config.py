@@ -5,11 +5,11 @@ import logging
 
 from colorlog import ColoredFormatter
 
+from allosteric import initialize as relax_init
+from allosteric import relax_with_config
 from design import design_with_config
 from design import initialize as design_init
 from dummy import dummy_objective
-from relax import initialize as relax_init
-from relax import relax_with_config
 
 formatter = ColoredFormatter(
     '%(log_color)s%(levelname)s:-PID%(process)d[%(threadName)s]::%(name)s:%(funcName)s:%(white)s%(message)s',
