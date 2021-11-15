@@ -57,7 +57,7 @@ def relax_with_config(fa_reps, run, pdb):
                "1d5wA": "1DBW"}
     unbound = prs.pose_from_pdb("../benchmark/allosteric/"+ub_dict[pdb])
     # print(os.getcwd())
-    pose = prs.pose_from_pdb("../benchmark/crystal/crystal_"+pdb)
+    pose = prs.pose_from_pdb("../benchmark/allosteric/"+pdb)
     # empty file line vector
     svec = prs.rosetta.std.vector_std_string()
     # init relax with score func

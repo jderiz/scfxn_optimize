@@ -1,7 +1,7 @@
 #!/bin/bash
 # shellcheck disable=SC2206
 #SBATCH --partition=clara-job
-#SBATCH --job-name=MnPrTe
+#SBATCH --job-name=AlostK9
 #SBATCH --output=clara.log
 #SBATCH --mem-per-cpu=2G
 #SBATCH --mail-type=FAIL
@@ -63,4 +63,4 @@ for ((i = 1; i <= worker_num; i++)); do
 done
 
 # ===== Call your code below =====
-python bench.py -l score -c 256 -rpc 6 -evals 600 -pdb 1K9P -id 1K9P_long -cooldown -r_pw "$redis_password"
+python bench.py -l score -c 256 -rpc 6 -evals 600 -pdb 1k9kA -id allost_1k9p -cooldown -r_pw "$redis_password"
