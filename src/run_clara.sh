@@ -8,6 +8,7 @@
 #SBATCH --mail-user=jannis.deriz@gmail.com
 #SBATCH --time=48:00:00
 ## This script works for any number of nodes, Ray will find and manage all resources
+## Its Also possibe to only supply the number of cores to be used. IF this is the case one has to specifically pass the --cores(-c) flag to the script, else the script tries to distribute over all cores of each node that is being used.
 #SBATCH --ntasks=256
 ## Give all resources to a single Ray task, ray can manage the resources internally
 #SBATCH --gpus-per-task=0
