@@ -49,6 +49,7 @@ def relax_with_config(fa_reps, run, pdb):
     pdb_path = pdb+'.pdb'
 
     ub_dict = {"1k9kA": "1K9P.clean.pdb",
+               "1f4vA": "3CHY.clean.pdb",
                "6q21A": "4Q21",
                "1avsA": "1TOP.clean.pdb",
                "1d5wA": "1DBW"}
