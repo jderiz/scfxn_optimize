@@ -85,8 +85,8 @@ def relax_with_config(fa_reps, run, pdb):
     svec.append("endrepeat")
     # make relax use the script
     relax_protocol.set_script_from_lines(svec)
-    # evaluate
-    # relax_protocol.apply(pose)
+    # RUN RELAX
+    relax_protocol.apply(pose)
 
     # select all residues for superimpose
     si_vec = prs.rosetta.utility.vector1_unsigned_long()
@@ -118,6 +118,9 @@ def relax_with_config(fa_reps, run, pdb):
     score = (phi_deviation+psi_deviation)/2 + (1+rmsd)**2 + ref15
     res = {
         "run": run,
+        "pose_phi_psi": pp,
+        "target_phi_psi": upp,
+        "rmsd": rmsd,
         "config": fa_reps,
         "ref15": ref15,
         "score": score,
