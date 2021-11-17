@@ -1,9 +1,9 @@
 # Ordered list(the optimizer preserves this order) of dimensions for the optimizer to explore
 Space:
-  - Real: { low: 0, high: 1.0 }
-  - Real: { low: 0, high: 1.0 }
-  - Real: { low: 0, high: 1.0 }  
-  - Real: { low: 0, high: 1.0 }
-  - Real: { low: 0, high: 1.0 }
-  - Real: { low: 0, high: 1.0 }
-  - Real: { low: 0, high: 1.0 }
+  - Real: { low: 0, high: 2.0 }
+  - Real: { low: 0, high: 2.0 }
+  - Real: { low: 0, high: 2.0 }  
+  - Real: { low: 0, high: 2.0 }
+  - Real: { low: 0, high: 2.0 }
+  - Real: { low: 0, high: 2.0 }
+  - Real: { low: 0, high: 2.0 }

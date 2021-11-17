@@ -51,7 +51,7 @@ echo "IP Head: $ip_head"
 
 echo "STARTING HEAD at $node_1"
 srun --nodes=1 --ntasks=1 -w "$node_1" \
-  ray start --head --node-ip-address="$ip" --port=$port --redis-password="$redis_password" --block &
+  ray start --head --include-dashboard true --node-ip-address="$ip" --port=$port --redis-password="$redis_password" --block &
 sleep 30
 
 worker_num=$((SLURM_JOB_NUM_NODES - 1)) #number of nodes other than the head node
@@ -61,6 +61,7 @@ for ((i = 1; i <= worker_num; i++)); do
   srun --nodes=1 --ntasks=1 -w "$node_i" ray start --address "$ip_head" --redis-password="$redis_password" --block &
   sleep 5
 done
-
+echo "FORWARD DASHBOARD PORT 8265"
+ssh -N -L 8265:localhost:8265 $node_1
 # ===== Call your code below =====
-python bench.py -l score -c 256 -rpc 6 -evals 600 -pdb 1k9kA -id allost_1k9p -cooldown -r_pw "$redis_password"
+python bench.py -l score -c 256 -rpc 6 -evals 600 -pdb 1f4vA -id allost_1f4vA -cooldown -r_pw "$redis_password"
