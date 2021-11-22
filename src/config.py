@@ -11,7 +11,7 @@ from design import design_with_config
 from design import initialize as design_init
 from dummy import dummy_objective
 
-## LOG LEVEL
+# LOG LEVEL
 level = logging.INFO
 formatter = ColoredFormatter(
     '%(log_color)s%(levelname)s:-PID%(process)d[%(threadName)s]::%(name)s:%(funcName)s:%(white)s%(message)s',

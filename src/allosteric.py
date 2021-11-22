@@ -90,19 +90,20 @@ def relax_with_config(fa_reps, run, pdb):
     relax_protocol.apply(pose)
 
     # select all residues for superimpose
-    si_vec = prs.rosetta.utility.vector1_unsigned_long()
+    # si_vec = prs.rosetta.utility.vector1_unsigned_long()
 
-    for i in range(1, pose.size()+1):
-        si_vec.append(i)
+    # for i in range(1, pose.size()+1):
+    #     si_vec.append(i)
 
-    # ALIGN Poses
-    prs.rosetta.protocols.toolbox.pose_manipulation.superimpose_pose_on_subset_CA(
-        pose, unbound, si_vec)
+    # # ALIGN Poses
+    # prs.rosetta.protocols.toolbox.pose_manipulation.superimpose_pose_on_subset_CA(
+    #     pose, unbound, si_vec)
     # RMSD
-    rmsd_metric = prs.rosetta.core.simple_metrics.metrics.RMSDMetric()
-    rmsd_metric.set_comparison_pose(unbound)
-    rmsd_metric.apply(pose)
-    rmsd = pose.scores['rmsd']
+    # rmsd_metric = prs.rosetta.core.simple_metrics.metrics.RMSDMetric()
+    # rmsd_metric.set_comparison_pose(unbound)
+    # rmsd_metric.apply(pose)
+    rmsd = prs.rosetta.core.scoring.CA_rmsd(
+        pose, unbound)  # aligns automatical
 
     # TORSION ANGLES
     pose_phi, pose_psi = get_phi_psi(pose)
