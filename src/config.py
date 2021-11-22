@@ -11,6 +11,8 @@ from design import design_with_config
 from design import initialize as design_init
 from dummy import dummy_objective
 
+# LOG LEVEL
+level = logging.INFO
 formatter = ColoredFormatter(
     '%(log_color)s%(levelname)s:-PID%(process)d[%(threadName)s]::%(name)s:%(funcName)s:%(white)s%(message)s',
     datefmt=None,
@@ -28,6 +30,7 @@ formatter = ColoredFormatter(
 color_handler = logging.StreamHandler()
 color_handler.setFormatter(formatter)
 logging.getLogger().addHandler(color_handler)
+logging.getLogger().setLevel(level)
 RAY_DASHBOARD_IP = '172.22.180.238:6379'
 # OBJECTIVE FUNCTION TO EVALUATE
 _dummy_objective = dummy_objective
