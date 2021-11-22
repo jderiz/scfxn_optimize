@@ -149,10 +149,16 @@ class OptimizationManager():
                 pickle.dump(results, file)
         else:
             self.logger.info('len results %d', len(self.results))
-        self.logger.warning(
-            '\n -------- FINAL STATE -------- \n \
-            Got %d Results',
-            len(self.results))
+        tdelt = time.time()-self.start_time
+        days = tdelt//86400
+        tdelt = tdelt - (days*86400)
+        hours = tdelt//3600
+        tdelt = tdelt - (hours*3600)
+        minutes = tdelt//60
+        took = "{} days {} hours {} minutes".format(days, hours, minutes)
+        self.logger.info(
+            '\n -------- FINAL STATE -------- \n Got %d Results \n TOOK %s',
+            len(self.results), took)
         self.distributor.report()
         self.optimizer.report()
         self.distributor.terminate_pool()
@@ -167,6 +173,7 @@ class OptimizationManager():
         """
             Runs the Manager and 
         """
+        self.start_time = time.time()
         self.logger.info('RUN')
         # map initial runs workers/rpc rpc times
 
