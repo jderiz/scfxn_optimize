@@ -1,9 +1,9 @@
 #!/bin/bash
 # shellcheck disable=SC2206
 #SBATCH --partition=clara-job
-#SBATCH --job-name=AlostK9
-#SBATCH --output=allost_1f4vA_rmsd.log
-#SBATCH --mem-per-cpu=2G
+#SBATCH --job-name=TorsionAll
+#SBATCH --output=allost_1f4vA_torsion.log
+#SBATCH --mem-per-cpu=3G
 #SBATCH --mail-type=FAIL
 #SBATCH --mail-user=jannis.deriz@gmail.com
 #SBATCH --time=48:00:00
@@ -65,4 +65,4 @@ for ((i = 1; i <= worker_num; i++)); do
 done
 echo "FORWARD DASHBOARD PORT 8265 TO LOCAL MACHIN FOR DASHBOARD"
 # ===== Call your code below =====
-python bench.py -l rmsd -c 256 -rpc 6 -evals 600 -pdb 1f4vA -id allost_1f4vA_rmsd -cooldown -r_pw "$redis_password"
+python bench.py -l phi_psi_deviation -c 256 -rpc 6 -evals 600 -pdb 1f4vA -id allost_1f4vA_phi_psi -cooldown -r_pw "$redis_password"
