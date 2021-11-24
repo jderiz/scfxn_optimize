@@ -1,14 +1,17 @@
-import sys
-import os
-sys.path.append(os.getcwd())
 import argparse
 import logging
+import os
+import sys
 import time
+
 import ray
 
 from bayesopt import BayesOpt
+from distributor import Distributor
 from manager import OptimizationManager
-from parallel import Distributor
+
+# make cluster recognize directory
+sys.path.append(os.getcwd())
 
 
 logger = logging.getLogger("APP")
@@ -30,7 +33,7 @@ if __name__ == "__main__":
         default=None,
         type=str,
         help="password to use for ray cluster redis authentication"
-        )
+    )
     parser.add_argument(
         "-e",
         "--estimator",
@@ -107,7 +110,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-config",
         type=str,
-        default=None,  # uses the protocolls default config
+        default='',  # uses the protocolls default config, TODO>REFACT
         help="If a config path to a pickled list, series or DataFrame that holds it is supplied this particular config is evaluated -evals times and the results are stored with all information.")
     parser.add_argument(
         "-id",
@@ -130,6 +133,7 @@ if __name__ == "__main__":
     print(args)
     # SETUP CLUSTER
     # TODO: SLURM ?
+
     if args.redis_password:
 
         ray.init(address='auto', _redis_password=args.redis_password)
@@ -139,7 +143,7 @@ if __name__ == "__main__":
         {} nodes in total
         {} CPU resources in total
     '''.format(len(ray.nodes()), ray.cluster_resources()['CPU']))
-    if args.cores == 0: # no cores defined
+    if args.cores == 0:  # no cores defined
         cores = ray.cluster_resources()['CPU']
     else:
         cores = args.cores
@@ -153,27 +157,26 @@ if __name__ == "__main__":
     optimizer = BayesOpt()
     # MANAGER
     manager = OptimizationManager()
+    manager.init(
+        args.loss,
+        pdb=args.pdb,
+        distributor=distributor,
+        optimizer=optimizer,
+        estimator=args.estimator,
+        identifier=args.id,
+        test_run=args.test_run,
+        n_cores=int(cores),
+        evals=int(args.evals),
+        rpc=int(args.runs_per_config),
+        mtpc=int(args.max_tasks_per_child),
+        cooldown=args.cooldown,
+        out_dir=args.output_dir,
+        # signal=signal
+    )
     if args.config != None:
         manager.no_optimize(
             identify=args.id, config_path=args.config, evals=args.evals, pdb=args.pdb)
     else:
-        manager.init(
-            args.loss,
-            pdb=args.pdb,
-            distributor=distributor,
-            optimizer=optimizer,
-            estimator=args.estimator,
-            identifier=args.id,
-            test_run=args.test_run,
-            n_cores=int(cores),
-            evals=int(args.evals),
-            rpc=int(args.runs_per_config),
-            mtpc=int(args.max_tasks_per_child),
-            cooldown=args.cooldown,
-            out_dir=args.output_dir,
-            # signal=signal
-        )
-        logger.info('RUN Optimizer')
         manager.run()
 
     # wait(signal)
