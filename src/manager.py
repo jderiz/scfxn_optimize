@@ -119,7 +119,7 @@ class OptimizationManager():
         """
         res = self.distributor.distribute(func=self.objective, params=None,
                                           pdb=pdb, run=1, num_workers=evals)
-        self.result = self.distributor.get_batch(batch_size=evals)
+        self.results = self.distributor.get_batch(batch_size=evals)
         self._save_and_exit()
 
     def log_res_and_update(self, map_res: list = None, make_batch: bool = True) -> None:
@@ -149,9 +149,6 @@ class OptimizationManager():
                 # save pandas DataFrame with correct column names
                 df = pd.DataFrame(self.results)
                 self.logger.debug(df)
-                weights = df.config.apply(lambda x: pd.Series(x))
-                weights.columns = ["fa_rep_" + str(num) for num in range(7)]
-                results = pd.concat([df, weights], axis=1)
             with open(
                 config.result_path+"/{}_{}_res_{}.pkl".format(self.identify,
                                                               self.base_estimator, self.evals),
