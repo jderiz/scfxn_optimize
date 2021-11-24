@@ -56,6 +56,11 @@ class Distributor():
     def _random_actor_index(self):
         return random.randrange(len(self._actor_pool))
 
+    def _round_robin_index_next(self):
+        self.next_rr_idx += 1
+
+        return self.next_rr_idx % len(self._actor_pool)
+
     def _idle_actor_index(self):
 
         try:
