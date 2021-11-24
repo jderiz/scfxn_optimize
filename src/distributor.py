@@ -80,7 +80,7 @@ class Distributor():
         actor_idx = self._idle_actor_index()
 
         if not actor_idx:  # get random Actor if no idle found
-            actor_idx = self._random_actor_index()
+            actor_idx = self._round_robin_index_next()
 
         if actor_idx != None:
             actor, count = self._actor_pool[actor_idx]
