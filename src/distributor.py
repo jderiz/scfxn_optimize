@@ -1,14 +1,11 @@
 import logging
-
 import os
+import random
+
 import ray
 from ray.util import inspect_serializability
 
 from rosetta_worker import PRSActor
-
-# from mypool import Pool
-
-# from rosetta_worker import PRSActor
 
 
 # @ray.remote
@@ -35,7 +32,7 @@ class Distributor():
         self._initargs = None
         self._start_actor_pool(workers)
         # self.mp = Pool(processes=workers, initializer=initializer)
-        self.logger.debug('CWD %s', os.getcwd())      
+        self.logger.debug('CWD %s', os.getcwd())
         self.logger.info('INTITIALIZED DISTRIBUTOR')
 
     def _start_actor_pool(self, processes):
@@ -66,6 +63,9 @@ class Distributor():
             idx_ready, _ = ray.wait([actor.ping.remote() for actor, _ in self._actor_pool],
                                     num_returns=1, timeout=5)
 
+            if not idx_ready:
+                return None
+
             return ray.get(idx_ready[0])
         except ray.exceptions.GetTimeoutError:
             return None  # found no idle actor
@@ -73,6 +73,9 @@ class Distributor():
     def evaluate_config(self, params, run, pdb, error_callback=None, callback=None) -> tuple:
         # self._check_running()
         actor_idx = self._idle_actor_index()
+
+        if not actor_idx:  # get random Actor if no idle found
+            actor_idx = self._random_actor_index()
 
         if actor_idx != None:
             actor, count = self._actor_pool[actor_idx]

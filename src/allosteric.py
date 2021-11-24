@@ -50,9 +50,10 @@ def relax_with_config(fa_reps, run, pdb):
 
     ub_dict = {"1k9kA": "1K9P.clean.pdb",
                "1f4vA": "3CHY.clean.pdb",
-               "6q21A": "4Q21",
+               "6q21A": "4Q21.clean.pdb",
                "1avsA": "1TOP.clean.pdb",
-               "1d5wA": "1DBW"}
+               "1mq9A": "1LFA.clean.pdb",
+               "1d5wA": "1DBW.clean.pdb"}
     unbound = prs.pose_from_pdb("../benchmark/allosteric/"+ub_dict[pdb])
     # print(os.getcwd())
     pose = prs.pose_from_pdb("../benchmark/allosteric/"+pdb_path)
@@ -62,30 +63,31 @@ def relax_with_config(fa_reps, run, pdb):
     relax_protocol = prs.rosetta.protocols.relax.FastRelax(scfxn)
     # write relax script to vector_std_string
 
-    svec.append("repeat 5")
-    svec.append("coord_cst_weight 1.0")
-    svec.append("scale:fa_rep " + str(fa_reps[0]))
-    svec.append("repack")
-    svec.append("scale:fa_rep " + str(fa_reps[1]))
-    svec.append("min 0.01")
-    svec.append("coord_cst_weight 0.5")
-    svec.append("scale:fa_rep " + str(fa_reps[2]))
-    svec.append("repack")
-    svec.append("scale:fa_rep " + str(fa_reps[3]))
-    svec.append("min 0.01")
-    svec.append("coord_cst_weight 0.0")
-    svec.append("scale:fa_rep " + str(fa_reps[4]))
-    svec.append("repack")
-    svec.append("scale:fa_rep " + str(fa_reps[5]))
-    svec.append("min 0.01")
-    svec.append("coord_cst_weight 0.0")
-    svec.append("scale:fa_rep " + str(fa_reps[6]))
-    svec.append("repack")
-    svec.append("min 0.00001")
-    svec.append("accept_to_best")
-    svec.append("endrepeat")
-    # make relax use the script
-    relax_protocol.set_script_from_lines(svec)
+    if fa_reps:  # if config is not Falsey make script with config
+        svec.append("repeat 5")
+        svec.append("coord_cst_weight 1.0")
+        svec.append("scale:fa_rep " + str(fa_reps[0]))
+        svec.append("repack")
+        svec.append("scale:fa_rep " + str(fa_reps[1]))
+        svec.append("min 0.01")
+        svec.append("coord_cst_weight 0.5")
+        svec.append("scale:fa_rep " + str(fa_reps[2]))
+        svec.append("repack")
+        svec.append("scale:fa_rep " + str(fa_reps[3]))
+        svec.append("min 0.01")
+        svec.append("coord_cst_weight 0.0")
+        svec.append("scale:fa_rep " + str(fa_reps[4]))
+        svec.append("repack")
+        svec.append("scale:fa_rep " + str(fa_reps[5]))
+        svec.append("min 0.01")
+        svec.append("coord_cst_weight 0.0")
+        svec.append("scale:fa_rep " + str(fa_reps[6]))
+        svec.append("repack")
+        svec.append("min 0.00001")
+        svec.append("accept_to_best")
+        svec.append("endrepeat")
+        # make relax use the script
+        relax_protocol.set_script_from_lines(svec)
     # RUN RELAX
     relax_protocol.apply(pose)
 
