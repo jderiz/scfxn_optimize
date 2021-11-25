@@ -154,7 +154,7 @@ class OptimizationManager():
                                                               self.base_estimator, self.evals),
                 "wb",
             ) as file:
-                pickle.dump(results, file)
+                pickle.dump(df, file)
         else:
             self.logger.info('len results %d', len(self.results))
         tdelt = time.time()-self.start_time
