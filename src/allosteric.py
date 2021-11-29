@@ -6,7 +6,7 @@ import time
 import pandas as pd
 import pyrosetta as prs
 import ray
-from pyrosetta import get_fa_scorefxn
+from pyrosetta import Pose, get_fa_scorefxn
 from pyrosetta.distributed.packed_pose.core import PackedPose
 
 
@@ -50,15 +50,16 @@ def relax_with_config(fa_reps, run, pdb):
 
     ub_dict = {"1k9kA": "1K9P.clean.pdb",
                "1f4vA": "3CHY.clean.pdb",
-               "3zjaA": "3ZKO.clean.pdb",
-               "3sobA": "3SOA.clean.pdb",
+               "3zjaA": "3ZK0.clean.pdb",
+               "3s0bA": "3S0A.clean.pdb",
                "6q21A": "4Q21.clean.pdb",
                "1avsA": "1TOP.clean.pdb",
                "1lfaA": "1MQ9.clean.pdb",
                "1d5wA": "1DBW.clean.pdb"}
-    unbound = prs.pose_from_pdb("../benchmark/allosteric/"+ub_dict[pdb])
+    unbound: Pose = prs.pose_from_pdb(
+        "../benchmark/allosteric/"+ub_dict[pdb])
     # print(os.getcwd())
-    pose = prs.pose_from_pdb("../benchmark/allosteric/"+pdb_path)
+    pose: Pose = prs.pose_from_pdb("../benchmark/allosteric/"+pdb_path)
     # empty file line vector
     svec = prs.rosetta.std.vector_std_string()
     # init relax with score func
@@ -93,21 +94,16 @@ def relax_with_config(fa_reps, run, pdb):
     # RUN RELAX
     relax_protocol.apply(pose)
 
-    # select all residues for superimpose
-    # si_vec = prs.rosetta.utility.vector1_unsigned_long()
+    # get shorter sequence and use for start - end
 
-    # for i in range(1, pose.size()+1):
-    #     si_vec.append(i)
-
-    # # ALIGN Poses
-    # prs.rosetta.protocols.toolbox.pose_manipulation.superimpose_pose_on_subset_CA(
-    #     pose, unbound, si_vec)
-    # RMSD
-    # rmsd_metric = prs.rosetta.core.simple_metrics.metrics.RMSDMetric()
-    # rmsd_metric.set_comparison_pose(unbound)
-    # rmsd_metric.apply(pose)
+    if (len(pose.residues) >= len(unbound.residues)):
+        start = unbound.chain_begin(0)
+        end = unbound.chain_end(0)
+    else:
+        start = pose.chain_begin(0)
+        end = pose.chain_end(0)
     rmsd = prs.rosetta.core.scoring.CA_rmsd(
-        pose, unbound)  # aligns automatical
+        pose, unbound, start=start, end=end)  # aligns automatically
 
     # TORSION ANGLES
     pose_phi, pose_psi = get_phi_psi(pose)
