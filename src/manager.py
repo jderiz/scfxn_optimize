@@ -53,7 +53,6 @@ class OptimizationManager():
         self.loss = loss
         self.pdb = pdb
         self.results = None
-        self.signal = signal
         # CONSTANTS
         self.n_cores = n_cores
         self.rpc = rpc
@@ -61,9 +60,11 @@ class OptimizationManager():
         self.test_run = test_run
         # COUNTER
         self.batch_counter = 0
+        self.start_time = time.time()
         # MEMBER CLASSES
         self.distributor: Distributor = distributor
         self.optimizer: BayesOpt = optimizer
+
         self.logger = logging.getLogger('OptimizationManager')
         self.logger.setLevel(logging.DEBUG)
         self.logger.debug('CWD %s', os.getcwd())
@@ -118,7 +119,7 @@ class OptimizationManager():
 
         """
         res = self.distributor.distribute(func=self.objective, params=None,
-                                          pdb=pdb, run=1, num_workers=evals)
+                                          pdb=pdb, run=1, num_workers=evals, once=True)
         self.results = self.distributor.get_batch(batch_size=evals)
         self._save_and_exit()
 
@@ -181,7 +182,6 @@ class OptimizationManager():
         """
             Runs the Manager and 
         """
-        self.start_time = time.time()
         self.logger.info('RUN')
         # map initial runs workers/rpc rpc times
 

@@ -50,9 +50,11 @@ def relax_with_config(fa_reps, run, pdb):
 
     ub_dict = {"1k9kA": "1K9P.clean.pdb",
                "1f4vA": "3CHY.clean.pdb",
+               "3zjaA": "3ZKO.clean.pdb",
+               "3sobA": "3SOA.clean.pdb",
                "6q21A": "4Q21.clean.pdb",
                "1avsA": "1TOP.clean.pdb",
-               "1mq9A": "1LFA.clean.pdb",
+               "1lfaA": "1MQ9.clean.pdb",
                "1d5wA": "1DBW.clean.pdb"}
     unbound = prs.pose_from_pdb("../benchmark/allosteric/"+ub_dict[pdb])
     # print(os.getcwd())

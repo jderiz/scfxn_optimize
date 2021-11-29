@@ -1,3 +1,5 @@
+import logging
+
 import pyrosetta as prs
 import ray
 
@@ -18,6 +20,7 @@ class PRSActor(object):
             initargs = initargs or ()
             _init_method(*initargs)
         self.idx = idx
+        self.logger = logging.getLogger(__name__)
 
     def ping(self):
         # Used to wait for this actor to be initialized.
@@ -26,6 +29,8 @@ class PRSActor(object):
         return self.idx
 
     def evaluate_config(self, config, run, pdb):
+        self.logger.debug('Actor %d evaluates run %d', self.idx, run)
+
         return _objective(config, run, pdb)
 
     def run_batch(self, func, batch):
