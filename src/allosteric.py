@@ -51,7 +51,7 @@ def relax_with_config(fa_reps, run, pdb):
     ub_dict = {"1k9kA": "1K9P.clean.pdb",
                "1f4vA": "3CHY.clean.pdb",
                "3zjaA": "3ZK0.clean.pdb",
-               "3s0bA": "3S0A.clean.pdb",
+               "3S0B.clean.pdb": "3S0A.clean.pdb",
                "6q21A": "4Q21.clean.pdb",
                "1avsA": "1TOP.clean.pdb",
                "1lfaA": "1MQ9.clean.pdb",
