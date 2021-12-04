@@ -1,5 +1,6 @@
 benchmark/*
-results/
+results/*
+results
 analyze/*
 analyze/imgs/.ipynb*
 analyze/imgs/

@@ -63,7 +63,7 @@ class Distributor():
         return self.next_rr_idx % len(self._actor_pool)
 
     def _idle_actor_index(self):
-
+        self.logger.debug('Get IDLE Actor')
         try:
             # found idle actor, return its index
             idx_ready, _ = ray.wait([actor.ping.remote() for actor, _ in self._actor_pool],
@@ -100,7 +100,7 @@ class Distributor():
         else:
             raise Exception('could not find an actor_idx to use')
 
-    def distribute(self, func, params, pdb, run, num_workers=None, once=False):
+    def distribute(self, func, params, pdb, run, num_workers=None, round_robin=False):
         """
             distribute a function to the Pool and hold the object_refs to the results somewhere such that done, undone = ray.wait(all_refs, num_returns=batch_size) --> ray.get(the_done_ones) retrieves the results 
         """
@@ -114,7 +114,7 @@ class Distributor():
                 run=run,
                 pdb=pdb,
                 error_callback=self._error_callback,
-                round_robin=once,
+                round_robin=round_robin,
             )
             self.futures.append(object_ref)
 
