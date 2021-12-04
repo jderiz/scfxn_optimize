@@ -98,14 +98,14 @@ def relax_with_config(fa_reps, run, pdb):
 
     # get shorter sequence and use for start - end
 
-    if (len(pose.residues) >= len(unbound.residues)):
-        start = unbound.chain_begin(0)
-        end = unbound.chain_end(0)
-    else:
-        start = pose.chain_begin(0)
-        end = pose.chain_end(0)
+    # if (len(pose.residues) >= len(unbound.residues)):
+    #     start = unbound.chain_begin(1)
+    #     end = unbound.chain_end(1)
+    # else:
+    #     start = pose.chain_begin(1)
+    #     end = pose.chain_end(1)
     rmsd = prs.rosetta.core.scoring.CA_rmsd(
-        pose, unbound, start=start, end=end)  # aligns automatically
+        pose, unbound)  # start=start, end=end)  # aligns automatically
 
     # TORSION ANGLES
     pose_phi, pose_psi = get_phi_psi(pose)

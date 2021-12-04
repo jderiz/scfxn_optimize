@@ -119,7 +119,7 @@ class OptimizationManager():
 
         """
         res = self.distributor.distribute(func=self.objective, params=None,
-                                          pdb=pdb, run=1, num_workers=evals, once=True)
+                                          pdb=pdb, run=1, num_workers=evals, round_robin=True)
         self.results = self.distributor.get_batch(batch_size=evals)
         self._save_and_exit()
 
@@ -129,14 +129,15 @@ class OptimizationManager():
         self.optimizer.handle_result(
             map_res[0]['config'], sum(res[self.loss] for res in map_res)/len(map_res))
 
-    def make_batch(self):
+    def make_batch(self, round_robin=False):
         self.batch_counter += 1
         config = self.optimizer.get_next_config()
         self.distributor.distribute(func=self.objective,
                                     params=config,
                                     pdb=self.pdb,
                                     num_workers=self.rpc,
-                                    run=self.batch_counter)
+                                    run=self.batch_counter,
+                                    round_robin=round_robin)
 
     def _save_and_exit(self) -> bool:
         """
@@ -188,7 +189,7 @@ class OptimizationManager():
         initial_runs = int(self.n_cores/self.rpc)
 
         for run in range(initial_runs):
-            self.make_batch()
+            self.make_batch(round_robin=True)
         self.logger.info('INITIAL DISTRIBUTION DONE GOING TO CYCLIC')
         # REfact
 

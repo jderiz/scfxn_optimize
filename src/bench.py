@@ -110,7 +110,6 @@ if __name__ == "__main__":
     parser.add_argument(
         "-config",
         type=str,
-        default='',  # uses the protocolls default config, TODO>REFACT
         help="If a config path to a pickled list, series or DataFrame that holds it is supplied this particular config is evaluated -evals times and the results are stored with all information.")
     parser.add_argument(
         "-id",
