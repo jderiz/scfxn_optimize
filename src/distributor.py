@@ -31,6 +31,7 @@ class Distributor():
         self._initializer = initializer
         self._initargs = None
         self._start_actor_pool(workers)
+        self.next_rr_idx = 0
         # self.mp = Pool(processes=workers, initializer=initializer)
         self.logger.debug('CWD %s', os.getcwd())
         self.logger.info('INTITIALIZED DISTRIBUTOR')
@@ -75,14 +76,19 @@ class Distributor():
         except ray.exceptions.GetTimeoutError:
             return None  # found no idle actor
 
-    def evaluate_config(self, params, run, pdb, error_callback=None, callback=None) -> tuple:
+    def evaluate_config(self, params, run, pdb, error_callback=None, callback=None, round_robin=False) -> tuple:
         # self._check_running()
-        actor_idx = self._idle_actor_index()
 
-        if not actor_idx:  # get random Actor if no idle found
-            actor_idx = self._random_actor_index()
+        if round_robin:
+            actor_idx = self._round_robin_index_next()
+        else:
+            actor_idx = self._idle_actor_index()
+
+            if not actor_idx:  # get random Actor if no idle found
+                actor_idx = self._round_robin_index_next()
 
         if actor_idx != None:
+            self.logger.debug("Eval on Actor %d", actor_idx)
             actor, count = self._actor_pool[actor_idx]
             object_ref = actor.evaluate_config.remote(params, run, pdb)
             # # Use ResultThread for error propagation
@@ -94,7 +100,7 @@ class Distributor():
         else:
             raise Exception('could not find an actor_idx to use')
 
-    def distribute(self, func, params, pdb, run, num_workers=None):
+    def distribute(self, func, params, pdb, run, num_workers=None, once=False):
         """
             distribute a function to the Pool and hold the object_refs to the results somewhere such that done, undone = ray.wait(all_refs, num_returns=batch_size) --> ray.get(the_done_ones) retrieves the results 
         """
@@ -108,6 +114,7 @@ class Distributor():
                 run=run,
                 pdb=pdb,
                 error_callback=self._error_callback,
+                round_robin=once,
             )
             self.futures.append(object_ref)
 
