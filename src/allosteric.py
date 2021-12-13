@@ -112,8 +112,8 @@ def relax_with_config(fa_reps, run, pdb):
     unb_phi, unb_psi = get_phi_psi(unbound)
     pp = pd.DataFrame({"phi": pose_phi, "psi": pose_psi})
     upp = pd.DataFrame({"phi": unb_phi, "psi": unb_psi})
-    phi_deviation = (pp.phi - upp.phi).abs().mean()
-    psi_deviation = (pp.psi - upp.psi).abs().mean()
+    phi_deviation = (abs(pp.phi) - abs(upp.phi)).abs().mean()
+    psi_deviation = (abs(pp.psi) - abs(upp.psi)).abs().mean()
 
     # SCORING
     ref15 = scfxn(pose)
