@@ -122,8 +122,10 @@ def relax_with_config(fa_reps, run, pdb):
     score = (phi_deviation+psi_deviation)/2 + (1+rmsd)**2 + ref15
     res = {
         "run": run,
-        "pose_phi_psi": pp,
-        "target_phi_psi": upp,
+        "pose_phi": pose_phi,
+        "pose_psi": pose_psi,
+        "target_phi": unb_phi,
+        "target_psi": unb_psi,
         "phi_deviation": phi_deviation,
         "psi_deviation": psi_deviation,
         "phi_psi_deviation": phi_deviation+psi_deviation,
