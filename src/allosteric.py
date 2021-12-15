@@ -13,7 +13,9 @@ from pyrosetta.distributed.packed_pose.core import PackedPose
 def initialize():
 
     prs.init(
-        options="-ex1 -ex2", set_logging_handler=True, extra_options="-linmem_ig 10 -archive_on_disk /tmp/rosetta -mute core -mute basic -mute protocols"
+        options="-ex1 -ex2",
+        set_logging_handler=True,
+        extra_options="-linmem_ig 10 -archive_on_disk /tmp/rosetta -mute core -mute basic -mute protocols"
     )  # no output from the design process
     prs.logging_support.set_logging_sink()
     logger = logging.getLogger("rosetta")
@@ -62,6 +64,14 @@ def relax_with_config(fa_reps, run, pdb):
         "../benchmark/allosteric/"+ub_dict[pdb])
     # print(os.getcwd())
     pose: Pose = prs.pose_from_pdb("../benchmark/allosteric/"+pdb)
+    # get normalization constants
+    start_phi, start_psi = get_phi_psi(pose)
+    unb_phi, unb_psi = get_phi_psi(unbound)
+    phi_norm_const = (pd.Series(start_phi) - pd.Series(unb_phi)).abs().mean()
+    psi_norm_const = (pd.Series(start_psi) - pd.Series(unb_psi)).abs().mean()
+    start_rmsd = prs.rosetta.core.scoring.CA_rmsd(
+        pose, unbound)  # start=start, end=end)  # aligns automatically
+    start_ref15 = scfxn(pose)
     # empty file line vector
     svec = prs.rosetta.std.vector_std_string()
     # init relax with score func
@@ -109,17 +119,18 @@ def relax_with_config(fa_reps, run, pdb):
 
     # TORSION ANGLES
     pose_phi, pose_psi = get_phi_psi(pose)
-    unb_phi, unb_psi = get_phi_psi(unbound)
     pp = pd.DataFrame({"phi": pose_phi, "psi": pose_psi})
     upp = pd.DataFrame({"phi": unb_phi, "psi": unb_psi})
-    phi_deviation = (abs(pp.phi) - abs(upp.phi)).abs().mean()
-    psi_deviation = (abs(pp.psi) - abs(upp.psi)).abs().mean()
+    phi_deviation = (pp.phi - upp.phi).abs().mean()
+    psi_deviation = (pp.psi - upp.psi).abs().mean()
 
     # SCORING
     ref15 = scfxn(pose)
     ref15 = ref15/len(pose)
     took = time.strftime("%H:%M:%S", time.gmtime(time.time()-st))
-    score = (phi_deviation+psi_deviation)/2 + (1+rmsd)**2 + ref15
+    score = phi_deviation/phi_norm_const \
+        + psi_deviation/psi_norm_const \
+        + rmsd/start_rmsd + ref15/start_ref15
     res = {
         "run": run,
         "pose_phi": pose_phi,
