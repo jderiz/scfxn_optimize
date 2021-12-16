@@ -55,9 +55,9 @@ def relax_with_config(fa_reps, run, pdb):
         "1k9kA.pdb": "1K9P.clean.pdb",
         "1f4vA.pdb": "3CHY.clean.pdb",
         "3zjaA.pdb": "3ZK0.clean.pdb",
-        # "6q21A": "4Q21.clean.pdb",
-        # "1avsA": "1TOP.clean.pdb",
-        # "1lfaA": "1MQ9.clean.pdb",
+        "6q21A.pdb": "4Q21.clean.pdb",
+        "1avsA": "1TOP.clean.pdb",
+        "1lfaA": "1MQ9.clean.pdb",
         # "1d5wA": "1DBW.clean.pdb"
     }
     unbound: Pose = prs.pose_from_pdb(
@@ -139,7 +139,7 @@ def relax_with_config(fa_reps, run, pdb):
         "target_psi": unb_psi,
         "phi_deviation": phi_deviation,
         "psi_deviation": psi_deviation,
-        "phi_psi_deviation": phi_deviation+psi_deviation,
+        "torsions": phi_deviation+psi_deviation,
         "rmsd": rmsd,
         "config": fa_reps,
         "ref15": ref15,
