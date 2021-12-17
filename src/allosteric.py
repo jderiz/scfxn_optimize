@@ -56,8 +56,8 @@ def relax_with_config(fa_reps, run, pdb):
         "1f4vA.pdb": "3CHY.clean.pdb",
         "3zjaA.pdb": "3ZK0.clean.pdb",
         "6q21A.pdb": "4Q21.clean.pdb",
-        "1avsA": "1TOP.clean.pdb",
-        "1lfaA": "1MQ9.clean.pdb",
+        "1avsA.pdb": "1TOP.clean.pdb",
+        "1lfaA.pdb": "1MQ9.clean.pdb",
         # "1d5wA": "1DBW.clean.pdb"
     }
     unbound: Pose = prs.pose_from_pdb(
