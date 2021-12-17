@@ -1,15 +1,13 @@
 #!/bin/bash
 
-prot = $1
-loss = $2
 
 # shellcheck disable=SC2206
 #SBATCH --partition=clara-job
-#SBATCH --job-name=Opt
+#SBATCH --job-name=Opti
 #SBATCH --output=out.log
 #SBATCH --mem-per-cpu=1G
 #SBATCH --mail-type=FAIL
-#SBATCH --mai-type=BEGIN
+#SBATCH --mail-type=BEGIN
 #SBATCH --mail-type=END
 #SBATCH --mail-user=jannis.deriz@gmail.com
 #SBATCH --time=48:00:00
@@ -74,4 +72,6 @@ done
 echo "FORWARD DASHBOARD PORT 8265 TO LOCAL MACHIN FOR DASHBOARD"
 
 # ===== Call your code below =====
+prot=$1
+loss=$2
 python bench.py -l "$loss" -c 256 -rpc 6 -evals 600 -pdb "$prot".pdb -id allost_"$prot"_"$loss" -cooldown -r_pw "$redis_password"
