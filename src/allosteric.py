@@ -43,6 +43,24 @@ def get_phi_psi(pose):
     return(phi_angles, psi_angles)
 
 
+def calc_distance(alpha, beta):
+    phi = abs(beta-alpha) % 360
+
+    if phi > 180:
+        return 360-phi
+    else:
+        return phi
+
+
+def calc_mean_distance(s1, s2):
+    summ = 0
+
+    for idx in range(len(s1)):
+        summ += calc_distance(s1[idx], s2[idx])
+
+    return summ/len(s1)
+
+
 def relax_with_config(fa_reps, run, pdb):
     st = time.time()
     scfxn = get_fa_scorefxn()
@@ -68,9 +86,8 @@ def relax_with_config(fa_reps, run, pdb):
     start_phi, start_psi = get_phi_psi(pose)
     unb_phi, unb_psi = get_phi_psi(unbound)
     # get Initial Phi/Psi distribution
-    phi_norm_const = (pd.Series(start_phi) - pd.Series(unb_phi)).abs().mean()
-    psi_norm_const = (pd.Series(start_psi) - pd.Series(unb_psi)).abs().mean()
-
+    phi_norm_const = calc_mean_distance(start_phi, unb_phi)
+    psi_norm_const = calc_mean_distance(start_psi, unb_psi)
     start_rmsd = prs.rosetta.core.scoring.CA_rmsd(
         pose, unbound)  # start=start, end=end)  # aligns automatically
     start_ref15 = scfxn(pose)
@@ -108,23 +125,13 @@ def relax_with_config(fa_reps, run, pdb):
     # RUN RELAX
     relax_protocol.apply(pose)
 
-    # get shorter sequence and use for start - end
-
-    # if (len(pose.residues) >= len(unbound.residues)):
-    #     start = unbound.chain_begin(1)
-    #     end = unbound.chain_end(1)
-    # else:
-    #     start = pose.chain_begin(1)
-    #     end = pose.chain_end(1)
     rmsd = prs.rosetta.core.scoring.CA_rmsd(
         pose, unbound)  # start=start, end=end)  # aligns automatically
 
     # TORSION ANGLES
     pose_phi, pose_psi = get_phi_psi(pose)
-    pp = pd.DataFrame({"phi": pose_phi, "psi": pose_psi})
-    upp = pd.DataFrame({"phi": unb_phi, "psi": unb_psi})
-    phi_deviation = (pp.phi - upp.phi).abs().mean()
-    psi_deviation = (pp.psi - upp.psi).abs().mean()
+    phi_deviation = calc_mean_distance(pose_phi, unb_phi)
+    psi_deviation = calc_mean_distance(pose_psi, unb_psi)
 
     # SCORING
     ref15 = scfxn(pose)
@@ -132,7 +139,7 @@ def relax_with_config(fa_reps, run, pdb):
     took = time.strftime("%H:%M:%S", time.gmtime(time.time()-st))
     score = phi_deviation/phi_norm_const \
         + psi_deviation/psi_norm_const \
-        + rmsd/start_rmsd + ref15/start_ref15
+        + rmsd/start_rmsd
     res = {
         "run": run,
         "pose_phi": pose_phi,
