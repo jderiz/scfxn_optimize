@@ -12,6 +12,7 @@ slurm*
 py_out/
 setup.py
 src/testray.py
+.idea
 *.log
 *.ipynb*
 design.resfile
