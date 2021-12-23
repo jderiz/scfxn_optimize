@@ -38,7 +38,9 @@ if __name__ == "__main__":
         "-e",
         "--estimator",
         default="RF",
-        help="the base_estimator to be used by the Optimizer in skopt (RF, ET, GBRT, GP)",
+        type=str,
+        help="the base_estimator to be used by the Optimizer in skopt (RF, ET, GBRT, GP) \
+        or dummy for randomsearch",
     )
     parser.add_argument(
         "-l",

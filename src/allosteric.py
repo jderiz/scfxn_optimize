@@ -51,14 +51,14 @@ def relax_with_config(fa_reps, run, pdb):
     # pdb_path = pdb+'.pdb'
 
     ub_dict = {
-        "3S0B.clean.pdb": "3S0A.clean.pdb",
+        "3s0bA.pdb": "3S0A.clean.pdb",
         "1k9kA.pdb": "1K9P.clean.pdb",
         "1f4vA.pdb": "3CHY.clean.pdb",
         "3zjaA.pdb": "3ZK0.clean.pdb",
         "6q21A.pdb": "4Q21.clean.pdb",
-        "1avsA.pbd": "1TOP.clean.pdb",
+        "1avsA.pdb": "1TOP.clean.pdb",
         "1lfaA.pdb": "1MQ9.clean.pdb",
-        # "1d5wA": "1DBW.clean.pdb"
+        "1d5wA.pdb": "1d5bA.pdb"
     }
     unbound: Pose = prs.pose_from_pdb(
         "../benchmark/allosteric/"+ub_dict[pdb])
@@ -67,8 +67,10 @@ def relax_with_config(fa_reps, run, pdb):
     # get normalization constants
     start_phi, start_psi = get_phi_psi(pose)
     unb_phi, unb_psi = get_phi_psi(unbound)
+    # get Initial Phi/Psi distribution
     phi_norm_const = (pd.Series(start_phi) - pd.Series(unb_phi)).abs().mean()
     psi_norm_const = (pd.Series(start_psi) - pd.Series(unb_psi)).abs().mean()
+
     start_rmsd = prs.rosetta.core.scoring.CA_rmsd(
         pose, unbound)  # start=start, end=end)  # aligns automatically
     start_ref15 = scfxn(pose)

@@ -13,7 +13,7 @@ py_out/
 setup.py
 src/testray.py
 *.log
-*.ipynb
+*.ipynb*
 design.resfile
 plotting.py
 test_notebook.db
