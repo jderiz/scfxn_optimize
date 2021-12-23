@@ -3,7 +3,7 @@
 
 # shellcheck disable=SC2206
 #SBATCH --partition=clara-job
-#SBATCH --job-name=Opti
+#SBATCH --job-name=Rndm
 #SBATCH --output=out.log
 #SBATCH --mem-per-cpu=1G
 #SBATCH --mail-type=FAIL
@@ -74,4 +74,4 @@ echo "FORWARD DASHBOARD PORT 8265 TO LOCAL MACHIN FOR DASHBOARD"
 # ===== Call your code below =====
 prot=$1
 loss=$2
-python bench.py -e dummy -l "$loss" -c 256 -rpc 6 -evals 600 -pdb "$prot".pdb -id allost_"$prot"_"$loss" -cooldown -r_pw "$redis_password"
+python bench.py -e dummy  -l "$loss" -c 256 -rpc 6 -evals 600 -pdb "$prot".pdb -id random_search_"$prot" -cooldown -r_pw "$redis_password"

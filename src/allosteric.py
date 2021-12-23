@@ -46,7 +46,7 @@ def get_phi_psi(pose):
 def calc_distance(alpha, beta):
     phi = abs(beta-alpha) % 360
 
-    if phi > 180:
+    if phi > 180: 
         return 360-phi
     else:
         return phi
@@ -73,7 +73,7 @@ def relax_with_config(fa_reps, run, pdb):
         "1k9kA.pdb": "1K9P.clean.pdb",
         "1f4vA.pdb": "3CHY.clean.pdb",
         "3zjaA.pdb": "3ZK0.clean.pdb",
-        "6q21A.pdb": "4Q21.clean.pdb",
+        "6q21A.pdb": "4q21A.pdb",
         "1avsA.pdb": "1TOP.clean.pdb",
         "1lfaA.pdb": "1MQ9.clean.pdb",
         "1d5wA.pdb": "1d5bA.pdb"
