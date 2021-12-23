@@ -90,7 +90,8 @@ class Distributor():
         if actor_idx != None:
             self.logger.debug("Eval on Actor %d", actor_idx)
             actor, count = self._actor_pool[actor_idx]
-            object_ref = actor.evaluate_config.remote(params, run, pdb)
+            object_ref = actor.evaluate_config.remote(
+                params, run, pdb, target=target)
             # # Use ResultThread for error propagation
             # _result_thread = ResultThread([object_ref], True,
             #                               callback, error_callback)
@@ -100,7 +101,7 @@ class Distributor():
         else:
             raise Exception('could not find an actor_idx to use')
 
-    def distribute(self, func, params, pdb, run, num_workers=None, round_robin=False):
+    def distribute(self, func, params, pdb, run, target, num_workers=None, round_robin=False):
         """
             distribute a function to the Pool and hold the object_refs to the results somewhere such that done, undone = ray.wait(all_refs, num_returns=batch_size) --> ray.get(the_done_ones) retrieves the results 
         """
@@ -113,6 +114,7 @@ class Distributor():
                 params=params,
                 run=run,
                 pdb=pdb,
+                target=target,
                 error_callback=self._error_callback,
                 round_robin=round_robin,
             )

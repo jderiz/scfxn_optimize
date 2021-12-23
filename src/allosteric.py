@@ -61,7 +61,7 @@ def calc_mean_distance(s1, s2):
     return summ/len(s1)
 
 
-def relax_with_config(fa_reps, run, pdb):
+def relax_with_config(fa_reps, run, pdb, target=None):
     st = time.time()
     scfxn = get_fa_scorefxn()
 
@@ -78,9 +78,12 @@ def relax_with_config(fa_reps, run, pdb):
         "1lfaA.pdb": "1MQ9.clean.pdb",
         "1d5wA.pdb": "1d5bA.pdb"
     }
-    unbound: Pose = prs.pose_from_pdb(
-        "../benchmark/allosteric/"+ub_dict[pdb])
-    # print(os.getcwd())
+
+    if target is None:
+        unbound: Pose = prs.pose_from_pdb(
+            "../benchmark/allosteric/"+ub_dict[pdb])
+    elif target:
+        unbound: Pose = prs.pose_from_pdb('../benchmark/allosteric/'+target)
     pose: Pose = prs.pose_from_pdb("../benchmark/allosteric/"+pdb)
     # get normalization constants
     start_phi, start_psi = get_phi_psi(pose)

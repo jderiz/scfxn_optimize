@@ -30,6 +30,7 @@ class OptimizationManager():
     def init(self,
              loss,
              pdb=None,
+             target=None,
              estimator="RF",  # "dummy" for random search
              identifier=None,  # string to identify optimization run
              optimizer=None,    # the optimizer
@@ -52,6 +53,7 @@ class OptimizationManager():
         self.pandas = save_pandas
         self.loss = loss
         self.pdb = pdb
+        self.target = target
         self.results = None
         # CONSTANTS
         self.n_cores = n_cores
@@ -135,9 +137,21 @@ class OptimizationManager():
         self.distributor.distribute(func=self.objective,
                                     params=config,
                                     pdb=self.pdb,
+                                    target=self.target,
                                     num_workers=self.rpc,
                                     run=self.batch_counter,
                                     round_robin=round_robin)
+
+    def report(self):
+        """
+        reports the results
+        :returns: results
+        """
+
+        if self.pands:
+            return pd.DataFrame(self.results)
+        else:
+            return self.results
 
     def _save_and_exit(self) -> bool:
         """
@@ -179,7 +193,7 @@ class OptimizationManager():
         else:
             self.batches.update({batch_number: [result]})
 
-    def run(self) -> None:
+    def run(self, report=False) -> None:
         """
             Runs the Manager and 
         """
@@ -207,5 +221,8 @@ class OptimizationManager():
 
             if run < (self.evals - initial_runs):
                 self.make_batch()
-        # finally save the result and exit
+        # finally report optimization result or save the result and exit
+
+        if report:
+            return self.report()
         self._save_and_exit()

@@ -119,6 +119,18 @@ if __name__ == "__main__":
         type=str,
         help="Identity string for storing the results")
     parser.add_argument(
+        "-target",
+        default=None,
+        type=str,
+        help='Pdb file to compare against'
+    )
+    parser.add_argument(
+        "-cycles",
+        default=0,
+        type=int,
+        help="how many optimization cycles, each new cycle uses best observed so far as starting pose"
+    )
+    parser.add_argument(
         "-no_struct",
         action="store_true",
         help="not saving the structures saves enormous amounts of space")
@@ -151,35 +163,44 @@ if __name__ == "__main__":
     logger.debug('Running on %d cores', cores)
     # # SIGNAL
     # signal = SignalActor.remote()
-
-    # DISTRIBUTOR
-    distributor = Distributor()
-    # OPTIMIZER
-    optimizer = BayesOpt()
-    # MANAGER
-    manager = OptimizationManager()
-    manager.init(
-        args.loss,
-        pdb=args.pdb,
-        distributor=distributor,
-        optimizer=optimizer,
-        estimator=args.estimator,
-        identifier=args.id,
-        test_run=args.test_run,
-        n_cores=int(cores),
-        evals=int(args.evals),
-        rpc=int(args.runs_per_config),
-        mtpc=int(args.max_tasks_per_child),
-        cooldown=args.cooldown,
-        out_dir=args.output_dir,
-        # signal=signal
-    )
-    if args.config != None:
-        manager.no_optimize(
-            identify=args.id, config_path=args.config, evals=args.evals, pdb=args.pdb)
-    else:
-        manager.run()
-
+    pdb = args.pdb
+    target = args.target
+    for i in range(args.cycles):
+        # DISTRIBUTOR
+        distributor = Distributor()
+        # OPTIMIZER
+        optimizer = BayesOpt()
+        # MANAGER
+        manager = OptimizationManager()
+        manager.init(
+            args.loss,
+            pdb=pdb,
+            target=target,
+            distributor=distributor,
+            optimizer=optimizer,
+            estimator=args.estimator,
+            identifier=args.id,
+            test_run=args.test_run,
+            n_cores=int(cores),
+            evals=int(args.evals),
+            rpc=int(args.runs_per_config),
+            mtpc=int(args.max_tasks_per_child),
+            cooldown=args.cooldown,
+            out_dir=args.output_dir,
+        )
+        if args.config != None:
+            manager.no_optimize(
+                identify=args.id, config_path=args.config, evals=args.evals, pdb=args.pdb)
+        elif args.cycles == 0:
+            manager.run()
+        else:
+            result = manager.run(report=True)
+            winner_pose = prs.distributed.packed_pose.core.to_pose(
+                result.groupby('run').mean().nsmallest(1, args.loss).pose)
+            # write current_best to disk
+            prs.dump_pdb(
+                winner_pose, '../benchmark/allosteric/current_best'+str(i)+'_'+args.pdb+'.pdb')
+            pdb = 'current_best'+str(i)+'_'+args.pdb+'.pdb'
     # wait(signal)
     logger.debug('FINISHED OPTIMIZATION')
     # while signal.wait.remote():

@@ -28,10 +28,10 @@ class PRSActor(object):
 
         return self.idx
 
-    def evaluate_config(self, config, run, pdb):
+    def evaluate_config(self, config, run, pdb, target=None):
         self.logger.debug('Actor %d evaluates run %d', self.idx, run)
 
-        return _objective(config, run, pdb)
+        return _objective(config, run, pdb, target=target)
 
     def run_batch(self, func, batch):
         results = []
