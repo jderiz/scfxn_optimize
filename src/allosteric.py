@@ -73,7 +73,7 @@ def relax_with_config(fa_reps, run, pdb):
         "1k9kA.pdb": "1K9P.clean.pdb",
         "1f4vA.pdb": "3CHY.clean.pdb",
         "3zjaA.pdb": "3ZK0.clean.pdb",
-        "6q21A.pdb": "4Q21.clean.pdb",
+        "6q21A.pdb": "4q21A.pdb",
         "1avsA.pdb": "1TOP.clean.pdb",
         "1lfaA.pdb": "1MQ9.clean.pdb",
         "1d5wA.pdb": "1d5bA.pdb"
@@ -123,7 +123,7 @@ def relax_with_config(fa_reps, run, pdb):
         # make relax use the script
         relax_protocol.set_script_from_lines(svec)
     # RUN RELAX
-    relax_protocol.apply(pose)
+    # relax_protocol.apply(pose)
 
     rmsd = prs.rosetta.core.scoring.CA_rmsd(
         pose, unbound)  # start=start, end=end)  # aligns automatically
