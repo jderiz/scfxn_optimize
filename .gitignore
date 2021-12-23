@@ -1,5 +1,6 @@
 benchmark/*
-results/
+results/*
+results
 analyze/*
 analyze/imgs/.ipynb*
 analyze/imgs/
@@ -12,7 +13,7 @@ py_out/
 setup.py
 src/testray.py
 *.log
-*.ipynb
+*.ipynb*
 design.resfile
 plotting.py
 test_notebook.db

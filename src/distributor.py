@@ -1,14 +1,11 @@
 import logging
-
 import os
+import random
+
 import ray
 from ray.util import inspect_serializability
 
 from rosetta_worker import PRSActor
-
-# from mypool import Pool
-
-# from rosetta_worker import PRSActor
 
 
 # @ray.remote
@@ -34,8 +31,9 @@ class Distributor():
         self._initializer = initializer
         self._initargs = None
         self._start_actor_pool(workers)
+        self.next_rr_idx = 0
         # self.mp = Pool(processes=workers, initializer=initializer)
-        self.logger.debug('CWD %s', os.getcwd())      
+        self.logger.debug('CWD %s', os.getcwd())
         self.logger.info('INTITIALIZED DISTRIBUTOR')
 
     def _start_actor_pool(self, processes):
@@ -59,22 +57,38 @@ class Distributor():
     def _random_actor_index(self):
         return random.randrange(len(self._actor_pool))
 
-    def _idle_actor_index(self):
+    def _round_robin_index_next(self):
+        self.next_rr_idx += 1
 
+        return self.next_rr_idx % len(self._actor_pool)
+
+    def _idle_actor_index(self):
+        self.logger.debug('Get IDLE Actor')
         try:
             # found idle actor, return its index
             idx_ready, _ = ray.wait([actor.ping.remote() for actor, _ in self._actor_pool],
                                     num_returns=1, timeout=5)
 
+            if not idx_ready:
+                return None
+
             return ray.get(idx_ready[0])
         except ray.exceptions.GetTimeoutError:
             return None  # found no idle actor
 
-    def evaluate_config(self, params, run, pdb, error_callback=None, callback=None) -> tuple:
+    def evaluate_config(self, params, run, pdb, error_callback=None, callback=None, round_robin=False) -> tuple:
         # self._check_running()
-        actor_idx = self._idle_actor_index()
+
+        if round_robin:
+            actor_idx = self._round_robin_index_next()
+        else:
+            actor_idx = self._idle_actor_index()
+
+            if not actor_idx:  # get random Actor if no idle found
+                actor_idx = self._round_robin_index_next()
 
         if actor_idx != None:
+            self.logger.debug("Eval on Actor %d", actor_idx)
             actor, count = self._actor_pool[actor_idx]
             object_ref = actor.evaluate_config.remote(params, run, pdb)
             # # Use ResultThread for error propagation
@@ -86,7 +100,7 @@ class Distributor():
         else:
             raise Exception('could not find an actor_idx to use')
 
-    def distribute(self, func, params, pdb, run, num_workers=None):
+    def distribute(self, func, params, pdb, run, num_workers=None, round_robin=False):
         """
             distribute a function to the Pool and hold the object_refs to the results somewhere such that done, undone = ray.wait(all_refs, num_returns=batch_size) --> ray.get(the_done_ones) retrieves the results 
         """
@@ -100,6 +114,7 @@ class Distributor():
                 run=run,
                 pdb=pdb,
                 error_callback=self._error_callback,
+                round_robin=round_robin,
             )
             self.futures.append(object_ref)
 

@@ -12,9 +12,8 @@ import ray
 from ray.util import inspect_serializability
 
 import config
-
-# from bayesopt import BayesOpt
-# from parallel import Distributor
+from bayesopt import BayesOpt
+from distributor import Distributor
 
 
 # @ray.remote
@@ -54,7 +53,6 @@ class OptimizationManager():
         self.loss = loss
         self.pdb = pdb
         self.results = None
-        self.signal = signal
         # CONSTANTS
         self.n_cores = n_cores
         self.rpc = rpc
@@ -62,9 +60,11 @@ class OptimizationManager():
         self.test_run = test_run
         # COUNTER
         self.batch_counter = 0
+        self.start_time = time.time()
         # MEMBER CLASSES
-        self.distributor = distributor
-        self.optimizer = optimizer
+        self.distributor: Distributor = distributor
+        self.optimizer: BayesOpt = optimizer
+
         self.logger = logging.getLogger('OptimizationManager')
         self.logger.setLevel(logging.DEBUG)
         self.logger.debug('CWD %s', os.getcwd())
@@ -111,20 +111,33 @@ class OptimizationManager():
         self.batches = {}
         self.results = []
 
+    def no_optimize(self, identify, evals, pdb, config_path=None):
+        """RUN objective with (default)config evals times without ommptimization 
+
+        :arg1: TODO
+        :returns: TODO
+
+        """
+        res = self.distributor.distribute(func=self.objective, params=None,
+                                          pdb=pdb, run=1, num_workers=evals, round_robin=True)
+        self.results = self.distributor.get_batch(batch_size=evals)
+        self._save_and_exit()
+
     def log_res_and_update(self, map_res: list = None, make_batch: bool = True) -> None:
         self.logger.info('RUN %d DONE', map_res[0]['run'])
         self.results.extend(map_res)
         self.optimizer.handle_result(
             map_res[0]['config'], sum(res[self.loss] for res in map_res)/len(map_res))
 
-    def make_batch(self):
+    def make_batch(self, round_robin=False):
         self.batch_counter += 1
         config = self.optimizer.get_next_config()
         self.distributor.distribute(func=self.objective,
                                     params=config,
                                     pdb=self.pdb,
                                     num_workers=self.rpc,
-                                    run=self.batch_counter)
+                                    run=self.batch_counter,
+                                    round_robin=round_robin)
 
     def _save_and_exit(self) -> bool:
         """
@@ -138,21 +151,24 @@ class OptimizationManager():
                 # save pandas DataFrame with correct column names
                 df = pd.DataFrame(self.results)
                 self.logger.debug(df)
-                weights = df.config.apply(lambda x: pd.Series(x))
-                weights.columns = ["fa_rep_" + str(num) for num in range(7)]
-                results = pd.concat([df, weights], axis=1)
             with open(
                 config.result_path+"/{}_{}_res_{}.pkl".format(self.identify,
                                                               self.base_estimator, self.evals),
                 "wb",
             ) as file:
-                pickle.dump(results, file)
+                pickle.dump(df, file)
         else:
             self.logger.info('len results %d', len(self.results))
-        self.logger.warning(
-            '\n -------- FINAL STATE -------- \n \
-            Got %d Results',
-            len(self.results))
+        tdelt = time.time()-self.start_time
+        days = tdelt//86400
+        tdelt = tdelt - (days*86400)
+        hours = tdelt//3600
+        tdelt = tdelt - (hours*3600)
+        minutes = tdelt//60
+        took = "{} days {} hours {} minutes".format(days, hours, minutes)
+        self.logger.info(
+            '\n -------- FINAL STATE -------- \n Got %d Results \n TOOK %s',
+            len(self.results), took)
         self.distributor.report()
         self.optimizer.report()
         self.distributor.terminate_pool()
@@ -173,7 +189,7 @@ class OptimizationManager():
         initial_runs = int(self.n_cores/self.rpc)
 
         for run in range(initial_runs):
-            self.make_batch()
+            self.make_batch(round_robin=True)
         self.logger.info('INITIAL DISTRIBUTION DONE GOING TO CYCLIC')
         # REfact
 

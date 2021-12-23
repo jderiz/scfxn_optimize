@@ -1,4 +1,5 @@
 import logging
+import os
 
 import numpy as np
 import pandas as pd
@@ -6,7 +7,6 @@ import ray
 from skopt import Optimizer, Space, callbacks
 
 import config
-import os
 
 
 class BayesOpt:
@@ -91,5 +91,4 @@ class BayesOpt:
         self.updates += 1
 
     def report(self):
-        breakpoint()
         self.logger.info('Received %d Updates', self.updates)

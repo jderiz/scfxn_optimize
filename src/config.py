@@ -5,12 +5,14 @@ import logging
 
 from colorlog import ColoredFormatter
 
+from allosteric import initialize as relax_init
+from allosteric import relax_with_config
 from design import design_with_config
 from design import initialize as design_init
 from dummy import dummy_objective
-from relax import initialize as relax_init
-from relax import relax_with_config
 
+# LOG LEVEL
+level = logging.DEBUG
 formatter = ColoredFormatter(
     '%(log_color)s%(levelname)s:-PID%(process)d[%(threadName)s]::%(name)s:%(funcName)s:%(white)s%(message)s',
     datefmt=None,
@@ -28,6 +30,7 @@ formatter = ColoredFormatter(
 color_handler = logging.StreamHandler()
 color_handler.setFormatter(formatter)
 logging.getLogger().addHandler(color_handler)
+logging.getLogger().setLevel(level)
 RAY_DASHBOARD_IP = '172.22.180.238:6379'
 # OBJECTIVE FUNCTION TO EVALUATE
 _dummy_objective = dummy_objective
