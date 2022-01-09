@@ -193,18 +193,16 @@ if __name__ == "__main__":
                 identify=args.id, config_path=args.config, evals=args.evals, pdb=args.pdb)
         elif args.cycles == 0:
             manager.run()
+            break  # make sure we leave the loop
         else:
             result = manager.run(report=True)
             winner_pose = prs.distributed.packed_pose.core.to_pose(
                 result.groupby('run').mean().nsmallest(1, args.loss).pose)
             # write current_best to disk
-            prs.dump_pdb(
-                winner_pose, '../benchmark/allosteric/current_best_cycle'+str(i)+'_'+args.pdb)
+            # prs.dump_pdb(
+            #     winner_pose, '../benchmark/allosteric/current_best_cycle'+str(i)+'_'+args.pdb)
             pdb = '../results/current_best_cycle'+str(i)+'_'+args.pdb+'.pdb'
             winner_pose.dump_pdb(pdb)
             logger.info('FINISHED RUN %d saving result  at %s', i, pdb_path)
 
     logger.debug('FINISHED OPTIMIZATION')
-    # while signal.wait.remote():
-    #     logger.debug('WAIT ON SIGNAL')
-    #     time.sleep(10)
