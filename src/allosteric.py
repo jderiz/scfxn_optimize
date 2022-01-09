@@ -123,7 +123,7 @@ def relax_with_config(fa_reps, run, pdb):
         # make relax use the script
         relax_protocol.set_script_from_lines(svec)
     # RUN RELAX
-    # relax_protocol.apply(pose)
+    relax_protocol.apply(pose)
 
     rmsd = prs.rosetta.core.scoring.CA_rmsd(
         pose, unbound)  # start=start, end=end)  # aligns automatically
