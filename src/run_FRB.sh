@@ -15,8 +15,8 @@
 ## This script works for any number of nodes, Ray will find and manage all resources, if --exclusive
 ## Its Also possibe to only supply the number of cores to be used. IF this is the case one has to specifically pass the --cores(-c) flag to the script, else the script tries to distribute over all cores of each node that is being used.
 
-#SBATCH --ntasks=256
-#SBATCH --nodes=4
+#SBATCH --ntasks=64
+#SBATCH --nodes=1
 ## Do not request Gpus
 #SBATCH --gpus-per-task=0
 
@@ -74,4 +74,4 @@ echo "FORWARD DASHBOARD PORT 8265 TO LOCAL MACHIN FOR DASHBOARD"
 # ===== Call your code below =====
 prot=$1
 loss=$2
-python bench.py -e RF  -l "$loss" -c 256 -rpc 6 -evals 600 -pdb "$prot".pdb -id optimize_"$prot"_"$loss" -cooldown -r_pw "$redis_password"
+python bench.py -config "" -c 64  -evals 64 -pdb "$prot".pdb -id FRB_"$prot" -r_pw "$redis_password"
