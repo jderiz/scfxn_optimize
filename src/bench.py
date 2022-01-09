@@ -199,9 +199,11 @@ if __name__ == "__main__":
                 result.groupby('run').mean().nsmallest(1, args.loss).pose)
             # write current_best to disk
             prs.dump_pdb(
-                winner_pose, '../benchmark/allosteric/current_best'+str(i)+'_'+args.pdb+'.pdb')
-            pdb = 'current_best'+str(i)+'_'+args.pdb+'.pdb'
-    # wait(signal)
+                winner_pose, '../benchmark/allosteric/current_best_cycle'+str(i)+'_'+args.pdb)
+            pdb = '../results/current_best_cycle'+str(i)+'_'+args.pdb+'.pdb'
+            winner_pose.dump_pdb(pdb)
+            logger.info('FINISHED RUN %d saving result  at %s', i, pdb_path)
+
     logger.debug('FINISHED OPTIMIZATION')
     # while signal.wait.remote():
     #     logger.debug('WAIT ON SIGNAL')

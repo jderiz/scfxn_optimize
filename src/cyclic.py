@@ -75,6 +75,7 @@ if __name__ == "__main__":
         result = manager.run(report=True)
         winner_pose = prs.distributed.packed_pose.core.to_pose(
             result.groupby('run').mean().nsmallest(1, loss).pose)
+        # write current_best to disk, and save name as next pdb
         prs.dump_pdb(
             winner_pose, '../benchmark/allosteric/current_best'+str(i)+'_'+args.pdb+'.pdb')
         pdb = 'current_best'+str(i)+'_'+args.pdb+'.pdb'
