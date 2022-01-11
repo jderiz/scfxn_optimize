@@ -46,19 +46,31 @@ def get_phi_psi(pose):
 def calc_distance(alpha, beta):
     phi = abs(beta-alpha) % 360
 
-    if phi > 180: 
+    if phi > 180:
         return 360-phi
     else:
         return phi
 
+# see @Sampling the conformational space of allosteric transition using LoopHash
 
-def calc_mean_distance(s1, s2):
-    summ = 0
 
-    for idx in range(len(s1)):
-        summ += calc_distance(s1[idx], s2[idx])
+def calc_torsion_rmsd(s1, s2):
+    # if not equal lenght then stop, we dont know where missing residues is
+    # TODO: implement proper error handling later
+    s1phi, s1psi = get_phi_psi(s1)
+    s2phi, s2psi = get_phi_psi(s2)
 
-    return summ/len(s1)
+    resnums = len(s1)
+    phi_summ = 0
+    psi_summ = 0
+
+    for idx in resnums:
+        phi_deviation = calc_distance(s1phi[idx], s2phi[idx])
+        psi_deviation = calc_distance(s1psi[idx], s2psi[idx])
+        phi_summ += phi_deviation**
+        psi_summ += psi_deviation**
+
+    return sqrt((phi_sum+psi_summ)/(2*resnums))
 
 
 def relax_with_config(fa_reps, run, pdb, target=None):
@@ -74,7 +86,7 @@ def relax_with_config(fa_reps, run, pdb, target=None):
         "1f4vA.pdb": "3CHY.clean.pdb",
         "3zjaA.pdb": "3ZK0.clean.pdb",
         "6q21A.pdb": "4q21A.pdb",
-        "1avsA.pdb": "1TOP.clean.pdb",
+        # "1avsA.pdb": "1TOP.clean.pdb",
         "1lfaA.pdb": "1MQ9.clean.pdb",
         "1d5wA.pdb": "1d5bA.pdb"
     }
@@ -89,8 +101,10 @@ def relax_with_config(fa_reps, run, pdb, target=None):
     start_phi, start_psi = get_phi_psi(pose)
     unb_phi, unb_psi = get_phi_psi(unbound)
     # get Initial Phi/Psi distribution
-    phi_norm_const = calc_mean_distance(start_phi, unb_phi)
-    psi_norm_const = calc_mean_distance(start_psi, unb_psi)
+    phi_square_means = calc_torsion_squares_mean(start_phi, unb_phi)
+    psi_square_means = calc_torsion_squares_mean(start_psi, unb_psi)
+    torsion_norm_const = calc_torsion_rmsd(psoe, unbound)
+
     start_rmsd = prs.rosetta.core.scoring.CA_rmsd(
         pose, unbound)  # start=start, end=end)  # aligns automatically
     start_ref15 = scfxn(pose)
@@ -133,25 +147,17 @@ def relax_with_config(fa_reps, run, pdb, target=None):
 
     # TORSION ANGLES
     pose_phi, pose_psi = get_phi_psi(pose)
-    phi_deviation = calc_mean_distance(pose_phi, unb_phi)
-    psi_deviation = calc_mean_distance(pose_psi, unb_psi)
-
+    phi_deviation = calc_torsion_rmsd(pose_phi, unb_phi)
+    psi_deviation = calc_torsion_rmsd(pose_psi, unb_psi)
+    torsion_rmsd = calc_torsion_rmsd(pose, unbound)
     # SCORING
     ref15 = scfxn(pose)
     ref15 = ref15/len(pose)
     took = time.strftime("%H:%M:%S", time.gmtime(time.time()-st))
-    score = phi_deviation/phi_norm_const \
-        + psi_deviation/psi_norm_const \
-        + rmsd/start_rmsd
+    score = (torsion_rmsd/torsion_norm_const + rmsd/start_rmsd)/2
     res = {
         "run": run,
-        "pose_phi": pose_phi,
-        "pose_psi": pose_psi,
-        "target_phi": unb_phi,
-        "target_psi": unb_psi,
-        "phi_deviation": phi_deviation,
-        "psi_deviation": psi_deviation,
-        "torsions": phi_deviation+psi_deviation,
+        "torsion_rmsd": phi_deviation+psi_deviation,
         "rmsd": rmsd,
         "config": fa_reps,
         "ref15": ref15,
