@@ -13,11 +13,10 @@ from pyrosetta.distributed.packed_pose.core import PackedPose
 
 def initialize():
 
-    prs.init(
-        options="-ex1 -ex2",
-        set_logging_handler=True,
-        extra_options="-linmem_ig 10 -archive_on_disk /tmp/rosetta -mute core -mute basic -mute protocols"
-    )  # no output from the design process
+    prs.init(options="-ex1 -ex2",
+             set_logging_handler=True,
+             extra_options="-linmem_ig 10 -archive_on_disk /tmp/rosetta -mute core -mute basic -mute protocols"
+             )  # no output from the design process
     prs.logging_support.set_logging_sink()
     logger = logging.getLogger("rosetta")
     logger.setLevel(logging.ERROR)
@@ -53,6 +52,7 @@ def calc_distance(alpha, beta):
         return phi
 
 # see @Sampling the conformational space of allosteric transition using LoopHash
+# For Torsion RMSD definition
 
 
 def calc_torsion_rmsd(s1, s2):
@@ -74,13 +74,13 @@ def calc_torsion_rmsd(s1, s2):
     return math.sqrt((phi_summ+psi_summ)/(2*resnums))
 
 
-def relax_with_config(fa_reps, run, pdb, target=None):
+def relax_with_config(fa_reps, run, pdb, target):
     # get start time for timing
     st = time.time()
     # load REF15 scorefunction
     scfxn = get_fa_scorefxn()
 
-    # dictionary storing the benchmark pairs
+    # dictionary storing the benchmark pairs TODO: deprecated
     ub_dict = {
         "3s0bA.pdb": "3S0A.pdb",
         "1k9kA.pdb": "1K9P.pdb",
@@ -91,20 +91,11 @@ def relax_with_config(fa_reps, run, pdb, target=None):
         "1d5wA.pdb": "1D5B.pdb"
     }
 
-    if target is None:
-        # if no specific target pdb load the unbound pose
-        # corresponding to the benchmark pairs
-        target_pose: Pose = prs.pose_from_pdb(
-            "../benchmark/allosteric/pre_relaxed/relaxed_target_"+ub_dict[pdb])
-    elif target:
-        # if a target pose is specified load that
-        target_pose: Pose = prs.pose_from_pdb(
-            '../benchmark/allosteric/targets/'+target)
-    # load standard FastRelax pre-relaxed starting pose
-    work_pose: Pose = prs.pose_from_pdb(
-        "../benchmark/allosteric/pre_relaxed/no_ligand_relaxed_starting_"+pdb)
+    target_pose: Pose = prs.pose_from_pdb(target)
+    work_pose: Pose = prs.pose_from_pdb(pdb)
+
     # get Initial rmsd of Phi/Psi angles between the bound and unbound state
-    torsion_norm_const = calc_torsion_rmsd(psoe, unbound)
+    torsion_norm_const = calc_torsion_rmsd(work_pose, target_pose)
 
     start_rmsd = prs.rosetta.core.scoring.CA_rmsd(
         work_pose, target_pose)  # aligns automatically and return C-alpha RMSD

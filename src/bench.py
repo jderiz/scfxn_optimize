@@ -178,12 +178,11 @@ if __name__ == "__main__":
             distributor=distributor,
             optimizer=optimizer,
             estimator=args.estimator,
-            identifier=args.id,
+            identifier=args.id+"cycle_"+str(i),
             test_run=args.test_run,
             n_cores=int(cores),
             evals=int(args.evals),
             rpc=int(args.runs_per_config),
-            mtpc=int(args.max_tasks_per_child),
             cooldown=args.cooldown,
             out_dir=args.output_dir,
         )
@@ -195,13 +194,15 @@ if __name__ == "__main__":
             break  # make sure we leave the loop
         else:
             result = manager.run(report=True)
+            # TODO: Check wether to use abs smallest or smallest in smallest
+            # best group
             winner_pose = prs.distributed.packed_pose.core.to_pose(
                 result.groupby('run').mean().nsmallest(1, args.loss).pose)
             # write current_best to disk
-            # prs.dump_pdb(
-            #     winner_pose, '../benchmark/allosteric/current_best_cycle'+str(i)+'_'+args.pdb)
-            pdb = '../results/current_best_cycle'+str(i)+'_'+args.pdb+'.pdb'
-            winner_pose.dump_pdb(pdb)
-            logger.info('FINISHED RUN %d saving result  at %s', i, pdb_path)
+            prs.dump_pdb(
+                winner_pose, '../results/current_best_cycle'+str(i)+'_'+args.pdb)
+            # make pdb_path string for next iteration (same as winner_best)
+            pdb = '../results/current_best_cycle'+str(i)+'_'+args.pdb
+            logger.info('FINISHED RUN %d saving result  at %s', i, pdb)
 
     logger.debug('FINISHED OPTIMIZATION')

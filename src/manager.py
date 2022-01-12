@@ -41,12 +41,9 @@ class OptimizationManager():
              out_dir="results",  # where results get saved
              warm_start=None,  # continue previous optimization run
              n_cores=None,
-             mtpc=None,  # maxtasksperchild
              cooldown=True,  # cooldown exploration to exploitation
              space_dimensions=None,  # yaml file with optimizer dimensions
              save_pandas=True,
-             hpc=False,
-             signal=None
              ):
         self.identify = identifier
         self.base_estimator = estimator
@@ -145,7 +142,7 @@ class OptimizationManager():
     def report(self):
         """
         reports the results
-        :returns: results
+        :returns: self.results
         """
 
         if self.pands:
