@@ -1,4 +1,8 @@
+!benchmark/
 benchmark/*
+!benchmark/allosteric/
+benchmark/allosteric/*
+!benchmark/allosteric/pre_relaxed/
 results/*
 results
 analyze/*

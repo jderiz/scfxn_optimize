@@ -144,8 +144,7 @@ if __name__ == "__main__":
                         )
     args = parser.parse_args()
     print(args)
-    # SETUP CLUSTER
-    # TODO: SLURM ?
+    # SETUP RAY CLUSTER
 
     if args.redis_password:
 

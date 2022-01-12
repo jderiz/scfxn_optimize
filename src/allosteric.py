@@ -1,4 +1,5 @@
 import logging
+import math
 import os
 import random
 import time
@@ -64,57 +65,57 @@ def calc_torsion_rmsd(s1, s2):
     phi_summ = 0
     psi_summ = 0
 
-    for idx in resnums:
+    for idx in range(resnums):
         phi_deviation = calc_distance(s1phi[idx], s2phi[idx])
         psi_deviation = calc_distance(s1psi[idx], s2psi[idx])
         phi_summ += phi_deviation**2
         psi_summ += psi_deviation**2
 
-    return sqrt((phi_sum+psi_summ)/(2*resnums))
+    return math.sqrt((phi_summ+psi_summ)/(2*resnums))
 
 
 def relax_with_config(fa_reps, run, pdb, target=None):
+    # get start time for timing
     st = time.time()
+    # load REF15 scorefunction
     scfxn = get_fa_scorefxn()
 
-    # add ending for correct path
-    # pdb_path = pdb+'.pdb'
-
+    # dictionary storing the benchmark pairs
     ub_dict = {
-        "3s0bA.pdb": "3S0A.clean.pdb",
-        "1k9kA.pdb": "1K9P.clean.pdb",
-        "1f4vA.pdb": "3CHY.clean.pdb",
-        "3zjaA.pdb": "3ZK0.clean.pdb",
-        "6q21A.pdb": "4q21A.pdb",
-        # "1avsA.pdb": "1TOP.clean.pdb",
-        "1lfaA.pdb": "1MQ9.clean.pdb",
-        "1d5wA.pdb": "1d5bA.pdb"
+        "3s0bA.pdb": "3S0A.pdb",
+        "1k9kA.pdb": "1K9P.pdb",
+        "1f4vA.pdb": "3CHY.pdb",
+        "3zjaA.pdb": "3ZK0.pdb",
+        "6q21A.pdb": "4Q21.pdb",
+        "1lfaA.pdb": "1MQ9.pdb",
+        "1d5wA.pdb": "1D5B.pdb"
     }
 
     if target is None:
-        unbound: Pose = prs.pose_from_pdb(
-            "../benchmark/allosteric/"+ub_dict[pdb])
+        # if no specific target pdb load the unbound pose
+        # corresponding to the benchmark pairs
+        target_pose: Pose = prs.pose_from_pdb(
+            "../benchmark/allosteric/pre_relaxed/relaxed_target_"+ub_dict[pdb])
     elif target:
-        unbound: Pose = prs.pose_from_pdb('../benchmark/allosteric/'+target)
-    pose: Pose = prs.pose_from_pdb("../benchmark/allosteric/"+pdb)
-    # get normalization constants
-    start_phi, start_psi = get_phi_psi(pose)
-    unb_phi, unb_psi = get_phi_psi(unbound)
-    # get Initial Phi/Psi distribution
-    phi_square_means = calc_torsion_squares_mean(start_phi, unb_phi)
-    psi_square_means = calc_torsion_squares_mean(start_psi, unb_psi)
+        # if a target pose is specified load that
+        target_pose: Pose = prs.pose_from_pdb(
+            '../benchmark/allosteric/targets/'+target)
+    # load standard FastRelax pre-relaxed starting pose
+    work_pose: Pose = prs.pose_from_pdb(
+        "../benchmark/allosteric/pre_relaxed/no_ligand_relaxed_starting_"+pdb)
+    # get Initial rmsd of Phi/Psi angles between the bound and unbound state
     torsion_norm_const = calc_torsion_rmsd(psoe, unbound)
 
     start_rmsd = prs.rosetta.core.scoring.CA_rmsd(
-        pose, unbound)  # start=start, end=end)  # aligns automatically
-    start_ref15 = scfxn(pose)
+        work_pose, target_pose)  # aligns automatically and return C-alpha RMSD
+    start_ref15 = scfxn(work_pose)  # get initial REF15 score for reference
     # empty file line vector
     svec = prs.rosetta.std.vector_std_string()
     # init relax with score func
     relax_protocol = prs.rosetta.protocols.relax.FastRelax(scfxn)
     # write relax script to vector_std_string
 
-    if fa_reps:  # if config is not Falsey make script with config
+    if fa_reps:  # if config supplied make script with config
         svec.append("repeat 5")
         svec.append("coord_cst_weight 1.0")
         svec.append("scale:fa_rep " + str(fa_reps[0]))
@@ -140,19 +141,16 @@ def relax_with_config(fa_reps, run, pdb, target=None):
         # make relax use the script
         relax_protocol.set_script_from_lines(svec)
     # RUN RELAX
-    relax_protocol.apply(pose)
+    relax_protocol.apply(work_pose)
 
     rmsd = prs.rosetta.core.scoring.CA_rmsd(
-        pose, unbound)  # start=start, end=end)  # aligns automatically
+        work_pose, target_pose)  # start=start, end=end)  # aligns automatically
 
-    # TORSION ANGLES
-    pose_phi, pose_psi = get_phi_psi(pose)
-    phi_deviation = calc_torsion_rmsd(pose_phi, unb_phi)
-    psi_deviation = calc_torsion_rmsd(pose_psi, unb_psi)
-    torsion_rmsd = calc_torsion_rmsd(pose, unbound)
+    # TORSION RMSD AFTER RELAX
+    torsion_rmsd = calc_torsion_rmsd(work_pose, target_pose)
     # SCORING
-    ref15 = scfxn(pose)
-    ref15 = ref15/len(pose)
+    ref15 = scfxn(work_pose)
+    ref15 = ref15/len(work_pose.residues)
     took = time.strftime("%H:%M:%S", time.gmtime(time.time()-st))
     score = (torsion_rmsd/torsion_norm_const + rmsd/start_rmsd)/2
     res = {
@@ -163,7 +161,7 @@ def relax_with_config(fa_reps, run, pdb, target=None):
         "ref15": ref15,
         "score": score,
         "prot": pdb.split('.')[0],
-        "pose": PackedPose(pose),
+        "pose": PackedPose(work_pose),
         "took": took
     }
 
