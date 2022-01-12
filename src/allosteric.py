@@ -67,8 +67,8 @@ def calc_torsion_rmsd(s1, s2):
     for idx in resnums:
         phi_deviation = calc_distance(s1phi[idx], s2phi[idx])
         psi_deviation = calc_distance(s1psi[idx], s2psi[idx])
-        phi_summ += phi_deviation**
-        psi_summ += psi_deviation**
+        phi_summ += phi_deviation**2
+        psi_summ += psi_deviation**2
 
     return sqrt((phi_sum+psi_summ)/(2*resnums))
 
