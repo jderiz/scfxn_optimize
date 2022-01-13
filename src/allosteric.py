@@ -10,6 +10,9 @@ import ray
 from pyrosetta import Pose, get_fa_scorefxn
 from pyrosetta.distributed.packed_pose.core import PackedPose
 
+logger = logging.getLogger("rosetta")
+logger.setLevel(logging.DEBUG)
+
 
 def initialize():
 
@@ -18,16 +21,6 @@ def initialize():
              extra_options="-linmem_ig 10 -archive_on_disk /tmp/rosetta -mute core -mute basic -mute protocols"
              )  # no output from the design process
     prs.logging_support.set_logging_sink()
-    logger = logging.getLogger("rosetta")
-    logger.setLevel(logging.ERROR)
-    # get benchmark protein crystal structures.
-    global names
-    names = []
-
-    for pdb in os.listdir("../benchmark/allosteric"):
-        if pdb.endswith(".pdb"):
-            #  store actual Pose() object
-            names.append(pdb)
 
 
 def get_phi_psi(pose):
@@ -79,7 +72,7 @@ def relax_with_config(fa_reps, run, pdb, target):
     st = time.time()
     # load REF15 scorefunction
     scfxn = get_fa_scorefxn()
-
+    os.chdir("/home/iwe7/scfxn_optimize/src/")
     # dictionary storing the benchmark pairs TODO: deprecated
     ub_dict = {
         "3s0bA.pdb": "3S0A.pdb",
@@ -90,7 +83,7 @@ def relax_with_config(fa_reps, run, pdb, target):
         "1lfaA.pdb": "1MQ9.pdb",
         "1d5wA.pdb": "1D5B.pdb"
     }
-
+    logger.debug('IN: %s', os.getcwd())
     target_pose: Pose = prs.pose_from_pdb(target)
     work_pose: Pose = prs.pose_from_pdb(pdb)
 
@@ -132,7 +125,7 @@ def relax_with_config(fa_reps, run, pdb, target):
         # make relax use the script
         relax_protocol.set_script_from_lines(svec)
     # RUN RELAX
-    relax_protocol.apply(work_pose)
+    # relax_protocol.apply(work_pose)
 
     rmsd = prs.rosetta.core.scoring.CA_rmsd(
         work_pose, target_pose)  # start=start, end=end)  # aligns automatically

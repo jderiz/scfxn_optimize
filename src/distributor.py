@@ -8,11 +8,10 @@ from ray.util import inspect_serializability
 from rosetta_worker import PRSActor
 
 
-# @ray.remote
 class Distributor():
 
     """
-    This Actor manages the parallelization.
+    This Class manages the parallelization. 
     """
 
     def __init__(self):
@@ -27,6 +26,7 @@ class Distributor():
         self.batch_size = rpc
         self.rpc_counter = 0
         self.futures = []  # this holds our object_refs to the worker tasks
+        self.run_futures = {}
         # MAKE POOL
         self._initializer = initializer
         self._initargs = None
@@ -37,7 +37,7 @@ class Distributor():
         self.logger.info('INTITIALIZED DISTRIBUTOR')
 
     def _start_actor_pool(self, processes):
-        # make all but one actor have separate ressources and one actor that shares with framework actors
+        # make all but one actor have separate ressources and one actor that shares with framework
         self._actor_pool = [self._new_actor_entry(
             num_cpus=1, idx=idx) for idx in range(processes-1)]
         self._actor_pool.append(self._new_actor_entry(False, idx=processes-1))
@@ -103,11 +103,14 @@ class Distributor():
 
     def distribute(self, func, params, pdb, run, target, num_workers=None, round_robin=False):
         """
-            distribute a function to the Pool and hold the object_refs to the results somewhere such that done, undone = ray.wait(all_refs, num_returns=batch_size) --> ray.get(the_done_ones) retrieves the results 
+            distribute a function to the Pool and hold the object_refs 
+            to the results somewhere such that done, 
+            undone = ray.wait(all_refs, num_returns=batch_size) --> ray.get(the_done_ones) retrieves the results 
         """
 
         if not num_workers:
             num_workers = self.batch_size
+        run_futures = []
 
         for _ in [0]*num_workers:
             object_ref = self.evaluate_config(
@@ -119,6 +122,8 @@ class Distributor():
                 round_robin=round_robin,
             )
             self.futures.append(object_ref)
+            run_futures.append(object_ref)
+        self.run_futures.update({run: run_futures})
 
     def add_res_to_batch(self, result, batch_number):
         if batch_number in self.batches.keys():
@@ -126,16 +131,24 @@ class Distributor():
         else:
             self.batches.update({batch_number: [result]})
 
-    def get_batch(self, batch_size=None):
+    def get_batch(self, complete_run_batch, batch_size=None):
         """
-        block until self.batches tasks are completed and return their result. the rest of the futures becomes the new futures list where new tasks get appended to.
+        block until batch_size tasks are completed and return their result. 
+        the rest of the futures becomes the new futures list where new tasks 
+        get appended to.
         """
-        batch_size = batch_size if batch_size else self.batch_size
-        # blocks until batch_size results are done
-        ready_batch, undone = ray.wait(
-            self.futures, num_returns=batch_size)
+
+        if complete_run_batch:
+            # TODO: figure out how to determin which run has completed
+            ready_batch, _ = ray.wait(self.run_futures[done_run])
+        else:
+            batch_size = batch_size if batch_size else self.batch_size
+            # blocks until batch_size results are done or until a complete config run is done
+            ready_batch, undone = ray.wait(
+                self.futures, num_returns=batch_size)
+
         batch = ray.get(ready_batch)
-        self.futures = undone
+        self.futures = undone  # set futures to the remaining
 
         return batch
 

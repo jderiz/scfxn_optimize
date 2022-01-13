@@ -43,7 +43,7 @@ class OptimizationManager():
              n_cores=None,
              cooldown=True,  # cooldown exploration to exploitation
              space_dimensions=None,  # yaml file with optimizer dimensions
-             save_pandas=True, # save results as pickled pandas DataFrames
+             save_pandas=True,  # save results as pickled pandas DataFrames
              ):
         self.identify = identifier
         self.base_estimator = estimator
@@ -57,9 +57,11 @@ class OptimizationManager():
         self.rpc = rpc
         self.evals = evals
         self.test_run = test_run
+        self.cooldown = cooldown
         # COUNTER
         self.batch_counter = 0
         self.start_time = time.time()
+        self.current_cycle = 1
         # MEMBER CLASSES
         self.distributor: Distributor = distributor
         self.optimizer: BayesOpt = optimizer
@@ -77,37 +79,40 @@ class OptimizationManager():
             self.loss_value = 'score'
             self.init_method = None
             self.pandas = False
-            estimator = 'dummy'
+            self.base_estimator = 'dummy'
         else:
             self.objective = config._objective
             self.init_method = config._init_method
 
         self.logger.debug('CHECK SERIALIZABLE ACTOR INITIALIZER FUNCTION')
-        inspect_serializability(self.init_method, 'initializer method')
-        # SEARCH SPACE
-
-        # OPTIMIZER
-        self.optimizer.init(
-            random_state=5,
-            dimensions=config.space_dimensions,
-            base_estimator=estimator,
-            acq_func_kwargs=config.acq_func_kwargs,
-            n_initial_points=int(n_cores//rpc),
-            cooldown=cooldown,
-            evals=evals
-        )
-
-        # DISTRIBUTOR
-        self.distributor.init(
-            manager_callback=self.log_res_and_update,
-            workers=n_cores,
-            rpc=rpc,
-            evals=evals,
-            initializer=self.init_method)
+        inspect_serializability(self.init_method, 'Initializer Method')
+        inspect_serializability(self.objective, 'Objective Method')
 
         # BOOKKEEPING
         self.batches = {}
         self.results = []
+        self.init_distributor()
+
+    def init_optimizer(self):
+        # OPTIMIZER
+        self.optimizer.init(
+            random_state=5,
+            dimensions=config.space_dimensions,
+            base_estimator=self.base_estimator,
+            acq_func_kwargs=config.acq_func_kwargs,
+            n_initial_points=int(self.n_cores//self.rpc),
+            cooldown=self.cooldown,
+            evals=self.evals
+        )
+
+    def init_distributor(self):
+        # DISTRIBUTOR
+        self.distributor.init(
+            manager_callback=self.log_res_and_update,
+            workers=self.n_cores,
+            rpc=self.rpc,
+            evals=self.evals,
+            initializer=self.init_method)
 
     def no_optimize(self, identify, evals, pdb, config_path=None):
         """RUN objective with (default)config evals times without ommptimization 
@@ -119,10 +124,13 @@ class OptimizationManager():
         res = self.distributor.distribute(func=self.objective, params=None,
                                           pdb=pdb, run=1, num_workers=evals, round_robin=True)
         self.results = self.distributor.get_batch(batch_size=evals)
-        self._save_and_exit()
+        self._save()
 
     def log_res_and_update(self, map_res: list = None, make_batch: bool = True) -> None:
         self.logger.info('RUN %d DONE', map_res[0]['run'])
+
+        for r in map_res:
+            r['cycle'] = self.current_cycle
         self.results.extend(map_res)
         self.optimizer.handle_result(
             map_res[0]['config'], sum(res[self.loss] for res in map_res)/len(map_res))
@@ -145,11 +153,19 @@ class OptimizationManager():
         """
 
         if self.pandas:
-            return pd.DataFrame(self.results)
+            print(self.results)
+            df = pd.DataFrame(self.results)
+            # df['cycle'] = self.current_cycle
+            print(df)
+
+            if df.empty:
+                raise Exception("Result DataFrame is empty")
+
+            return df
         else:
             return self.results
 
-    def _save_and_exit(self) -> bool:
+    def _save(self) -> bool:
         """
             Saves the results stored in the DataFrame and reports to console
         """
@@ -181,7 +197,6 @@ class OptimizationManager():
             len(self.results), took)
         self.distributor.report()
         self.optimizer.report()
-        self.distributor.terminate_pool()
 
     def add_res_to_batch(self, result, batch_number):
         if batch_number in self.batches.keys():
@@ -189,7 +204,7 @@ class OptimizationManager():
         else:
             self.batches.update({batch_number: [result]})
 
-    def run(self, report=False) -> None:
+    def run(self, report=False, complete_run_batch=False) -> None:
         """
             Runs the Manager and 
         """
@@ -203,9 +218,12 @@ class OptimizationManager():
         self.logger.info('INITIAL DISTRIBUTION DONE GOING TO CYCLIC')
         # REfact
 
+        # Actual RUN LOOP
+
         for run in range(self.evals):
             # blocks until batch is ready and update
-            batch = self.distributor.get_batch()
+            batch = self.distributor.get_batch(
+                complete_run_batch=complete_run_batch)
 
             for r in batch:
                 self.add_res_to_batch(r, r['run'])
@@ -217,8 +235,12 @@ class OptimizationManager():
 
             if run < (self.evals - initial_runs):
                 self.make_batch()
-        # finally report optimization result or save the result and exit
 
         if report:
             return self.report()
-        self._save_and_exit()
+
+    def set_pdb(self, pdb):
+        self.pdb = pdb
+
+    def set_cycle(self, cycle):
+        self.current_cycle = cycle

@@ -40,7 +40,7 @@ _init_method = relax_init
 # SPACE DIMENSIONS
 space_dimensions = "space.yml"
 # Directory where results should get saved
-result_path = "../results"
+result_path = "/home/iwe7/scfxn_optimize/results/"
 # OPTIMIZER args,
 xi = 0.01
 kappa = 1.69

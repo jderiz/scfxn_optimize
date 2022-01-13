@@ -4,15 +4,16 @@ import os
 import sys
 import time
 
-import ray
 import pyrosetta as prs
+import ray
+
 from bayesopt import BayesOpt
+from config import result_path
 from distributor import Distributor
 from manager import OptimizationManager
 
 # make cluster recognize directory
 sys.path.append(os.getcwd())
-
 
 logger = logging.getLogger("APP")
 logger.setLevel(logging.DEBUG)
@@ -126,7 +127,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "-cycles",
-        default=0,
+        default=1,
         type=int,
         help="how many optimization cycles, each new cycle uses best observed so far as starting pose"
     )
@@ -164,45 +165,54 @@ if __name__ == "__main__":
     # signal = SignalActor.remote()
     pdb = args.pdb
     target = args.target
+    prot_name = pdb.split("_")[-1]  # last element is pdb name with ending
+    # DISTRIBUTOR
+    distributor = Distributor()
+    # OPTIMIZER
+    optimizer = BayesOpt()
+    # MANAGER
+    manager = OptimizationManager()
+    manager.init(
+        args.loss,
+        pdb=pdb,
+        target=target,
+        distributor=distributor,
+        optimizer=optimizer,
+        estimator=args.estimator,
+        identifier=args.id,
+        test_run=args.test_run,
+        n_cores=int(cores),
+        evals=int(args.evals),
+        rpc=int(args.runs_per_config),
+        cooldown=args.cooldown,
+        out_dir=args.output_dir,
+    )
     for i in range(args.cycles):
-        # DISTRIBUTOR
-        distributor = Distributor()
-        # OPTIMIZER
-        optimizer = BayesOpt()
-        # MANAGER
-        manager = OptimizationManager()
-        manager.init(
-            args.loss,
-            pdb=pdb,
-            target=target,
-            distributor=distributor,
-            optimizer=optimizer,
-            estimator=args.estimator,
-            identifier=args.id+"cycle_"+str(i),
-            test_run=args.test_run,
-            n_cores=int(cores),
-            evals=int(args.evals),
-            rpc=int(args.runs_per_config),
-            cooldown=args.cooldown,
-            out_dir=args.output_dir,
-        )
         if args.config != None:
             manager.no_optimize(
                 identify=args.id, config_path=args.config, evals=args.evals, pdb=args.pdb)
-        elif args.cycles == 0:
+            break
+        elif args.cycles == 1:
             manager.run()
             break  # make sure we leave the loop
         else:
-            result = manager.run(report=True)
-            # TODO: Check wether to use abs smallest or smallest in smallest
+            manager.set_pdb(pdb)
+            manager.set_cycle(i)
+            # reinitialize optimizer, as we need a new one.
+            manager.init_optimizer()
+            result = manager.run(report=True, complete_run_batch=False)
+            # TODO: Check wether to use abs smallest or smallest in
             # best group
             winner_pose = prs.distributed.packed_pose.core.to_pose(
                 result.nsmallest(1, args.loss).pose.iloc[0])
             # write current_best to disk
             prs.dump_pdb(
-                winner_pose, '../results/current_best_cycle'+str(i)+'_'+args.pdb)
+                winner_pose, result_path+'current_best_cycle_'+str(i)+'_'+prot_name)
             # make pdb_path string for next iteration (same as winner_best)
-            pdb = '../results/current_best_cycle'+str(i)+'_'+args.pdb
+            pdb = result_path+'current_best_cycle_'+str(i)+'_'+prot_name
             logger.info('FINISHED RUN %d saving result  at %s', i, pdb)
 
+    # We are done so terminate the cluster/Pool
+    manager._save()
+    distributor.terminate_pool()
     logger.debug('FINISHED OPTIMIZATION')
