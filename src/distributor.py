@@ -47,7 +47,8 @@ class Distributor():
         # NOTE(edoakes): The initializer function can't currently be used to
         # modify the global namespace (e.g., import packages or set globals)
         # due to a limitation in cloudpickle.
-        # HACK: all actors but one that shares with manager, distributor etc        # are exclusive on cpu
+        # HACK: all actors but one that shares with manager, distributor etc
+        # are exclusive on cpu
 
         if num_cpus:
             return(PRSActor.options(num_cpus=1).remote(self._initializer, self._initargs, idx=idx), 0)
@@ -63,7 +64,7 @@ class Distributor():
         return self.next_rr_idx % len(self._actor_pool)
 
     def _idle_actor_index(self):
-        self.logger.debug('Get IDLE Actor')
+        # self.logger.debug('Get IDLE Actor')
         try:
             # found idle actor, return its index
             idx_ready, _ = ray.wait([actor.ping.remote() for actor, _ in self._actor_pool],
@@ -88,7 +89,7 @@ class Distributor():
                 actor_idx = self._round_robin_index_next()
 
         if actor_idx != None:
-            self.logger.debug("Eval on Actor %d", actor_idx)
+            # self.logger.debug("Eval on Actor %d", actor_idx)
             actor, count = self._actor_pool[actor_idx]
             object_ref = actor.evaluate_config.remote(
                 params, run, pdb, target=target)

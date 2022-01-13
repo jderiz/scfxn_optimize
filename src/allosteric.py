@@ -13,6 +13,8 @@ from pyrosetta.distributed.packed_pose.core import PackedPose
 logger = logging.getLogger("rosetta")
 logger.setLevel(logging.DEBUG)
 
+print(os.getcwd())
+
 
 def initialize():
 
@@ -72,7 +74,6 @@ def relax_with_config(fa_reps, run, pdb, target):
     st = time.time()
     # load REF15 scorefunction
     scfxn = get_fa_scorefxn()
-    os.chdir("/home/iwe7/scfxn_optimize/src/")
     # dictionary storing the benchmark pairs TODO: deprecated
     ub_dict = {
         "3s0bA.pdb": "3S0A.pdb",
@@ -83,7 +84,8 @@ def relax_with_config(fa_reps, run, pdb, target):
         "1lfaA.pdb": "1MQ9.pdb",
         "1d5wA.pdb": "1D5B.pdb"
     }
-    logger.debug('IN: %s', os.getcwd())
+
+    logger.debug('IN CWD: %s', os.getcwd())
     target_pose: Pose = prs.pose_from_pdb(target)
     work_pose: Pose = prs.pose_from_pdb(pdb)
 
