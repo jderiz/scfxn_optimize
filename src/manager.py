@@ -43,7 +43,7 @@ class OptimizationManager():
              n_cores=None,
              cooldown=True,  # cooldown exploration to exploitation
              space_dimensions=None,  # yaml file with optimizer dimensions
-             save_pandas=True,
+             save_pandas=True, # save results as pickled pandas DataFrames
              ):
         self.identify = identifier
         self.base_estimator = estimator
@@ -100,7 +100,6 @@ class OptimizationManager():
         # DISTRIBUTOR
         self.distributor.init(
             manager_callback=self.log_res_and_update,
-            hpc=hpc,
             workers=n_cores,
             rpc=rpc,
             evals=evals,
@@ -145,7 +144,7 @@ class OptimizationManager():
         :returns: self.results
         """
 
-        if self.pands:
+        if self.pandas:
             return pd.DataFrame(self.results)
         else:
             return self.results

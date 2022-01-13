@@ -1,11 +1,9 @@
 #!/bin/bash
-
-
 # shellcheck disable=SC2206
-#SBATCH --partition=clara-job
-#SBATCH --job-name=Rndm
+#SBATCH --partition=galaxy-job
+#SBATCH --job-name=CyTst
 #SBATCH --output=out.log
-#SBATCH --mem-per-cpu=1G
+#SBATCH --mem-per-cpu=2G
 #SBATCH --mail-type=FAIL
 #SBATCH --mail-type=BEGIN
 #SBATCH --mail-type=END
@@ -15,10 +13,11 @@
 ## This script works for any number of nodes, Ray will find and manage all resources, if --exclusive
 ## Its Also possibe to only supply the number of cores to be used. IF this is the case one has to specifically pass the --cores(-c) flag to the script, else the script tries to distribute over all cores of each node that is being used.
 
-#SBATCH --ntasks=256
-#SBATCH --nodes=4
-## Do not request Gpus
-#SBATCH --gpus-per-task=0
+#SBATCH --nodes=16
+##SBATCH --ntasks=256
+#SBATCH --ntasks-per-node=1 ## Ray can manage the Rsources
+#SBATCH --cpus-per-task=24
+#SBATCH --exclusive
 
 
 ##deprecated
@@ -67,7 +66,7 @@ for ((i = 1; i <= worker_num; i++)); do
   node_i=${nodes_array[$i]}
   echo "STARTING WORKER $i at $node_i"
   srun --nodes=1 --ntasks=1 -w "$node_i" ray start --address "$ip_head" --redis-password="$redis_password" --block &
-  sleep 5
+  sleep 3
 done
 echo "FORWARD DASHBOARD PORT 8265 TO LOCAL MACHIN FOR DASHBOARD"
 
@@ -75,4 +74,4 @@ echo "FORWARD DASHBOARD PORT 8265 TO LOCAL MACHIN FOR DASHBOARD"
 prot=$1
 target=$2
 loss=$3
-python bench.py -e RF  -l "$loss" -c 256 -rpc 6 -cycles 3 -evals 200 -pdb "$prot" -target "$target" -id optimize_"$prot"_"$loss" -cooldown -r_pw "$redis_password"
+python bench.py -e RF  -l "$loss" -rpc 6 -cycles 3 -evals 200 -pdb "$prot" -target "$target" -id optimize_"$prot"_"$loss" -cooldown -r_pw "$redis_password"

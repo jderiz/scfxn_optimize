@@ -18,7 +18,7 @@ class Distributor():
     def __init__(self):
         pass
 
-    def init(self, manager_callback, workers, rpc, evals, hpc, initializer):
+    def init(self, manager_callback, workers, rpc, evals, initializer):
         self.logger = logging.getLogger('Distributor')
         self.logger.setLevel(logging.DEBUG)
         # init batch dict with empty list for each batch
@@ -76,7 +76,7 @@ class Distributor():
         except ray.exceptions.GetTimeoutError:
             return None  # found no idle actor
 
-    def evaluate_config(self, params, run, pdb, error_callback=None, callback=None, round_robin=False) -> tuple:
+    def evaluate_config(self, params, run, pdb, target, error_callback=None, callback=None, round_robin=False) -> tuple:
         # self._check_running()
 
         if round_robin:

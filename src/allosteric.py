@@ -146,12 +146,11 @@ def relax_with_config(fa_reps, run, pdb, target):
     score = (torsion_rmsd/torsion_norm_const + rmsd/start_rmsd)/2
     res = {
         "run": run,
-        "torsion_rmsd": phi_deviation+psi_deviation,
+        "torsion_rmsd": torsion_rmsd,
         "rmsd": rmsd,
         "config": fa_reps,
         "ref15": ref15,
         "score": score,
-        "prot": pdb.split('.')[0],
         "pose": PackedPose(work_pose),
         "took": took
     }

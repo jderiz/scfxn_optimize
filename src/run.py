@@ -1,20 +1,90 @@
 import os
-for prot in ['1CKK', '1D5W', '1K9P', '1Q0N', '1QUK', '1TDE', '2J5X', '2LAO', '4AKE', '6Q21']:
+import argparse
+parser = argparse.ArgumentParser()
+parser.addArgument('-job_name', type=str)
+job_file = prot+".job"
+job_name = args.job_name 
+with open(job_file, 'w') as h:
+    h.write("
+#!/bin/bash
+#shellcheck disable=SC2206
+#SBATCH --partition=clara-cpu
+#SBATCH --job-name="+job_name+"
+#SBATCH --output=out.log
+#SBATCH --mem-per-cpu=2G
+#SBATCH --mail-type=FAIL
+#SBATCH --mail-type=BEGIN
+#SBATCH --mail-type=END
+#SBATCH --mail-user=jannis.deriz@gmail.com
+#SBATCH --time=48:00:00
 
-    job_file = prot+".job"
-    with open(job_file, 'w') as h:
-        h.write('#!/bin/bash\n\
-    #SBATCH --time=48:00:00\n\
-    #SBATCH --mem-per-cpu=6G\n\
-    #SBATCH --mail-type=FAIL\n\
-    #SBATCH --partition=clara-job\n\
-    #SBATCH --mail-user=jannis.deriz@gmail.com\n\
-    #SBATCH -n 1\n\
-    #SBATCH -c 20\n\
-    #SBATCH --job-name=opt_rel\n\
-    module load Anaconda3\n\
-    source /nfs/cluster/easybuild/software/Anaconda3/2020.02/etc/profile.d/conda.sh\n\
-    conda activate scfxn\n\
-    python bench.py  -config ../configs/relax_'+prot+'_best.pkl -pdb '+prot+'  -evals 20  -id test_config_'+prot+'\n\
-    ')
+## This script works for any number of nodes, Ray will find and manage all resources, if --exclusive
+## Its Also possibe to only supply the number of cores to be used. IF this is the case one has to specifically pass the --cores(-c) flag to the script, else the script tries to distribute over all cores of each node that is being used.
+
+#SBATCH --nodes=4
+#SBATCH --tasks-per-node=1
+#SBATCH --cpus-per-task=64
+##SBATCH --exclusive
+## Do not request Gpus
+##SBATCH --gpus-per-task=0
+
+
+##deprecated
+###source /nfs/cluster/easybuild/software/Anaconda3/2020.02/etc/profile.d/conda.sh
+# Load conda env
+module load Anaconda3
+source /software/all/Anaconda3/2020.02/etc/profile.d/conda.sh
+conda activate scfxn
+
+# ===== DO NOT CHANGE THINGS HERE UNLESS YOU KNOW WHAT YOU ARE DOING =====
+# This script is a modification to the implementation suggest by gregSchwartz18 here:
+# https://github.com/ray-project/ray/issues/826#issuecomment-522116599
+redis_password=$(uuidgen)
+export redis_password
+printf $SLURM_JOB_NODELIST
+
+nodes=$(scontrol show hostnames "$SLURM_JOB_NODELIST") # Getting the node names
+nodes_array=($nodes)
+node_1=${nodes_array[0]}
+ip=$(srun --nodes=1 --ntasks=1 -w "$node_1" hostname --ip-address) # making redis-address
+
+# if we detect a space character in the head node IP, we'll
+# convert it to an ipv4 address. This step is optional.
+if [[ "$ip" == *" "* ]]; then
+IFS=' ' read -ra ADDR <<< "$ip"
+if [[ ${#ADDR[0]} -gt 16 ]]; then
+ip=${ADDR[1]}
+else
+ip=${ADDR[0]}
+fi
+echo "IPV6 address detected. We split the IPV4 address as $ip"
+fi
+
+port=6379
+ip_head=$ip:$port
+export ip_head
+echo "IP Head: $ip_head"
+
+echo "STARTING HEAD at $node_1"
+srun --nodes=1 --ntasks=1 -w "$node_1" \
+ray start --head --include-dashboard=true --node-ip-address="$ip" --port=$port --redis-password="$redis_password" --block &
+sleep 30
+
+worker_num=$((SLURM_JOB_NUM_NODES - 1)) #number of nodes other than the head node
+for ((i = 1; i <= worker_num; i++)); do
+node_i=${nodes_array[$i]}
+echo "STARTING WORKER $i at $node_i"
+srun --nodes=1 --ntasks=1 -w "$node_i" ray start --address "$ip_head" --redis-password="$redis_password" --block &
+sleep 5
+done
+echo "FORWARD DASHBOARD PORT 8265 TO LOCAL MACHIN FOR DASHBOARD"
+
+# ===== Call your code below =====
+prot=$1
+target=$2
+loss=$3
+python bench.py -e RF  -l "$loss" -c 256 -rpc 6 -cycles 3 -evals 200 -pdb "$prot" -target "$target" -id optimize_"$prot"_"$loss" -cooldown -r_pw "$redis_password"
+    
+   " 
+        )
     os.system("sbatch %s" % job_file)

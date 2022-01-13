@@ -5,7 +5,7 @@ import sys
 import time
 
 import ray
-
+import pyrosetta as prs
 from bayesopt import BayesOpt
 from distributor import Distributor
 from manager import OptimizationManager
@@ -197,7 +197,7 @@ if __name__ == "__main__":
             # TODO: Check wether to use abs smallest or smallest in smallest
             # best group
             winner_pose = prs.distributed.packed_pose.core.to_pose(
-                result.groupby('run').mean().nsmallest(1, args.loss).pose)
+                result.nsmallest(1, args.loss).pose.iloc[0])
             # write current_best to disk
             prs.dump_pdb(
                 winner_pose, '../results/current_best_cycle'+str(i)+'_'+args.pdb)
