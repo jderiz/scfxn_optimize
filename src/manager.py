@@ -177,12 +177,11 @@ class OptimizationManager():
                 # save pandas DataFrame with correct column names
                 df = pd.DataFrame(self.results)
                 self.logger.debug(df)
-            with open(
-                config.result_path+"/{}_{}_res_{}.pkl".format(self.identify,
+            res_path = "{}{}_{}_res_{}.pkl".format(config.result_path, self.identify,
                                                               self.base_estimator, self.evals),
-                "wb",
-            ) as file:
-                pickle.dump(df, file)
+            print(res_path) 
+            with open(res_path, "wb") as h:
+                pickle.dump(df, h)
         else:
             self.logger.info('len results %d', len(self.results))
         tdelt = time.time()-self.start_time
