@@ -72,6 +72,7 @@ echo "FORWARD DASHBOARD PORT 8265 TO LOCAL MACHIN FOR DASHBOARD"
 
 # ===== Call your code below =====
 prot=$1
-target=$2
-loss=$3
-python bench.py -e RF  -l "$loss" -rpc 6 -cycles 3 -evals 20 -pdb "$prot" -target "$target" -id optimize_"$prot"_"$loss" -cooldown -r_pw "$redis_password"
+prot_path=$2
+target=$3
+loss=$4
+python bench.py -e RF  -l "$loss" -rpc 6 -cycles 3 -evals 200 -pdb "$prot_path" -target "$target" -id optimize_${prot}_${loss} -cooldown -r_pw "$redis_password"
