@@ -10,8 +10,8 @@ bench_pairs=( [../benchmark/allosteric/pre_relaxed/no_ligand_relaxed_starting_1k
 # iterate over map
 for prot_path in ${!bench_pairs[@]}
 do
-prot = ${prot_path: -9:5}
-echo "PDB: ${prot}"
+prot=${prot_path: -9:5}
+echo "PDB:" ${prot}
 echo "run $prot_path to ${bench_pairs[$prot_path]}"
 sbatch runc.sh ${prot} ${prot_path} ${bench_pairs[$prot_path]} score
 done
