@@ -13,7 +13,7 @@
 ## This script works for any number of nodes, Ray will find and manage all resources, if --exclusive
 ## Its Also possibe to only supply the number of cores to be used. IF this is the case one has to specifically pass the --cores(-c) flag to the script, else the script tries to distribute over all cores of each node that is being used.
 
-#SBATCH --nodes=13
+#SBATCH --nodes=16
 ##SBATCH --ntasks=256
 #SBATCH --ntasks-per-node=1 ## Ray can manage the Rsources
 #SBATCH --cpus-per-task=24
@@ -75,4 +75,4 @@ prot=$1
 prot_path=$2
 target=$3
 loss=$4
-python bench.py -e RF  -l "$loss" -rpc 6 -cycles 3 -evals 200 -pdb "$prot_path" -target "$target" -id optimize_${prot}_${loss} -cooldown -r_pw "$redis_password"
+python bench.py -e GP  -l "$loss" -rpc 6 -cycles 3 -evals 200 -pdb "$prot_path" -target "$target" -id optimize_cyclic_${prot}_${loss} -cooldown -r_pw "$redis_password"

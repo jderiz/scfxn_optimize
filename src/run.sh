@@ -13,5 +13,5 @@ do
 prot=${prot_path: -9:5}
 echo "PDB:" ${prot}
 echo "run $prot_path to ${bench_pairs[$prot_path]}"
-sbatch runc.sh ${prot} ${prot_path} ${bench_pairs[$prot_path]} score
+sbatch runc.sh ${prot} ${prot_path} ${bench_pairs[$prot_path]} rmsd
 done
