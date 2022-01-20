@@ -212,7 +212,7 @@ if __name__ == "__main__":
             pdb = result_path+'current_best_cycle_'+str(i)+'_'+prot_name
             logger.info('FINISHED RUN %d saving result  at %s', i, pdb)
 
-    # We are done so save the result from and terminate the cluster/Pool
+    # We are done so save the result and terminate the cluster/Pool
     manager._save()
     distributor.terminate_pool()
     logger.debug('FINISHED OPTIMIZATION')

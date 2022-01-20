@@ -178,8 +178,7 @@ class OptimizationManager():
                 df = pd.DataFrame(self.results)
                 self.logger.debug(df)
             with open(
-                "{}{}_{}_res_{}.pkl".format(config.result_path, self.identify,
-                                            self.base_estimator, self.evals),
+                "{}{}.pkl".format(config.result_path, self.identify),
                 "wb",
             ) as file:
                 pickle.dump(df, file)

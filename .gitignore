@@ -2,7 +2,7 @@
 benchmark/*
 !benchmark/allosteric/
 benchmark/allosteric/*
-!benchmark/allosteric/pre_relaxed/
+!benchmark/allosteric/pre_processed/
 results/*
 results
 analyze/*

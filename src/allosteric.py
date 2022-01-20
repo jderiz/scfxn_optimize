@@ -82,7 +82,7 @@ def relax_with_config(fa_reps, run, pdb, target):
         "3zjaA.pdb": "3ZK0.pdb",
         "6q21A.pdb": "4Q21.pdb",
         "1lfaA.pdb": "1MQ9.pdb",
-        "1d5wA.pdb": "1D5B.pdb"
+        "1d5wA.pdb": "1dbw.pdb"
     }
 
     logger.debug('IN CWD: %s', os.getcwd())
@@ -142,7 +142,7 @@ def relax_with_config(fa_reps, run, pdb, target):
     res = {
         "run": run,
         "torsion_rmsd": torsion_rmsd,
-        "rmsd": rmsd,
+        "ca_rmsd": rmsd,
         "config": fa_reps,
         "ref15": ref15,
         "score": score,
