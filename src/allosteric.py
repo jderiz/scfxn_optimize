@@ -74,21 +74,10 @@ def relax_with_config(fa_reps, run, pdb, target):
     st = time.time()
     # load REF15 scorefunction
     scfxn = get_fa_scorefxn()
-    # dictionary storing the benchmark pairs TODO: deprecated
-    ub_dict = {
-        "3s0bA.pdb": "3S0A.pdb",
-        "1k9kA.pdb": "1K9P.pdb",
-        "1f4vA.pdb": "3CHY.pdb",
-        "3zjaA.pdb": "3ZK0.pdb",
-        "6q21A.pdb": "4Q21.pdb",
-        "1lfaA.pdb": "1MQ9.pdb",
-        "1d5wA.pdb": "1dbw.pdb"
-    }
-
     logger.debug('IN CWD: %s', os.getcwd())
     target_pose: Pose = prs.pose_from_pdb(target)
     work_pose: Pose = prs.pose_from_pdb(pdb)
-
+    
     # get Initial rmsd of Phi/Psi angles between the bound and unbound state
     torsion_norm_const = calc_torsion_rmsd(work_pose, target_pose)
 
