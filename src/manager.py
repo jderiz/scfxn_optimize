@@ -108,7 +108,6 @@ class OptimizationManager():
     def init_distributor(self):
         # DISTRIBUTOR
         self.distributor.init(
-            manager_callback=self.log_res_and_update,
             workers=self.n_cores,
             rpc=self.rpc,
             evals=self.evals,
@@ -124,7 +123,7 @@ class OptimizationManager():
         self.results = self.distributor.get_batch(batch_size=evals)
         self._save()
 
-    def log_res_and_update(self, map_res: list = None, make_batch: bool = True) -> None:
+    def log_res_and_update_optimizer(self, map_res: list = None, make_batch: bool = True) -> None:
         self.logger.info('RUN %d DONE', map_res[0]['run'])
 
         for r in map_res:
@@ -134,12 +133,12 @@ class OptimizationManager():
             map_res[0]['config'], sum(res[self.loss] for res in map_res)/len(map_res))
 
     def make_batch(self, round_robin=False):
-        """makes a new job batch bz retrieving a new point x_i form the optimizer
+        """makes a new job batch by retrieving a new point x_i form the optimizer
         and calling the distributors distribute function 
 
         @param round_robin: indicate whether to distribute work round_robin 
         over workers or if False look for idle workers
-        @type  round_robin: boolean
+        @type round_robin: boolean
 
         @return: None
         @rtype : None
@@ -157,13 +156,14 @@ class OptimizationManager():
 
     def get_results(self):
         """
-        reports self.results
+            getter for self.results
+
         @return: self.results the current state of the result list
         @rtype: pd.DataFrame 
         """
 
         if self.pandas:
-            print(self.results)
+            # print(self.results)
             df = pd.DataFrame(self.results)
             # df['cycle'] = self.current_cycle
             print(df)
@@ -178,6 +178,7 @@ class OptimizationManager():
     def save(self) -> bool:
         """
             Saves the results stored in the DataFrame and reports to console
+
         """
         self.logger.debug('DONE \n test %s \n results %d',
                           self.test_run, len(self.results))
@@ -208,6 +209,17 @@ class OptimizationManager():
         self.optimizer.report()
 
     def add_res_to_batch(self, result, batch_number):
+        """adds a single result to a bat
+
+        @param param:  Description
+        @type  param:  Type
+
+        @return:  Description
+        @rtype :  Type
+
+        @raise e:  Description
+        """
+
         if batch_number in self.batches.keys():
             self.batches[batch_number].append(result)
         else:
@@ -229,19 +241,19 @@ class OptimizationManager():
         # Actual RUN LOOP
 
         for run in range(self.evals):
-            # blocks until batch is ready and update
+            # NOTE: blocks until batch is ready and update
             batch = self.distributor.get_batch(
                 complete_run_batch=complete_run_batch)
 
-            for r in batch:
+            for r in batch:  # handle result to batch matching
                 self.add_res_to_batch(r, r['run'])
 
                 if len(self.batches[r['run']]) == self.rpc:
-                    self.log_res_and_update(self.batches[r['run']])
-
-            # make batch
+                    # handle complete batch
+                    self.log_res_and_update_optimizer(self.batches[r['run']])
 
             if run < (self.evals - initial_runs):
+                # make batch
                 self.make_batch()
 
         if report:

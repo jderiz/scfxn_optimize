@@ -77,7 +77,7 @@ def relax_with_config(fa_reps, run, pdb, target):
     logger.debug('IN CWD: %s', os.getcwd())
     target_pose: Pose = prs.pose_from_pdb(target)
     work_pose: Pose = prs.pose_from_pdb(pdb)
-    
+
     # get Initial rmsd of Phi/Psi angles between the bound and unbound state
     torsion_norm_const = calc_torsion_rmsd(work_pose, target_pose)
 
@@ -121,9 +121,8 @@ def relax_with_config(fa_reps, run, pdb, target):
     rmsd = prs.rosetta.core.scoring.CA_rmsd(
         work_pose, target_pose)  # start=start, end=end)  # aligns automatically
 
-    # TORSION RMSD AFTER RELAX
+    # METRICS
     torsion_rmsd = calc_torsion_rmsd(work_pose, target_pose)
-    # SCORING
     ref15 = scfxn(work_pose)
     ref15 = ref15/len(work_pose.residues)
     took = time.strftime("%H:%M:%S", time.gmtime(time.time()-st))

@@ -1,5 +1,10 @@
 """
 CONFIGURATION
+Import your objective function. If you have an initializer function to run on 
+worker instantiation also import it here and assign it to the correspinging 
+variables.
+Set custom for xi and kappa if you whish else leave them at the default.
+Specify a path where your results should get saved to 
 """
 import logging
 
@@ -13,7 +18,7 @@ from dummy import dummy_objective
 
 # LOG LEVEL
 level = logging.DEBUG
-#formatter = ColoredFormatter(
+# formatter = ColoredFormatter(
 #    '%(log_color)s%(levelname)s:-PID%(process)d[%(threadName)s]::%(name)s:%(funcName)s:%(white)s%(message)s',
 #    datefmt=None,
 #    reset=True,
@@ -26,12 +31,11 @@ level = logging.DEBUG
 #    },
 #    secondary_log_colors={},
 #    style='%'
-#)
+# )
 #color_handler = logging.StreamHandler()
-#color_handler.setFormatter(formatter)
-#logging.getLogger().addHandler(color_handler)
+# color_handler.setFormatter(formatter)
+# logging.getLogger().addHandler(color_handler)
 logging.getLogger().setLevel(level)
-RAY_DASHBOARD_IP = '172.22.180.238:6379'
 # OBJECTIVE FUNCTION TO EVALUATE
 _dummy_objective = dummy_objective
 _objective = relax_with_config
@@ -39,10 +43,8 @@ _objective = relax_with_config
 _init_method = relax_init
 # SPACE DIMENSIONS
 space_dimensions = "space.yml"
-# Directory where results should get saved
+# RESULT DIR
 result_path = "../results/"
-# Directory to models
-model_path = "../benchmark/allosteric/pre_processed/"
 # OPTIMIZER args,
 xi = 0.01
 kappa = 1.69

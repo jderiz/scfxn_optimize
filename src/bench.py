@@ -25,6 +25,10 @@ if __name__ == "__main__":
     Main execution script for Optimization run
 
     """
+
+    ##############################
+    # ARG PARSER
+    ###############################
     description = "Run optimization of Energy Function weights for some objective\n\
                     function in parallel."
     parser = argparse.ArgumentParser(description=description)
@@ -145,9 +149,12 @@ if __name__ == "__main__":
                         )
     args = parser.parse_args()
     print(args)
-    # SETUP RAY CLUSTER
 
-    if args.redis_password:
+    ########################
+    # SETUP RAY CLUSTER
+    ########################
+
+    if args.redis_password:  # On HPC we need redis_password for inter-node comm
 
         ray.init(address='auto', _redis_password=args.redis_password)
     else:
@@ -156,16 +163,19 @@ if __name__ == "__main__":
         {} nodes in total
         {} CPU resources in total
     '''.format(len(ray.nodes()), ray.cluster_resources()['CPU']))
-    if args.cores == 0:  # no cores defined
+    if args.cores == 0:  # no cores defined,
         cores = ray.cluster_resources()['CPU']
     else:
         cores = args.cores
+
     logger.debug('Running on %d cores', cores)
-    # # SIGNAL
-    # signal = SignalActor.remote()
+
     pdb = args.pdb
     target = args.target
     prot_name = pdb.split("_")[-1]  # last element is pdb name with ending
+    #########################
+    # SETUP Modules
+    #########################
     # DISTRIBUTOR
     distributor = Distributor()
     # OPTIMIZER
@@ -187,31 +197,43 @@ if __name__ == "__main__":
         cooldown=args.cooldown,
         out_dir=args.output_dir,
     )
-    for i in range(args.cycles):
-        if args.config != None:
+
+    ###################################
+    # Optimization Cycle(s)
+    ###################################
+    for cycle in range(args.cycles):
+        if args.config != None:  # when a specific config supplied dont optimize
             manager.no_optimize(
-                identify=args.id, config_path=args.config, evals=args.evals, pdb=args.pdb)
+                identify=args.id,
+                config_path=args.config,
+                evals=args.evals,
+                pdb=args.pdb)
             break
-        elif args.cycles == 1:
+        elif args.cycles == 1:  # when only once cycle
             manager.run()
             break  # make sure we leave the loop
         else:
             manager.set_pdb(pdb)
-            manager.set_cycle(i)
+            manager.set_cycle(cycle=cycle)
             # reinitialize optimizer, as we need a new one.
             manager.init_optimizer()
             result = manager.run(report=True, complete_run_batch=True)
-            # TODO: Check wether to use abs smallest or smallest in
-            # best group
 
+            # choose absolute best, group mean is important for
+            # optimizer to have some certainty of config quality
+            # and not just a lucky one
             winner_pose = prs.distributed.packed_pose.core.to_pose(
                 result.nsmallest(1, args.loss).pose.iloc[0])
             # write current_best to disk
             prs.dump_pdb(
                 winner_pose, result_path+'current_best_cycle_'+str(i)+'_'+prot_name)
-            # make pdb_path string for next iteration (same as winner_best)
+            # make pdb_path string for next iteration point to current best
             pdb = result_path+'current_best_cycle_'+str(i)+'_'+prot_name
             logger.info('FINISHED RUN %d saving result  at %s', i, pdb)
+
+    #############################
+    # SAVE AND EXIT
+    #############################
 
     # We are done so save the result and terminate the cluster/Pool
     manager.save()

@@ -17,12 +17,11 @@ class Distributor():
     def __init__(self):
         pass
 
-    def init(self, manager_callback, workers, rpc, evals, initializer):
+    def init(self, workers, rpc, evals, initializer):
         self.logger = logging.getLogger('Distributor')
         self.logger.setLevel(logging.DEBUG)
         # init batch dict with empty list for each batch
         self.batches = {}  # storing single results
-        self.manager_callback = manager_callback
         self.batch_size = rpc
         self.rpc_counter = 0
         self.futures = []  # this holds our object_refs to the worker tasks
