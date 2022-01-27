@@ -117,8 +117,6 @@ class OptimizationManager():
     def no_optimize(self, identify, evals, pdb, config_path=None):
         """RUN objective with (default)config evals times without ommptimization 
 
-        :arg1: TODO
-        :returns: TODO
 
         """
         res = self.distributor.distribute(func=self.objective, params=None,
@@ -136,6 +134,17 @@ class OptimizationManager():
             map_res[0]['config'], sum(res[self.loss] for res in map_res)/len(map_res))
 
     def make_batch(self, round_robin=False):
+        """makes a new job batch bz retrieving a new point x_i form the optimizer
+        and calling the distributors distribute function 
+
+        @param round_robin: indicate whether to distribute work round_robin 
+        over workers or if False look for idle workers
+        @type  round_robin: boolean
+
+        @return: None
+        @rtype : None
+
+        """
         self.batch_counter += 1
         config = self.optimizer.get_next_config()
         self.distributor.distribute(func=self.objective,
@@ -146,10 +155,11 @@ class OptimizationManager():
                                     run=self.batch_counter,
                                     round_robin=round_robin)
 
-    def report(self):
+    def get_results(self):
         """
-        reports the results
-        :returns: self.results
+        reports self.results
+        @return: self.results the current state of the result list
+        @rtype: pd.DataFrame 
         """
 
         if self.pandas:
@@ -165,7 +175,7 @@ class OptimizationManager():
         else:
             return self.results
 
-    def _save(self) -> bool:
+    def save(self) -> bool:
         """
             Saves the results stored in the DataFrame and reports to console
         """
@@ -208,14 +218,13 @@ class OptimizationManager():
             Runs the Manager and 
         """
         self.logger.info('RUN')
-        # map initial runs workers/rpc rpc times
+        # map initial runs workers/rpc times
 
         initial_runs = int(self.n_cores/self.rpc)
 
         for run in range(initial_runs):
             self.make_batch(round_robin=True)
         self.logger.info('INITIAL DISTRIBUTION DONE GOING TO CYCLIC')
-        # REfact
 
         # Actual RUN LOOP
 
@@ -236,7 +245,7 @@ class OptimizationManager():
                 self.make_batch()
 
         if report:
-            return self.report()
+            return self.get_results()
 
     def set_pdb(self, pdb):
         self.pdb = pdb

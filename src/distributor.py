@@ -77,7 +77,8 @@ class Distributor():
         except ray.exceptions.GetTimeoutError:
             return None  # found no idle actor
 
-    def evaluate_config(self, params, run, pdb, target, error_callback=None, callback=None, round_robin=False) -> tuple:
+    def evaluate_config(self, params, run, pdb, target, error_callback=None,
+                        callback=None, round_robin=False) -> tuple:
         # self._check_running()
 
         if round_robin:
@@ -137,14 +138,38 @@ class Distributor():
         block until batch_size tasks are completed and return their result. 
         the rest of the futures becomes the new futures list where new tasks 
         get appended to.
+
+        @param complete_run_batch: if True then the first completed configuration 
+        is returned as batch
+        @type round_robin: boolean
+
+        @param batch_size: if not complete_run_batch indicate how many results
+        should be included in the batch. usually runs_per_config many
+        @type batch_size: int
+
+        @return: result batch
+        @rtype: list
+
         """
 
+        batch_size = batch_size if batch_size else self.batch_size
+
         if complete_run_batch:
-            # TODO: figure out how to determin which run has completed
-            ready_batch, _ = ray.wait(self.run_futures[done_run])
+            # blocks until an entire run_batch is complete
+            # only sensible when runs take aprox. the same time.
+
+            for run_batch_key in self.run_futures.keys():
+                ready_batch, _ = ray.wait(
+                    self.run_futures[run_batch_key], timeout=5)
+
+                if len(ready_batch) == batch_size:  # found complete batch
+                    del self.run_futures[run_batch_key]  # delete from dict
+
+                    break
+                else:
+                    continue
         else:
-            batch_size = batch_size if batch_size else self.batch_size
-            # blocks until batch_size results are done or until a complete config run is done
+            # blocks until batch_size results are done
             ready_batch, undone = ray.wait(
                 self.futures, num_returns=batch_size)
 

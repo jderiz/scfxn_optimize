@@ -200,9 +200,10 @@ if __name__ == "__main__":
             manager.set_cycle(i)
             # reinitialize optimizer, as we need a new one.
             manager.init_optimizer()
-            result = manager.run(report=True, complete_run_batch=False)
+            result = manager.run(report=True, complete_run_batch=True)
             # TODO: Check wether to use abs smallest or smallest in
             # best group
+
             winner_pose = prs.distributed.packed_pose.core.to_pose(
                 result.nsmallest(1, args.loss).pose.iloc[0])
             # write current_best to disk
@@ -213,6 +214,6 @@ if __name__ == "__main__":
             logger.info('FINISHED RUN %d saving result  at %s', i, pdb)
 
     # We are done so save the result and terminate the cluster/Pool
-    manager._save()
+    manager.save()
     distributor.terminate_pool()
     logger.debug('FINISHED OPTIMIZATION')

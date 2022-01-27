@@ -3,6 +3,7 @@ import logging
 import pyrosetta as prs
 import ray
 
+# import objective as it cannot be pickled
 from config import _init_method, _objective, dummy_objective
 
 
@@ -32,23 +33,6 @@ class PRSActor(object):
         self.logger.debug('Actor %d evaluates run %d', self.idx, run)
 
         return _objective(config, run, pdb, target=target)
-
-    def run_batch(self, func, batch):
-        results = []
-
-        for args, kwargs in batch:
-            args = args or ()
-            kwargs = kwargs or {}
-
-            if func is None:
-                results.append(self.evaluate_config(*args, **kwargs))
-            else:
-                try:
-                    results.append(func(*args, **kwargs))
-                except Exception as e:
-                    results.append(PoolTaskError(e))
-
-        return results
 
     def shutdown(self):
         ray.actor.exit_actor()
