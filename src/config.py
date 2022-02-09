@@ -45,7 +45,7 @@ _init_method = relax_init
 space_dimensions = "space.yml"
 # RESULT DIR
 result_path = "../results/"
-# OPTIMIZER args,
+# OPTIMIZER args, higher values mean more exploration
 xi = 0.01
 kappa = 1.69
 final_xi = 0.0001

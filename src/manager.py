@@ -147,7 +147,7 @@ class OptimizationManager():
         self.batch_counter += 1
         config = self.optimizer.get_next_config()
         self.distributor.distribute(func=self.objective,
-                                    params=config,
+                                    args=config,
                                     pdb=self.pdb,
                                     target=self.target,
                                     num_workers=self.rpc,

@@ -25,7 +25,7 @@ class BayesOpt:
              evals=12, base_estimator='RF',
              random_state=5,
              acq_func_kwargs=None,
-             n_initial_points=None):
+             n_initial_points=20):
         self.logger = logging.getLogger('BayesOpt')
         self.logger.setLevel(logging.DEBUG)
         self.logger.debug('CWD %s', os.getcwd())
