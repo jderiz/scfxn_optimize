@@ -91,7 +91,11 @@ class OptimizationManager():
         # BOOKKEEPING
         self.batches = {}
         self.results = []
+
+        # INITIALIZE
         self.init_distributor()
+        self.init_optimizer()
+
 
     def init_optimizer(self):
         # OPTIMIZER
