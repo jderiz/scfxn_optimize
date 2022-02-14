@@ -29,8 +29,8 @@ class OptimizationManager():
 
     def init(self,
              loss,
-             pdb=None,
-             target=None,
+             pdb=None,     # DEPRECATED: move to args
+             target=None,  # DEPRECATED: move to args
              estimator="RF",  # "dummy" for random search
              identifier=None,  # string to identify optimization run
              optimizer=None,    # the optimizer
@@ -96,7 +96,6 @@ class OptimizationManager():
         self.init_distributor()
         self.init_optimizer()
 
-
     def init_optimizer(self):
         # OPTIMIZER
         self.optimizer.init(
@@ -123,8 +122,12 @@ class OptimizationManager():
 
         """
         # distribute work evenly over workers
-        res = self.distributor.distribute(func=self.objective, params=None,
-                                          pdb=pdb, run=1, num_workers=evals,
+        res = self.distributor.distribute(func=self.objective,
+                                          params=None,
+                                          pdb=self.pdb,
+                                          target=self.target,
+                                          run=1,
+                                          num_workers=evals,
                                           round_robin=True)
         self.results = self.distributor.get_batch(
             complete_run_batch=False, batch_size=evals)
