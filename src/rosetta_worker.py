@@ -4,7 +4,7 @@ import pyrosetta as prs
 import ray
 
 # import objective as it cannot be pickled
-from config import _init_method, _objective, dummy_objective
+from config import _init_method, _objective
 
 
 @ray.remote
