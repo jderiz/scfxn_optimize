@@ -1,8 +1,8 @@
 #!/bin/bash
 # shellcheck disable=SC2206
-#SBATCH --partition=clara-job
+#SBATCH --partition=clara-cpu
 #SBATCH --job-name=CyTst
-##SBATCH --output=out.log
+#SBATCH --output=out.log
 #SBATCH --mem-per-cpu=2G
 #SBATCH --mail-type=FAIL
 #SBATCH --mail-type=BEGIN
@@ -30,11 +30,10 @@
 ##                                             CurrentWatts=0 AveWatts=0
 ##                                                ExtSensorsJoules=n/s ExtSensorsWatts=0 ExtSensorsTemp=n/s
 ##                                                
-#SBATCH --nodes=4
-##SBATCH --ntasks=192
-#SBATCH --ntasks-per-node=1 ## Ray can manage the Rsources
-#SBATCH --cpus-per-task=62
-#SBATCH --gpus-per-task=0
+##SBATCH --nodes=16
+#SBATCH --ntasks=192
+##SBATCH --ntasks-per-node=1 ## Ray can manage the Rsources
+##SBATCH --cpus-per-task=24
 ##SBATCH --exclusive
 
 ##deprecated
@@ -74,20 +73,48 @@ ip_head=$ip:$port
 export ip_head
 echo "IP Head: $ip_head"
 
+# make array from comma separated list
+cpus_per_node=(${SLURM_JOB_CPUS_PER_NODE//,/ }) 
+echo "slurm cpn string: ${cpus_per_node[@]}"
+# parse (xN) type
+cpn=""
+for item in ${cpus_per_node[@]}
+do
+        count=${item%%(*} # delete longest match of ( from end 18(x7) --> 18 
+        #echo "count: ${count}"
+        #echo "item: ${item}"
+        if [[ $count != $item ]] # if there actually was something to delete
+        then 
+                #echo "no match"
+                repeats=${item##*x} # delete longest match of x from start 18(x7) --> 7)
+                repeats=${repeats%)*} # delete shortest match of ) from end 7) --> 7
+                #echo "repeats: ${repeats}"
+                for i in $(eval echo "{1..$repeats}") # make iterator list
+                do
+                        echo "cpn: ${cpn}"
+                        cpn="${cpn}${count} " # append count to result string
+                done
+        else
+        cpn="${cpn}${count} "
+
+        fi
+done
+cpus_per_node=(${cpn})
 if [[ ${#cpus_per_node[@]} != ${#node_arra[@]}  ]]
 then 
         echo " cpus_per_node and node_array different length"
 fi
+echo "CPUS_PER_NODE: ${cpus_per_node[@]}"
 echo "STARTING HEAD at $node_1"
 srun --nodes=1 --ntasks=1 -w "$node_1" \
-  ray start --head --include-dashboard=true --node-ip-address="$ip" --port=$port --redis-password="$redis_password" --block &
+  ray start --head --num-cpus "${cpus_per_node[0]}" --include-dashboard=true --node-ip-address="$ip" --port=$port --redis-password="$redis_password" --block &
 sleep 3
 
 worker_num=$((SLURM_JOB_NUM_NODES - 1)) #number of nodes other than the head node
 for ((i = 1; i <= worker_num; i++)); do
   node_i=${nodes_array[$i]}
   echo "STARTING WORKER $i at $node_i"
-  srun --nodes=1 --ntasks=1 -w "$node_i" ray start --address "$ip_head" --redis-password="$redis_password" --block &
+  srun --nodes=1 --ntasks=1 -w "$node_i" ray start --num-cpus "${cpus_per_node[$i]}" --address "$ip_head" --redis-password="$redis_password" --block &
   sleep 3
 done
 echo "FORWARD DASHBOARD PORT 8265 TO LOCAL MACHIN FOR DASHBOARD"
@@ -97,4 +124,4 @@ prot=$1
 prot_path=$2
 target=$3
 loss=$4
-python bench.py -e RF  -c 248 -l "$loss" -rpc 6 -evals 150 -pdb "$prot_path" -target "$target" -id optimize_RF_150_noCool_${prot} -r_pw "$redis_password"
+python bench.py -e RF  -l "$loss" -c 192 -rpc 6 -cycles 7 -evals 150 -pdb "$prot_path" -target "$target" -id optimize_cyclic_7_${prot}_${loss} -cooldown -r_pw "$redis_password"
