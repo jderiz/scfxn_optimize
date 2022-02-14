@@ -4,7 +4,6 @@ import os
 import random
 import time
 
-import pandas as pd
 import pyrosetta as prs
 import ray
 from pyrosetta import Pose, get_fa_scorefxn

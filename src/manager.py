@@ -122,10 +122,13 @@ class OptimizationManager():
 
 
         """
+        # distribute work evenly over workers
         res = self.distributor.distribute(func=self.objective, params=None,
-                                          pdb=pdb, run=1, num_workers=evals, round_robin=True)
-        self.results = self.distributor.get_batch(batch_size=evals)
-        self._save()
+                                          pdb=pdb, run=1, num_workers=evals,
+                                          round_robin=True)
+        self.results = self.distributor.get_batch(
+            complete_run_batch=False, batch_size=evals)
+        self.save()
 
     def log_res_and_update_optimizer(self, map_res: list = None, make_batch: bool = True) -> None:
         self.logger.info('RUN %d DONE', map_res[0]['run'])
