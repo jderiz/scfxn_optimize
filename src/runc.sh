@@ -1,7 +1,7 @@
 #!/bin/bash
 # shellcheck disable=SC2206
 #SBATCH --partition=clara-job
-#SBATCH --job-name=CyTst
+#SBATCH --job-name=CrB
 ##SBATCH --output=out.log
 #SBATCH --mem-per-cpu=2G
 #SBATCH --mail-type=FAIL
@@ -97,4 +97,4 @@ prot=$1
 prot_path=$2
 target=$3
 loss=$4
-python bench.py -e RF  -l "$loss" -c 192 -rpc 6 -evals 150 -pdb "$prot_path" -target "$target" -id waitFullBatch_150_${prot} -r_pw "$redis_password"
+python bench.py -e RF  -l "$loss" -crb  -c 248 -rpc 6 -evals 150 -pdb "$prot_path" -target "$target" -id waitFullRun_150_${prot} -r_pw "$redis_password"

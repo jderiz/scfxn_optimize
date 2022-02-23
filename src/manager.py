@@ -102,7 +102,7 @@ class OptimizationManager():
             dimensions=config.space_dimensions,
             base_estimator=self.base_estimator,
             acq_func_kwargs=config.acq_func_kwargs,
-            n_initial_points=int(self.n_cores//self.rpc),
+            n_initial_points=int(self.n_cores // self.rpc),
             cooldown=self.cooldown,
             evals=self.evals
         )
