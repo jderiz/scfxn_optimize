@@ -38,7 +38,6 @@ class OptimizationManager():
              test_run=False,  # if test run eval dummy_objective instead of real
              evals=200,  # configuration evaluations on the objective
              rpc=8,  # runs_per_config n_calls/rpc = evals
-             out_dir="results",  # where results get saved
              warm_start=None,  # continue previous optimization run
              n_cores=None,
              cooldown=True,  # cooldown exploration to exploitation

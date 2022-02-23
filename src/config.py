@@ -1,10 +1,11 @@
 """
 CONFIGURATION
 Import your objective function. If you have an initializer function to run on 
-worker instantiation also import it here and assign it to the correspinging 
+worker instantiation also import it here and assign it to the corresponding
 variables.
 Set custom for xi and kappa if you whish else leave them at the default.
-Specify a path where your results should get saved to 
+Specify a path where your results should get saved to.
+
 """
 import logging
 
@@ -20,7 +21,7 @@ level = logging.DEBUG
 logging.getLogger().setLevel(level)
 # OBJECTIVE FUNCTION TO EVALUATE
 _objective = relax_with_config
-# SETUP THAT IS BEING DONE ONLY ONCE ON EACH CPU e.g initializing rosetta etc.
+# SETUP THAT IS BEING DONE ONLY ONCE ON EACH CPU e.g loading large files
 _init_method = relax_init
 # SPACE DIMENSIONS
 space_dimensions = "space.yml"

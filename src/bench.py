@@ -74,13 +74,6 @@ if __name__ == "__main__":
         help="how many evaluations per configuration",
     )
     parser.add_argument(
-        "-o",
-        "--output-dir",
-        type=str,
-        default="results",
-        help="directory where the results get saved",
-    )
-    parser.add_argument(
         "-w",
         "--warm-start-file",
         help="specifies a pickled object that holds information of previous runs and can be used to warm start the optimization by telling the optimizer about those points",
@@ -152,7 +145,15 @@ if __name__ == "__main__":
         "-crb",
         "--complete-run-batch",
         default=False,
-        action="store_true")
+        action="store_true",
+        help="if set, the distributor only returns once a complete run has completed. ")
+
+    parser.add_argument(
+        "-fargs",
+        "--func-args",
+        nargs='*',
+
+    )
     args = parser.parse_args()
     print(args)
 
@@ -201,7 +202,6 @@ if __name__ == "__main__":
         evals=int(args.evals),
         rpc=int(args.runs_per_config),
         cooldown=args.cooldown,
-        out_dir=args.output_dir,
     )
 
     ###################################
