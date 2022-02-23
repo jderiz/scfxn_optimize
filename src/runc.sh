@@ -97,4 +97,4 @@ prot=$1
 prot_path=$2
 target=$3
 loss=$4
-python bench.py -config ""  -l "$loss" -c 40 -evals 40 -pdb "$prot_path" -target "$target" -id FRB_40_${prot} -r_pw "$redis_password"
+python bench.py -e RF  -l "$loss" -c 192 -rpc 6 -evals 150 -pdb "$prot_path" -target "$target" -id waitFullBatch_150_${prot} -r_pw "$redis_password"
