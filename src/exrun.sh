@@ -1,43 +1,23 @@
 #!/bin/bash
 # shellcheck disable=SC2206
-#SBATCH --partition=clara-cpu
+#SBATCH --partition=clara-job
 #SBATCH --job-name=CyTst
 #SBATCH --output=out.log
-#SBATCH --mem-per-cpu=2G
+#SBATCH --mem-per-cpu=1G
 #SBATCH --mail-type=FAIL
 #SBATCH --mail-type=BEGIN
 #SBATCH --mail-type=END
 #SBATCH --mail-user=jannis.deriz@gmail.com
-#SBATCH --time=48:00:00
+#SBATCH --time=18:00:00
 
 ## This script works for any number of nodes, Ray will find and manage all resources, if --exclusive
 ## Its Also possibe to only supply the number of cores to be used. IF this is the case one has to specifically pass the --cores(-c) flag to the script, else the script tries to distribute over all cores of each node that is being used.
-##NodeName=galaxy120 Arch=x86_64 CoresPerSocket=6
-##   CPUAlloc=24 CPUTot=24 CPULoad=12.02
-##      AvailableFeatures=(null)
-##         ActiveFeatures=(null)
-##            Gres=(null)
-##               NodeAddr=galaxy120 NodeHostName=galaxy120 Version=21.08.5
-##                  OS=Linux 3.10.0-1160.49.1.el7.x86_64 #1 SMP Tue Nov 30 15:51:32 UTC 2021
-##                     RealMemory=125952 AllocMem=36864 FreeMem=84876 Sockets=2 Boards=1
-##                        State=ALLOCATED ThreadsPerCore=2 TmpDisk=0 Weight=1 Owner=N/A MCS_label=N/A
-##                           Partitions=galaxy-job
-##                              BootTime=2022-01-12T07:23:44 SlurmdStartTime=2022-01-12T07:26:24
-##                                 LastBusyTime=2022-01-25T03:37:42
-##                                    CfgTRES=cpu=24,mem=123G,billing=24
-##                                       AllocTRES=cpu=24,mem=36G
-##                                          CapWatts=n/a
-##                                             CurrentWatts=0 AveWatts=0
-##                                                ExtSensorsJoules=n/s ExtSensorsWatts=0 ExtSensorsTemp=n/s
-##                                                
-##SBATCH --nodes=16
-#SBATCH --ntasks=192
-##SBATCH --ntasks-per-node=1 ## Ray can manage the Rsources
-##SBATCH --cpus-per-task=24
-##SBATCH --exclusive
 
-##deprecated
-###source /nfs/cluster/easybuild/software/Anaconda3/2020.02/etc/profile.d/conda.sh
+## ASK FOR CPUS AND FIND CORRECT NODES ETC LATER
+#SBATCH --ntasks=256
+#SBATCH --gpus-per-task=0
+#SBATCH --cpus-per-task=1
+
 # Load conda env
 module load Anaconda3
 source /software/all/Anaconda3/2020.02/etc/profile.d/conda.sh
@@ -124,4 +104,4 @@ prot=$1
 prot_path=$2
 target=$3
 loss=$4
-python bench.py -e RF  -l "$loss" -c 192 -rpc 6 -cycles 7 -evals 150 -pdb "$prot_path" -target "$target" -id optimize_cyclic_7_${prot}_${loss} -cooldown -r_pw "$redis_password"
+python bench.py -e RF  -l "$loss" -c 256 -rpc 6 -evals 150 -pdb "$prot_path" -target "$target" -id test_exrun_${prot}_${loss} -cooldown -r_pw "$redis_password"
