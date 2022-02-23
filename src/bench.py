@@ -142,11 +142,17 @@ if __name__ == "__main__":
     parser.add_argument("-dict_out", action="store_true",
                         help="save result in dict format rather then pandas DataFrame")
 
-    parser.add_argument("-cooldown",
-                        action='store_true',
-                        help='specifies if cooldown should be applied to the explore exploit params and if so linnear or logarithmic',
-                        default=False
-                        )
+    parser.add_argument(
+        "-cooldown",
+        action='store_true',
+        help='specifies if cooldown should be applied to the explore exploit params and if so linnear or logarithmic',
+        default=False
+    )
+    parser.add_argument(
+        "-crb",
+        "--complete-run-batch",
+        default=False,
+        action="store_true")
     args = parser.parse_args()
     print(args)
 
@@ -210,14 +216,15 @@ if __name__ == "__main__":
                 pdb=args.pdb)
             break
         elif args.cycles == 1:  # when only once cycle
-            manager.run()
+            manager.run(complete_run_batch=args.complete_run_batch)
             break  # make sure we leave the loop
         else:
             manager.set_pdb(pdb)
             manager.set_cycle(cycle=cycle)
             # reinitialize optimizer, as we need a new one.
             manager.init_optimizer()
-            result = manager.run(report=True, complete_run_batch=True)
+            result = manager.run(
+                report=True, complete_run_batch=args.complete_run_batch)
 
             # choose absolute best, group mean is important for
             # optimizer to have some certainty of config quality

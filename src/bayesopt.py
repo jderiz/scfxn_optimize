@@ -40,6 +40,7 @@ class BayesOpt:
             exit()
         self.opti: Optimizer = Optimizer(
             base_estimator=base_estimator,
+            n_initial_points=n_initial_points,
             dimensions=dimensions,
             random_state=random_state,
             acq_func_kwargs=acq_func_kwargs)

@@ -158,8 +158,9 @@ class Distributor():
             # only sensible when runs take aprox. the same time.
 
             for run_batch_key in self.run_futures.keys():
+                # wait until one run finished
                 ready_batch, _ = ray.wait(
-                    self.run_futures[run_batch_key], timeout=5)
+                    self.run_futures[run_batch_key], timeout=3)
 
                 if len(ready_batch) == batch_size:  # found complete batch
                     del self.run_futures[run_batch_key]  # delete from dict
@@ -171,9 +172,9 @@ class Distributor():
             # blocks until batch_size results are done
             ready_batch, undone = ray.wait(
                 self.futures, num_returns=batch_size)
+            self.futures = undone  # set futures to the remaining
 
         batch = ray.get(ready_batch)
-        self.futures = undone  # set futures to the remaining
 
         return batch
 

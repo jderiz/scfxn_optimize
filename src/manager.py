@@ -134,6 +134,10 @@ class OptimizationManager():
         self.save()
 
     def log_res_and_update_optimizer(self, map_res: list = None, make_batch: bool = True) -> None:
+        """
+        Append the result obtained from the distributor to the results list.
+        Calls optimizer to incoorporate the new Info form results.
+        """
         self.logger.info('RUN %d DONE', map_res[0]['run'])
 
         for r in map_res:
@@ -205,6 +209,7 @@ class OptimizationManager():
                 pickle.dump(df, file)
         else:
             self.logger.info('len results %d', len(self.results))
+        # TIME DELTA
         tdelt = time.time()-self.start_time
         days = tdelt//86400
         tdelt = tdelt - (days*86400)
