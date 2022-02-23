@@ -228,7 +228,6 @@ if __name__ == "__main__":
 
             # choose absolute best, group mean is important for
             # optimizer to have some certainty of config quality
-            # and not just a lucky one
             winner_pose = prs.distributed.packed_pose.core.to_pose(
                 result.nsmallest(1, args.loss).pose.iloc[0])
             # write current_best to disk
