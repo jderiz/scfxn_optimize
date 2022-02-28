@@ -68,20 +68,10 @@ class OptimizationManager():
         self.logger = logging.getLogger('OptimizationManager')
         self.logger.setLevel(logging.DEBUG)
         self.logger.debug('CWD %s', os.getcwd())
-        # TEST CASE
 
-        if test_run:
-            self.logger.info('TEST RUN')
-            self.objective = config._dummy_objective
-            config._init_method = None
-            config._objective = config._dummy_objective
-            self.loss_value = 'score'
-            self.init_method = None
-            self.pandas = False
-            self.base_estimator = 'dummy'
-        else:
-            self.objective = config._objective
-            self.init_method = config._init_method
+        # OBJECTIVE
+        self.objective = config._objective
+        self.init_method = config._init_method
 
         self.logger.debug('CHECK SERIALIZABLE ACTOR INITIALIZER FUNCTION')
         inspect_serializability(self.init_method, 'Initializer Method')
@@ -176,7 +166,7 @@ class OptimizationManager():
         """
 
         if self.pandas:
-            # print(self.results)
+            print(self.results)
             df = pd.DataFrame(self.results)
             # df['cycle'] = self.current_cycle
             print(df)
@@ -193,21 +183,6 @@ class OptimizationManager():
             Saves the results stored in the DataFrame and reports to console
 
         """
-        self.logger.debug('DONE \n test %s \n results %d',
-                          self.test_run, len(self.results))
-
-        if not self.test_run:
-            if self.pandas:
-                # save pandas DataFrame with correct column names
-                df = pd.DataFrame(self.results)
-                self.logger.debug(df)
-            with open(
-                "{}{}.pkl".format(config.result_path, self.identify),
-                "wb",
-            ) as file:
-                pickle.dump(df, file)
-        else:
-            self.logger.info('len results %d', len(self.results))
         # TIME DELTA
         tdelt = time.time()-self.start_time
         days = tdelt//86400
@@ -221,6 +196,15 @@ class OptimizationManager():
             len(self.results), took)
         self.distributor.report()
         self.optimizer.report()
+
+        self.logger.debug('DONE \n test %s \n results %d',
+                          self.test_run, len(self.results))
+
+        with open(
+            "{}{}.pkl".format(config.result_path, self.identify),
+            "wb",
+        ) as file:
+            pickle.dump(self.get_results(), file)
 
     def add_res_to_batch(self, result, batch_number):
         """adds a single result to a bat
@@ -241,7 +225,8 @@ class OptimizationManager():
 
     def run(self, report=False, complete_run_batch=False) -> None:
         """
-            Runs the Manager and 
+            Runs the Optimization procedure. This function blocks until
+            optimization is complete.
         """
         self.logger.info('RUN')
         # map initial runs workers/rpc times

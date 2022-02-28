@@ -36,7 +36,7 @@
 #SBATCH --cpus-per-task=62
 #SBATCH --gpus-per-task=0
 ##SBATCH --exclusive
-
+ncpu=62
 ##deprecated
 ###source /nfs/cluster/easybuild/software/Anaconda3/2020.02/etc/profile.d/conda.sh
 # Load conda env
@@ -80,14 +80,14 @@ then
 fi
 echo "STARTING HEAD at $node_1"
 srun --nodes=1 --ntasks=1 -w "$node_1" \
-  ray start --head --include-dashboard=true --node-ip-address="$ip" --port=$port --redis-password="$redis_password" --block &
+  ray start --head --include-dashboard=true --node-ip-address="$ip" --num-cpus ${ncpu} --port=$port --redis-password="$redis_password" --block &
 sleep 3
 
 worker_num=$((SLURM_JOB_NUM_NODES - 1)) #number of nodes other than the head node
 for ((i = 1; i <= worker_num; i++)); do
   node_i=${nodes_array[$i]}
   echo "STARTING WORKER $i at $node_i"
-  srun --nodes=1 --ntasks=1 -w "$node_i" ray start --address "$ip_head" --redis-password="$redis_password" --block &
+  srun --nodes=1 --ntasks=1 -w "$node_i" ray start --address "$ip_head" --num-cpus ${ncpu} --redis-password="$redis_password" --block &
   sleep 3
 done
 echo "FORWARD DASHBOARD PORT 8265 TO LOCAL MACHIN FOR DASHBOARD"
