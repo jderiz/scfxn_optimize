@@ -18,6 +18,8 @@ from design import initialize as design_init
 
 # LOG LEVEL
 level = logging.DEBUG
+handler = logging.StreamHandler()
+logging.getLogger().addHandler(handler)
 logging.getLogger().setLevel(level)
 # OBJECTIVE FUNCTION TO EVALUATE
 _objective = relax_with_config

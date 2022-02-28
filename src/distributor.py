@@ -78,7 +78,6 @@ class Distributor():
 
     def evaluate_config(self, params, run, pdb, target, error_callback=None,
                         callback=None, round_robin=False) -> tuple:
-        # self._check_running()
 
         if round_robin:
             actor_idx = self._round_robin_index_next()
@@ -89,14 +88,10 @@ class Distributor():
                 actor_idx = self._round_robin_index_next()
 
         if actor_idx != None:
-            # self.logger.debug("Eval on Actor %d", actor_idx)
+            self.logger.debug("Eval on Actor %d", actor_idx)
             actor, count = self._actor_pool[actor_idx]
             object_ref = actor.evaluate_config.remote(
                 params, run, pdb, target=target)
-            # # Use ResultThread for error propagation
-            # _result_thread = ResultThread([object_ref], True,
-            #                               callback, error_callback)
-            # _result_thread.start()
 
             return object_ref
         else:
@@ -156,25 +151,32 @@ class Distributor():
         if complete_run_batch:
             # blocks until an entire run_batch is complete
             # only sensible when runs take aprox. the same time.
+            self.logger.debug('Collect complete_run_batch')
+            wait = True
 
-            for run_batch_key in self.run_futures.keys():
-                # wait until one run finished
-                ready_batch, _ = ray.wait(
-                    self.run_futures[run_batch_key], timeout=3)
+            while wait:
+                for run_batch_key in self.run_futures.keys():
+                    # try the run futures one after another
+                    ready_batch, undone = ray.wait(
+                        self.run_futures[run_batch_key],
+                        timeout=3, num_returns=batch_size)
 
-                if len(ready_batch) == batch_size:  # found complete batch
-                    del self.run_futures[run_batch_key]  # delete from dict
+                    if len(ready_batch) == batch_size:  # found complete batch
+                        del self.run_futures[run_batch_key]  # delete from dict
+                        wait = False  # exit while loop, as complete run batch found
 
-                    break
-                else:
-                    continue
+                        break  # exit for-loop
+                    else:
+                        continue
         else:
             # blocks until batch_size results are done
             ready_batch, undone = ray.wait(
                 self.futures, num_returns=batch_size)
             self.futures = undone  # set futures to the remaining
-
+        self.logger.debug('READY: %s', ready_batch)
+        self.logger.debug('UNDONE: %s', undone)
         batch = ray.get(ready_batch)
+        self.logger.debug(batch)
 
         return batch
 
