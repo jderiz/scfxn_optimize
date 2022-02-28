@@ -195,7 +195,7 @@ class OptimizationManager():
         """
         self.logger.debug('DONE \n test %s \n results %d',
                           self.test_run, len(self.results))
-
+        # SAVE RESULTS
         if not self.test_run:
             if self.pandas:
                 # save pandas DataFrame with correct column names
