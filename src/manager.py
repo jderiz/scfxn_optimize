@@ -120,6 +120,7 @@ class OptimizationManager():
                                           round_robin=True)
         self.results = self.distributor.get_batch(
             complete_run_batch=False, batch_size=evals)
+        self.identify = identify
         self.save()
 
     def log_res_and_update_optimizer(self, map_res: list = None, make_batch: bool = True) -> None:

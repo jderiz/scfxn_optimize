@@ -214,7 +214,14 @@ if __name__ == "__main__":
                 config_path=args.config,
                 evals=args.evals,
                 pdb=args.pdb)
-            break
+            result = manger.get_result()
+            winner_pose = prs.distributed.packed_pose.core.to_pose(
+                result.nsmallest(1, args.loss).pose.iloc[0])
+            # write current_best to disk
+            prs.dump_pdb(
+                winner_pose, result_path+'current_best_cycle_'+str(i)+'_'+prot_name)
+            # make pdb_path string for next iteration point to current best
+            pdb = result_path+'current_best_cycle_'+str(i)+'_'+prot_name
         elif args.cycles == 1:  # when only once cycle
             manager.run(complete_run_batch=args.complete_run_batch)
             break  # make sure we leave the loop

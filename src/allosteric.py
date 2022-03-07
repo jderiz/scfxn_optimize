@@ -114,7 +114,8 @@ def relax_with_config(fa_reps, run, pdb, target):
         svec.append("endrepeat")
         # make relax use the script
         relax_protocol.set_script_from_lines(svec)
-    # RUN RELAX
+    
+    # RUN RELAX, If no fa_reps, then this is default FastRelax
     relax_protocol.apply(work_pose)
 
     rmsd = prs.rosetta.core.scoring.CA_rmsd(

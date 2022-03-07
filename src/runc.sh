@@ -14,14 +14,14 @@
 ## Its Also possibe to only supply the number of cores to be used. 
 ## IF this is the case one has to specifically pass the --cores(-c) flag to the script, else the script tries to distribute over all cores of each node that is being used.
 
-#SBATCH --nodes=4
+#SBATCH --nodes=1
 ##SBATCH --ntasks=192
 #SBATCH --ntasks-per-node=1 ## Ray can manage the Rsources
-#SBATCH --cpus-per-task=62
+#SBATCH --cpus-per-task=6
 ##SBATCH --gpus-per-task=0
 ##SBATCH --exclusive
 
-ncpu=62
+ncpu=6
 
 # Load conda env
 module load Anaconda3
@@ -81,4 +81,4 @@ prot=$1
 prot_path=$2
 target=$3
 loss=$4
-python bench.py -e dummy  -l "$loss" -c 248 -rpc 6 -evals 400 -pdb "$prot_path" -target "$target" -id long_400_dummy_${prot} -r_pw "$redis_password"
+python bench.py -config ""  -l "$loss" -cycles 7 -c 6 -rpc 6 -evals 1 -pdb "$prot_path" -target "$target" -id FastRelax_cycles_7_${prot} -r_pw "$redis_password"
