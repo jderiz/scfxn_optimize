@@ -110,7 +110,6 @@ class OptimizationManager():
 
 
         """
-        self.start_time = time.time()
         # distribute work evenly over workers
         res = self.distributor.distribute(func=self.objective,
                                           params=None,

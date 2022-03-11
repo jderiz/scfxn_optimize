@@ -211,6 +211,7 @@ if __name__ == "__main__":
     for cycle in range(args.cycles):
         if args.config != None:  # when a specific config supplied dont optimize
             manager.set_cycle(cycle)
+            manager.set_pdb(pdb)
             manager.no_optimize(
                 config_path=args.config,
                 evals=args.evals,
