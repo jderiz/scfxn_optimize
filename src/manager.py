@@ -105,15 +105,16 @@ class OptimizationManager():
             evals=self.evals,
             initializer=self.init_method)
 
-    def no_optimize(self, evals, pdb, run, config_path=None):
+    def no_optimize(self, evals, run, pdb=None, config_path=None):
         """RUN objective with (default)config evals times without ommptimization 
 
 
         """
+        pdb = pdb if pdb else self.pdb
         # distribute work evenly over workers
         res = self.distributor.distribute(func=self.objective,
                                           params=None,
-                                          pdb=self.pdb,
+                                          pdb=pdb,
                                           target=self.target,
                                           run=run,
                                           num_workers=evals,
