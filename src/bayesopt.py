@@ -43,6 +43,7 @@ class BayesOpt:
             n_initial_points=n_initial_points,
             dimensions=dimensions,
             random_state=random_state,
+            acq_func="gp_hedge",
             acq_func_kwargs=acq_func_kwargs)
         self.cooldown = cooldown
         self.evals = evals

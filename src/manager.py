@@ -105,23 +105,23 @@ class OptimizationManager():
             evals=self.evals,
             initializer=self.init_method)
 
-    def no_optimize(self, identify, evals, pdb, config_path=None):
+    def no_optimize(self, evals, pdb, run, config_path=None):
         """RUN objective with (default)config evals times without ommptimization 
 
 
         """
+        self.start_time = time.time()
         # distribute work evenly over workers
         res = self.distributor.distribute(func=self.objective,
                                           params=None,
                                           pdb=self.pdb,
                                           target=self.target,
-                                          run=1,
+                                          run=run,
                                           num_workers=evals,
                                           round_robin=True)
-        self.results = self.distributor.get_batch(
+        result = self.distributor.get_batch(
             complete_run_batch=False, batch_size=evals)
-        self.identify = identify
-        self.save()
+        self._add_result(result)
 
     def log_res_and_update_optimizer(self, map_res: list = None, make_batch: bool = True) -> None:
         """
@@ -130,15 +130,26 @@ class OptimizationManager():
         """
         self.logger.info('RUN %d DONE', map_res[0]['run'])
 
+        if map_res is not None:
+            self._add_result(map_res)
+            self.update_optimizer(map_res)
+        elif map_res is None:
+            raise Exception('No Result was supplied')
+
+    def _add_result(self, map_res: list) -> None:
+
         for r in map_res:
             r['cycle'] = self.current_cycle
         self.results.extend(map_res)
+
+    def update_optimizer(self, map_res):
+
         self.optimizer.handle_result(
             map_res[0]['config'], sum(res[self.loss] for res in map_res)/len(map_res))
 
     def make_batch(self, round_robin=False):
-        """makes a new job batch by retrieving a new point x_i form the optimizer
-        and calling the distributors distribute function 
+        """makes a new job batch by retrieving a new configuration c_i form the optimizer
+        and calling the distributors distribute function
 
         @param round_robin: indicate whether to distribute work round_robin 
         over workers or if False look for idle workers
@@ -167,10 +178,9 @@ class OptimizationManager():
         """
 
         if self.pandas:
-            print(self.results)
             df = pd.DataFrame(self.results)
             # df['cycle'] = self.current_cycle
-            print(df)
+            self.logger.debug(df)
 
             if df.empty:
                 raise Exception("Result DataFrame is empty")
