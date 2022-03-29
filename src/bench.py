@@ -8,7 +8,7 @@ import pyrosetta as prs
 import ray
 
 from bayesopt import BayesOpt
-from config import result_path
+from config import pose_dir, result_path
 from distributor import Distributor
 from manager import OptimizationManager
 
@@ -211,7 +211,7 @@ if __name__ == "__main__":
     for cycle in range(args.cycles):
         if args.config != None:  # when a specific config supplied dont optimize
             manager.set_cycle(cycle)
-            manager.set_pdb(pdb)
+            # manager.set_pdb(pdb)
             manager.no_optimize(
                 config_path=args.config,
                 evals=args.evals,
@@ -222,9 +222,9 @@ if __name__ == "__main__":
                 result.where(result.run == cycle).nsmallest(1, args.loss).pose.iloc[0])
             # write current_best to disk
             prs.dump_pdb(
-                winner_pose, result_path+'current_best_cycle_'+str(cycle)+'_'+prot_name)
+                winner_pose, pose_dir+'current_best_cycle_'+str(cycle)+'_'+prot_name)
             # make pdb_path string for next iteration point to current best
-            pdb = result_path+'current_best_cycle_'+str(cycle)+'_'+prot_name
+            pdb = pose_dir+'current_best_cycle_'+str(cycle)+'_'+prot_name
         elif args.cycles == 1:  # when only once cycle
             manager.run(complete_run_batch=args.complete_run_batch)
             break  # make sure we leave the loop
@@ -242,9 +242,9 @@ if __name__ == "__main__":
                 result.nsmallest(1, args.loss).pose.iloc[0])
             # write current_best to disk
             prs.dump_pdb(
-                winner_pose, result_path+'current_best_cycle_'+str(cycle)+'_'+prot_name)
+                winner_pose, pose_dir+'current_best_cycle_'+str(cycle)+'_'+prot_name)
             # make pdb_path string for next iteration point to current best
-            pdb = result_path+'current_best_cycle_'+str(cycle)+'_'+prot_name
+            pdb = pose_dir+'current_best_cycle_'+str(cycle)+'_'+prot_name
             logger.info('FINISHED RUN %d saving result  at %s', i, pdb)
 
     #############################

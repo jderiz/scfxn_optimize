@@ -28,7 +28,8 @@ _init_method = relax_init
 # SPACE DIMENSIONS
 space_dimensions = "space.yml"
 # RESULT DIR
-result_path = "../results/"
+result_path = "/home/iwe7/scfxn_optimize/results/"
+pose_dir = "/home/iwe7/scfxn_optimize/results/poses/"
 # OPTIMIZER args, higher values mean more exploration
 xi = 0.01
 kappa = 1.69

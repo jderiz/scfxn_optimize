@@ -110,7 +110,7 @@ class OptimizationManager():
 
 
         """
-        pdb = pdb if pdb else self.pdb
+        pdb = pdb if pdb is not None else self.pdb
         # distribute work evenly over workers
         res = self.distributor.distribute(func=self.objective,
                                           params=None,
@@ -210,12 +210,18 @@ class OptimizationManager():
 
         self.logger.debug('DONE \n test %s \n results %d',
                           self.test_run, len(self.results))
-
+        result = self.get_results()
         with open(
             "{}{}.pkl".format(config.result_path, self.identify),
             "wb",
-        ) as file:
-            pickle.dump(self.get_results(), file)
+        ) as file:  # save all except pose
+            pickle.dump(result.drop('pose', axis=1), file)
+
+        with open(
+            "{}{}.pkl".format(config.pose_dir, self.identify),
+            "wb",
+        ) as file:  # save pose
+            pickle.dump(result.pose, file)
 
     def add_res_to_batch(self, result, batch_number):
         """adds a single result to a bat

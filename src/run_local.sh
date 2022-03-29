@@ -15,5 +15,5 @@ echo "PDB:" ${prot}
 echo "run $prot_path to ${bench_pairs[$prot_path]}"
 # run sbatch with correct paths
 # get print availiable cpus
-python bench.py -config ""  -l ca_rmsd -cycles 7 -c 20 -evals 20 -pdb "../benchmark/allosteric/pre_processed/${prot_path}" -target "../benchmark/allosteric/pre_processed/${bench_pairs[$prot_path]}" -id FastRelax_cycles_7_${prot} 
+python bench.py -config ""  -l ca_rmsd -cycles 7 -c 20 -evals 20 -pdb "/home/iwe7/scfxn_optimize/benchmark/allosteric/pre_processed/${prot_path}" -target "/home/iwe7/scfxn_optimize/benchmark/allosteric/pre_processed/${bench_pairs[$prot_path]}" -id FastRelax_cycles_7_${prot} 
 done
