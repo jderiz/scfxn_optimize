@@ -2,6 +2,7 @@ import logging
 
 import pyrosetta as prs
 import ray
+from ray.util import inspect_serializability
 
 # import objective as it cannot be pickled
 from config import _init_method, _objective
@@ -16,16 +17,24 @@ class PRSActor(object):
         self.arg = arg
         prs.init()
 
-    def __init__(self, initializer=None, initargs=None, idx=None):
-        if initializer:
+    def __init__(self, initargs=None, idx=None):
+        """ Initialize the actor """
+
+        if _init_method:  # if initis set, call it with initargs
             initargs = initargs or ()
             _init_method(*initargs)
         self.idx = idx
         self.logger = logging.getLogger(__name__)
+        # self.logger.debug('CHECK SERIALIZABLE OBJECTIVES FUNCTIONS')
+        # inspect_serializability(_init_method, 'Initializer Method')
+        # inspect_serializability(_objective, 'Objective Method')
 
     def ping(self):
-        # Used to wait for this actor to be initialized.
-        # Also used to check if busy
+        """
+        Ping an actor instance.
+        Used to check if the actor is still alive.
+        Also used to check if actor was initialized and is ready to receive work
+        """
 
         return self.idx
 

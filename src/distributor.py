@@ -17,7 +17,7 @@ class Distributor():
     def __init__(self):
         pass
 
-    def init(self, workers, rpc, evals, initializer):
+    def init(self, workers, rpc, evals, init_args=None):
         self.logger = logging.getLogger('Distributor')
         self.logger.setLevel(logging.DEBUG)
         # init batch dict with empty list for each batch
@@ -27,8 +27,7 @@ class Distributor():
         self.futures = []  # this holds our object_refs to the worker tasks
         self.run_futures = {}
         # MAKE POOL
-        self._initializer = initializer
-        self._initargs = None
+        self._initargs = init_args
         self._start_actor_pool(workers)
         self.next_rr_idx = 0
         # self.mp = Pool(processes=workers, initializer=initializer)
@@ -50,9 +49,9 @@ class Distributor():
         # are exclusive on cpu
 
         if num_cpus:
-            return(PRSActor.options(num_cpus=1).remote(self._initializer, self._initargs, idx=idx), 0)
+            return(PRSActor.options(num_cpus=1).remote(self._initargs, idx=idx), 0)
         else:
-            return (PRSActor.remote(self._initializer, self._initargs, idx=idx), 0)
+            return (PRSActor.remote(self._initargs, idx=idx), 0)
 
     def _random_actor_index(self):
         return random.randrange(len(self._actor_pool))
@@ -76,7 +75,7 @@ class Distributor():
         except ray.exceptions.GetTimeoutError:
             return None  # found no idle actor
 
-    def evaluate_config(self, fargs, run, error_callback=None,
+    def evaluate_config(self, config, fargs, run, error_callback=None,
                         callback=None, round_robin=False) -> tuple:
 
         if round_robin:
@@ -91,7 +90,7 @@ class Distributor():
             self.logger.debug("Eval on Actor %d", actor_idx)
             actor, count = self._actor_pool[actor_idx]
             object_ref = actor.evaluate_config.remote(
-                fargs, run)
+                config, fargs, run)
 
             return object_ref
         else:
@@ -156,7 +155,7 @@ class Distributor():
             self.logger.debug('Collect complete_run_batch')
             wait = True
 
-            while wait:
+            while wait:  # wait a run is complete, NOTE: this is a blocking call
                 for run_batch_key in self.run_futures.keys():
                     # try the run futures one after another
                     ready_batch, undone = ray.wait(
@@ -184,11 +183,6 @@ class Distributor():
 
     def _error_callback(self, msg):
         self.logger.error(msg)
-
-    def report(self):
-        self.logger.info('TERMINATE Pool')
-        self.logger.info('Outstanding Futures %d::: %s',
-                         len(self.futures), self.futures)
 
     def terminate_pool(self):
         for a, c in self._actor_pool:

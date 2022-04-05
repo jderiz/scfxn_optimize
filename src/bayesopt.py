@@ -91,6 +91,3 @@ class BayesOpt:
         """
         self.opti.tell(x, y)
         self.updates += 1
-
-    def report(self):
-        self.logger.info('Received %d Updates', self.updates)

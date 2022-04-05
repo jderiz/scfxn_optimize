@@ -58,10 +58,6 @@ if __name__ == "__main__":
         action="store_true",
         help="can be used as switch to evaluate dummy objctive",
     )
-    parser.add_argument("-pdb",
-                        type=str,
-                        default=None,
-                        help="specify which protein should be used")
     parser.add_argument(
         "-evals",
         type=int,
@@ -116,12 +112,6 @@ if __name__ == "__main__":
         default=None,
         type=str,
         help="Identity string for storing the results")
-    parser.add_argument(
-        "-target",
-        default=None,
-        type=str,
-        help='Pdb file to compare against'
-    )
     parser.add_argument(
         "-cycles",
         default=1,
@@ -178,10 +168,7 @@ if __name__ == "__main__":
 
     logger.debug('Running on %d cores', cores)
 
-    pdb = args.pdb
-    target = args.target
     # second last element is pdb name,
-    prot_name = pdb.split("/")[-1].split("_")[-1]
     #########################
     # SETUP Modules
     #########################
@@ -193,7 +180,7 @@ if __name__ == "__main__":
     manager = OptimizationManager()
     manager.init(
         args.loss,
-        fargs=args.fargs,
+        fargs=args.func_args,
         distributor=distributor,
         optimizer=optimizer,
         estimator=args.estimator,
@@ -211,25 +198,23 @@ if __name__ == "__main__":
     for cycle in range(args.cycles):
         if args.config != None:  # when a specific config supplied dont optimize
             manager.set_cycle(cycle)
-            # manager.set_pdb(pdb)
             manager.no_optimize(
                 config_path=args.config,
                 evals=args.evals,
-                fargs=args.fargs,
                 run=cycle)
             result = manager.get_results()
             winner_pose = prs.distributed.packed_pose.core.to_pose(  # get best in cycle
                 result.where(result.run == cycle).nsmallest(1, args.loss).pose.iloc[0])
             # write current_best to disk
             prs.dump_pdb(
-                winner_pose, pose_dir+'current_best_cycle_'+str(cycle)+'_'+prot_name)
+                winner_pose, pose_dir+'current_best_cycle_'+str(cycle)+'_'+args.id)
             # make pdb_path string for next iteration point to current best
-            pdb = pose_dir+'current_best_cycle_'+str(cycle)+'_'+prot_name
+            pdb = pose_dir+'current_best_cycle_'+str(cycle)+'_'+args.id
         elif args.cycles == 1:  # when only once cycle
             manager.run(complete_run_batch=args.complete_run_batch)
             break  # make sure we leave the loop
         else:
-            manager.set_fargs(pdb)
+            manager.set_fargs([pdb, args.func_args[1]])
             manager.set_cycle(cycle=cycle)
             # reinitialize optimizer, as we need a new one.
             manager.init_optimizer()
@@ -242,9 +227,9 @@ if __name__ == "__main__":
                 result.nsmallest(1, args.loss).pose.iloc[0])
             # write current_best to disk
             prs.dump_pdb(
-                winner_pose, pose_dir+'current_best_cycle_'+str(cycle)+'_'+prot_name)
+                winner_pose, pose_dir+'current_best_cycle_'+str(cycle)+'_'+args.id)
             # make pdb_path string for next iteration point to current best
-            pdb = pose_dir+'current_best_cycle_'+str(cycle)+'_'+prot_name
+            pdb = pose_dir+'current_best_cycle_'+str(cycle)+'_'+args.id
             logger.info('FINISHED RUN %d saving result  at %s', i, pdb)
 
     #############################

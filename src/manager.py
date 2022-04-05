@@ -9,7 +9,6 @@ import time
 import numpy as np
 import pandas as pd
 import ray
-from ray.util import inspect_serializability
 
 import config
 from bayesopt import BayesOpt
@@ -28,8 +27,6 @@ class OptimizationManager():
 
     def init(self,
              loss,
-             pdb=None,     # TODO: DEPRECATED: move to args
-             target=None,  # TODO: DEPRECATED: move to args
              fargs=None,
              estimator="RF",  # "dummy" for random search
              identifier=None,  # string to identify optimization run
@@ -44,12 +41,11 @@ class OptimizationManager():
              space_dimensions=None,  # yaml file with optimizer dimensions
              save_pandas=True,  # save results as pickled pandas DataFrames
              ):
+        self.fargs = fargs
         self.identify = identifier
         self.base_estimator = estimator
         self.pandas = save_pandas
         self.loss = loss
-        self.pdb = pdb
-        self.target = target
         self.results = None
         # CONSTANTS
         self.n_cores = n_cores
@@ -68,10 +64,6 @@ class OptimizationManager():
         self.logger = logging.getLogger('OptimizationManager')
         self.logger.setLevel(logging.DEBUG)
         self.logger.debug('CWD %s', os.getcwd())
-
-        self.logger.debug('CHECK SERIALIZABLE ACTOR INITIALIZER FUNCTION')
-        inspect_serializability(self.init_method, 'Initializer Method')
-        inspect_serializability(self.objective, 'Objective Method')
 
         # BOOKKEEPING
         self.batches = {}
@@ -99,13 +91,12 @@ class OptimizationManager():
             workers=self.n_cores,
             rpc=self.rpc,
             evals=self.evals,
-            initializer=self.init_method)
+        )
 
-    def no_optimize(self, evals, fargs, run, config_path=None):
+    def no_optimize(self, evals, run, config_path=None):
         """
         RUN objective with (default)config evals times without ommptimization 
         """
-        pdb = pdb if pdb is not None else self.pdb
 
         if config_path is not None:
             config = pickle.load(open(config_path, 'rb'))
@@ -203,8 +194,6 @@ class OptimizationManager():
         self.logger.info(
             '\n -------- FINAL STATE -------- \n Got %d Results \n TOOK %s',
             len(self.results), took)
-        self.distributor.report()
-        self.optimizer.report()
 
         self.logger.debug('DONE \n test %s \n results %d',
                           self.test_run, len(self.results))
