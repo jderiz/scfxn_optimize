@@ -152,6 +152,7 @@ if __name__ == "__main__":
         "-fargs",
         "--func-args",
         nargs='*',
+        help="arguments to pass to the objective function",
 
     )
     args = parser.parse_args()
@@ -192,8 +193,7 @@ if __name__ == "__main__":
     manager = OptimizationManager()
     manager.init(
         args.loss,
-        pdb=pdb,
-        target=target,
+        fargs=args.fargs,
         distributor=distributor,
         optimizer=optimizer,
         estimator=args.estimator,
@@ -215,7 +215,7 @@ if __name__ == "__main__":
             manager.no_optimize(
                 config_path=args.config,
                 evals=args.evals,
-                pdb=pdb,
+                fargs=args.fargs,
                 run=cycle)
             result = manager.get_results()
             winner_pose = prs.distributed.packed_pose.core.to_pose(  # get best in cycle
@@ -229,7 +229,7 @@ if __name__ == "__main__":
             manager.run(complete_run_batch=args.complete_run_batch)
             break  # make sure we leave the loop
         else:
-            manager.set_pdb(pdb)
+            manager.set_fargs(pdb)
             manager.set_cycle(cycle=cycle)
             # reinitialize optimizer, as we need a new one.
             manager.init_optimizer()

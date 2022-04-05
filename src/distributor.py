@@ -76,7 +76,7 @@ class Distributor():
         except ray.exceptions.GetTimeoutError:
             return None  # found no idle actor
 
-    def evaluate_config(self, params, run, pdb, target, error_callback=None,
+    def evaluate_config(self, fargs, run, error_callback=None,
                         callback=None, round_robin=False) -> tuple:
 
         if round_robin:
@@ -91,13 +91,13 @@ class Distributor():
             self.logger.debug("Eval on Actor %d", actor_idx)
             actor, count = self._actor_pool[actor_idx]
             object_ref = actor.evaluate_config.remote(
-                params, run, pdb, target=target)
+                fargs, run)
 
             return object_ref
         else:
             raise Exception('could not find an actor_idx to use')
 
-    def distribute(self, func, params, pdb, run, target, num_workers=None, round_robin=False):
+    def distribute(self, config, fargs, run, num_workers=None, round_robin=False):
         """
             distribute a function to the Pool and hold the object_refs 
             to the results somewhere such that done, 
@@ -109,16 +109,18 @@ class Distributor():
         run_futures = []
 
         for _ in [0]*num_workers:
+            # distrbute to workers
             object_ref = self.evaluate_config(
-                params=params,
+                config=config,
+                fargs=fargs,
                 run=run,
-                pdb=pdb,
-                target=target,
                 error_callback=self._error_callback,
                 round_robin=round_robin,
             )
+            # save object_ref to the future list
             self.futures.append(object_ref)
             run_futures.append(object_ref)
+        # save the results to the batch dict
         self.run_futures.update({run: run_futures})
 
     def add_res_to_batch(self, result, batch_number):

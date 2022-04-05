@@ -16,7 +16,6 @@ from bayesopt import BayesOpt
 from distributor import Distributor
 
 
-# @ray.remote
 class OptimizationManager():
     """
     Optimization Manager is a single Actor that handles the communication between optimizer and distributor actor and does all the saving to file
@@ -29,8 +28,9 @@ class OptimizationManager():
 
     def init(self,
              loss,
-             pdb=None,     # DEPRECATED: move to args
-             target=None,  # DEPRECATED: move to args
+             pdb=None,     # TODO: DEPRECATED: move to args
+             target=None,  # TODO: DEPRECATED: move to args
+             fargs=None,
              estimator="RF",  # "dummy" for random search
              identifier=None,  # string to identify optimization run
              optimizer=None,    # the optimizer
@@ -69,10 +69,6 @@ class OptimizationManager():
         self.logger.setLevel(logging.DEBUG)
         self.logger.debug('CWD %s', os.getcwd())
 
-        # OBJECTIVE
-        self.objective = config._objective
-        self.init_method = config._init_method
-
         self.logger.debug('CHECK SERIALIZABLE ACTOR INITIALIZER FUNCTION')
         inspect_serializability(self.init_method, 'Initializer Method')
         inspect_serializability(self.objective, 'Objective Method')
@@ -105,20 +101,23 @@ class OptimizationManager():
             evals=self.evals,
             initializer=self.init_method)
 
-    def no_optimize(self, evals, run, pdb=None, config_path=None):
-        """RUN objective with (default)config evals times without ommptimization 
-
-
+    def no_optimize(self, evals, fargs, run, config_path=None):
+        """
+        RUN objective with (default)config evals times without ommptimization 
         """
         pdb = pdb if pdb is not None else self.pdb
+
+        if config_path is not None:
+            config = pickle.load(open(config_path, 'rb'))
+        else:
+            config = None
         # distribute work evenly over workers
-        res = self.distributor.distribute(func=self.objective,
-                                          params=None,
-                                          pdb=pdb,
-                                          target=self.target,
-                                          run=run,
-                                          num_workers=evals,
-                                          round_robin=True)
+        res = self.distributor.distribute(
+            config=config,
+            fargs=self.fargs,
+            run=run,
+            num_workers=evals,
+            round_robin=True)
         result = self.distributor.get_batch(
             complete_run_batch=False, batch_size=evals)
         self._add_result(result)
@@ -161,13 +160,12 @@ class OptimizationManager():
         """
         self.batch_counter += 1
         config = self.optimizer.get_next_config()
-        self.distributor.distribute(func=self.objective,
-                                    params=config,
-                                    pdb=self.pdb,
-                                    target=self.target,
-                                    num_workers=self.rpc,
-                                    run=self.batch_counter,
-                                    round_robin=round_robin)
+        self.distributor.distribute(
+            config=config,
+            fargs=self.fargs,
+            num_workers=self.rpc,
+            run=self.batch_counter,
+            round_robin=round_robin)
 
     def get_results(self):
         """
@@ -275,8 +273,8 @@ class OptimizationManager():
         if report:
             return self.get_results()
 
-    def set_pdb(self, pdb):
-        self.pdb = pdb
+    def set_fargs(self, fargs):
+        self.fargs = fargs
 
     def set_cycle(self, cycle):
         self.current_cycle = cycle

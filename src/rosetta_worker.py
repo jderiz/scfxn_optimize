@@ -29,10 +29,20 @@ class PRSActor(object):
 
         return self.idx
 
-    def evaluate_config(self, config, run, pdb, target=None):
-        self.logger.debug('Actor %d evaluates run %d', self.idx, run)
+    def evaluate_config(self, config, fargs, run) -> dict:
+        """
+        evaluates configuration and returns a list with the score and the
+        run this evaluation belongs to.
+        """
+        self.logger.debug('Actor %d evaluates run %d for %s',
+                          self.idx, run, fargs)
+        res: dict = _objective(config, *fargs)
+        res.update({'run': run})
 
-        return _objective(config, run, pdb, target=target)
+        return res
 
     def shutdown(self):
+        """
+        shutdown the actor
+        """
         ray.actor.exit_actor()
