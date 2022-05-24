@@ -123,12 +123,18 @@ class Distributor():
         self.run_futures.update({run: run_futures})
 
     def add_res_to_batch(self, result, batch_number):
+        """
+        add a result to the batch dict
+        @param result: the result to add
+        @param batch_number: the batch number to add to
+        """
+
         if batch_number in self.batches.keys():
             self.batches[batch_number].append(result)
         else:
             self.batches.update({batch_number: [result]})
 
-    def get_batch(self, complete_run_batch, batch_size=None):
+    def get_batch(self, complete_run_batch, batch_size=None) -> list:
         """
         block until batch_size tasks are completed and return their result. 
         the rest of the futures becomes the new futures list where new tasks 
@@ -146,7 +152,7 @@ class Distributor():
         @rtype: list
 
         """
-
+        # if no batch size is given, use the default batch size
         batch_size = batch_size if batch_size else self.batch_size
 
         if complete_run_batch:

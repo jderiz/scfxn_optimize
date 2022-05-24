@@ -17,7 +17,8 @@ from distributor import Distributor
 
 class OptimizationManager():
     """
-    Optimization Manager is a single Actor that handles the communication between optimizer and distributor actor and does all the saving to file
+    Optimization Manager handles the communication between optimizer and 
+    distributor sets up the optimization and handles the results.
     """
     # dummy init
 
@@ -34,7 +35,7 @@ class OptimizationManager():
              distributor=None,  # the distributor
              test_run=False,  # if test run eval dummy_objective instead of real
              evals=200,  # configuration evaluations on the objective
-             rpc=8,  # runs_per_config n_calls/rpc = evals
+             rpc=6,  # runs_per_config n_calls/rpc = evals
              warm_start=None,  # continue previous optimization run
              n_cores=None,
              cooldown=True,  # cooldown exploration to exploitation
@@ -74,10 +75,9 @@ class OptimizationManager():
         self.init_optimizer()
 
     def init_optimizer(self):
-        # OPTIMIZER
+        # OPTIMIZER instantiation
         self.optimizer.init(
             random_state=5,
-            dimensions=config.space_dimensions,
             base_estimator=self.base_estimator,
             acq_func_kwargs=config.acq_func_kwargs,
             n_initial_points=int(self.n_cores // self.rpc),
@@ -86,7 +86,7 @@ class OptimizationManager():
         )
 
     def init_distributor(self):
-        # DISTRIBUTOR
+        # DISTRIBUTOR instantiation
         self.distributor.init(
             workers=self.n_cores,
             rpc=self.rpc,
@@ -95,7 +95,13 @@ class OptimizationManager():
 
     def no_optimize(self, evals, run, config_path=None):
         """
-        RUN objective with (default)config evals times without ommptimization 
+        RUN objective with (default)config evals times without ommptimization. 
+        @param evals: number of evaluations
+        @type evals: int
+        @param run: run number
+        @type run: int
+        @param config_path: path to config file
+        @type config_path: str
         """
 
         if config_path is not None:
@@ -117,6 +123,10 @@ class OptimizationManager():
         """
         Append the result obtained from the distributor to the results list.
         Calls optimizer to incoorporate the new Info form results.
+        @param map_res: list of results
+        @type map_res: list
+        @param make_batch: indicate whether to make a new batch
+        @type make_batch: boolean
         """
         self.logger.info('RUN %d DONE', map_res[0]['run'])
 
@@ -127,13 +137,23 @@ class OptimizationManager():
             raise Exception('No Result was supplied')
 
     def _add_result(self, map_res: list) -> None:
+        """ 
+        Add a result to the results list.
+        Appeding the current cycle to the result.
+        @param map_res: list of results
+        @type map_res: list
+        """
 
         for r in map_res:
             r['cycle'] = self.current_cycle
         self.results.extend(map_res)
 
     def update_optimizer(self, map_res):
-
+        """
+        Update the optimizer with the results of the current batch.
+        @param map_res: list of results
+        @type map_res: list
+        """
         self.optimizer.handle_result(
             map_res[0]['config'], sum(res[self.loss] for res in map_res)/len(map_res))
 
@@ -181,7 +201,6 @@ class OptimizationManager():
     def save(self) -> bool:
         """
             Saves the results stored in the DataFrame and reports to console
-
         """
         # TIME DELTA
         tdelt = time.time()-self.start_time
@@ -211,15 +230,11 @@ class OptimizationManager():
             pickle.dump(result.pose, file)
 
     def add_res_to_batch(self, result, batch_number):
-        """adds a single result to a bat
-
-        @param param:  Description
-        @type  param:  Type
-
-        @return:  Description
-        @rtype :  Type
-
-        @raise e:  Description
+        """adds a single result to a batch.
+        @param result: the result to be added
+        @type result: dict
+        @param batch_number: the batch number to which the result should be added
+        @type batch_number: int
         """
 
         if batch_number in self.batches.keys():

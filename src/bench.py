@@ -203,13 +203,15 @@ if __name__ == "__main__":
                 evals=args.evals,
                 run=cycle)
             result = manager.get_results()
-            winner_pose = prs.distributed.packed_pose.core.to_pose(  # get best in cycle
-                result.where(result.run == cycle).nsmallest(1, args.loss).pose.iloc[0])
-            # write current_best to disk
-            prs.dump_pdb(
-                winner_pose, pose_dir+'current_best_cycle_'+str(cycle)+'_'+args.id)
-            # make pdb_path string for next iteration point to current best
-            pdb = pose_dir+'current_best_cycle_'+str(cycle)+'_'+args.id
+            logger.debug(result)
+            if args.loss is not None:
+                winner_pose = prs.distributed.packed_pose.core.to_pose(  # get best in cycle
+                    result.where(result.cycle == cycle).nsmallest(1, args.loss).pose.iloc[0])
+                # write current_best to disk
+                prs.dump_pdb(
+                    winner_pose, pose_dir+'current_best_cycle_'+str(cycle)+'_'+args.id)
+                # make pdb_path string for next iteration point to current best
+                pdb = pose_dir+'current_best_cycle_'+str(cycle)+'_'+args.id
         elif args.cycles == 1:  # when only once cycle
             manager.run(complete_run_batch=args.complete_run_batch)
             break  # make sure we leave the loop
@@ -223,13 +225,14 @@ if __name__ == "__main__":
 
             # choose absolute best, group mean is important for
             # optimizer to have some certainty of config quality
-            winner_pose = prs.distributed.packed_pose.core.to_pose(
-                result.nsmallest(1, args.loss).pose.iloc[0])
-            # write current_best to disk
-            prs.dump_pdb(
-                winner_pose, pose_dir+'current_best_cycle_'+str(cycle)+'_'+args.id)
-            # make pdb_path string for next iteration point to current best
-            pdb = pose_dir+'current_best_cycle_'+str(cycle)+'_'+args.id
+            if args.loss is not None:
+                winner_pose = prs.distributed.packed_pose.core.to_pose(
+                    result.nsmallest(1, args.loss).pose.iloc[0])
+                # write current_best to disk
+                prs.dump_pdb(
+                    winner_pose, pose_dir+'current_best_cycle_'+str(cycle)+'_'+args.id)
+                # make pdb_path string for next iteration point to current best
+                pdb = pose_dir+'current_best_cycle_'+str(cycle)+'_'+args.id
             logger.info('FINISHED RUN %d saving result  at %s', i, pdb)
 
     #############################

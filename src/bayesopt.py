@@ -21,7 +21,7 @@ class BayesOpt:
         """
         pass
 
-    def init(self, dimensions, cooldown=True,
+    def init(self, dimensions=None, cooldown=True,
              evals=12, base_estimator='RF',
              random_state=5,
              acq_func_kwargs=None,
@@ -31,7 +31,7 @@ class BayesOpt:
         self.logger.debug('CWD %s', os.getcwd())
         #
         try:
-            dimensions = Space.from_yaml(dimensions)
+            dimensions = Space.from_yaml(config.space_dimensions)
         except FileNotFoundError as e:
             print(e)
             print(
