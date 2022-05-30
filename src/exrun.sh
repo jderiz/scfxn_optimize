@@ -54,7 +54,7 @@ export ip_head
 echo "IP Head: $ip_head"
 
 # make array from comma separated list
-cpus_per_node=(${SLURM_JOB_CPUS_PER_NODE//,/ }) 
+cpus_per_node=(${SLURM_JOB_CPUS_PER_NODE//,/ }) # make list from comma-sep string
 echo "slurm cpn string: ${cpus_per_node[@]}"
 # parse (xN) type
 cpn=""
