@@ -21,17 +21,17 @@ class BayesOpt:
         """
         pass
 
-    def init(self, dimensions=None, cooldown=True,
-             evals=12, base_estimator='RF',
-             random_state=5,
-             acq_func_kwargs=None,
-             n_initial_points=20):
+    def init(self, dimensions: Space = None, cooldown: bool = True,
+             evals: int = 12, base_estimator: str = 'RF',
+             random_state: int = 5,
+             acq_func_kwargs: list = None,
+             n_initial_points: int = 20):
         self.logger = logging.getLogger('BayesOpt')
         self.logger.setLevel(logging.DEBUG)
         self.logger.debug('CWD %s', os.getcwd())
         #
         try:
-            dimensions = Space.from_yaml(config.space_dimensions)
+            dimensions: Space = Space.from_yaml(config.space_dimensions)
         except FileNotFoundError as e:
             print(e)
             print(
@@ -62,7 +62,7 @@ class BayesOpt:
         self.logger.info('INITIALIZED')
         self.logger.debug('LOOKUP TABLE \n %s', self.xi_kappa_lookup.head())
 
-    def handle_result(self, config, res) -> bool:
+    def handle_result(self, config: list, res: list | float) -> bool:
         self._update_prior(config, res)
 
         if self.cooldown:
@@ -85,7 +85,7 @@ class BayesOpt:
         # update aquisition
         self.opti.update_next()
 
-    def _update_prior(self, x, y):
+    def _update_prior(self, x: list | float, y: float):
         """
         updates the Optimizers prior 
         """

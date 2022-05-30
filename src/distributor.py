@@ -17,15 +17,15 @@ class Distributor():
     def __init__(self):
         pass
 
-    def init(self, workers, rpc, evals, init_args=None):
+    def init(self, workers: int, rpc: int, evals: int, init_args: list = None):
         self.logger = logging.getLogger('Distributor')
         self.logger.setLevel(logging.DEBUG)
         # init batch dict with empty list for each batch
-        self.batches = {}  # storing single results
-        self.batch_size = rpc
-        self.rpc_counter = 0
-        self.futures = []  # this holds our object_refs to the worker tasks
-        self.run_futures = {}
+        self.batches: dict = {}  # storing single results
+        self.batch_size: int = rpc
+        self.rpc_counter: int = 0
+        self.futures: list = []  # this holds our object_refs to the worker tasks
+        self.run_futures: list = {}
         # MAKE POOL
         self._initargs = init_args
         self._start_actor_pool(workers)
@@ -34,14 +34,14 @@ class Distributor():
         self.logger.debug('CWD %s', os.getcwd())
         self.logger.info('INTITIALIZED DISTRIBUTOR')
 
-    def _start_actor_pool(self, processes):
+    def _start_actor_pool(self, processes: int):
         # make all but one actor have separate ressources and one actor that shares with framework
         self._actor_pool = [self._new_actor_entry(
             num_cpus=1, idx=idx) for idx in range(processes-1)]
         self._actor_pool.append(self._new_actor_entry(False, idx=processes-1))
         ray.get([actor.ping.remote() for actor, _ in self._actor_pool])
 
-    def _new_actor_entry(self, num_cpus, idx=None):
+    def _new_actor_entry(self, num_cpus: int, idx: int = None):
         # NOTE(edoakes): The initializer function can't currently be used to
         # modify the global namespace (e.g., import packages or set globals)
         # due to a limitation in cloudpickle.
@@ -75,7 +75,7 @@ class Distributor():
         except ray.exceptions.GetTimeoutError:
             return None  # found no idle actor
 
-    def evaluate_config(self, config, fargs, run, error_callback=None,
+    def evaluate_config(self, config: list, fargs: list, run: int, error_callback=None,
                         callback=None, round_robin=False) -> tuple:
 
         if round_robin:
@@ -96,7 +96,7 @@ class Distributor():
         else:
             raise Exception('could not find an actor_idx to use')
 
-    def distribute(self, config, fargs, run, num_workers=None, round_robin=False):
+    def distribute(self, config: list, fargs: list, run: int, num_workers: int = None, round_robin: bool = False):
         """
             distribute a function to the Pool and hold the object_refs 
             to the results somewhere such that done, 
@@ -122,7 +122,7 @@ class Distributor():
         # save the results to the batch dict
         self.run_futures.update({run: run_futures})
 
-    def add_res_to_batch(self, result, batch_number):
+    def add_res_to_batch(self, result: dict, batch_number: int):
         """
         add a result to the batch dict
         @param result: the result to add
@@ -134,7 +134,7 @@ class Distributor():
         else:
             self.batches.update({batch_number: [result]})
 
-    def get_batch(self, complete_run_batch, batch_size=None) -> list:
+    def get_batch(self, complete_run_batch: bool, batch_size: int = None) -> list:
         """
         block until batch_size tasks are completed and return their result. 
         the rest of the futures becomes the new futures list where new tasks 
@@ -187,7 +187,7 @@ class Distributor():
 
         return batch
 
-    def _error_callback(self, msg):
+    def _error_callback(self, msg: str):
         self.logger.error(msg)
 
     def terminate_pool(self):

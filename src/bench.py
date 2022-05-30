@@ -142,11 +142,13 @@ if __name__ == "__main__":
         "-fargs",
         "--func-args",
         nargs='*',
-        help="arguments to pass to the objective function",
+        help="argument(s) to pass to the objective function \
+        these are order sensitive so make sure supply order and \
+        function signature order in the opbjective function align",
 
     )
     args = parser.parse_args()
-    print(args)
+    print('ARGS: \n ', args, sep='\n')
 
     ########################
     # SETUP RAY CLUSTER
@@ -168,7 +170,6 @@ if __name__ == "__main__":
 
     logger.debug('Running on %d cores', cores)
 
-    # second last element is pdb name,
     #########################
     # SETUP Modules
     #########################

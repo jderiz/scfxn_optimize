@@ -42,33 +42,34 @@ class OptimizationManager():
              space_dimensions=None,  # yaml file with optimizer dimensions
              save_pandas=True,  # save results as pickled pandas DataFrames
              ):
-        self.fargs = fargs
-        self.identify = identifier
-        self.base_estimator = estimator
-        self.pandas = save_pandas
-        self.loss = loss
-        self.results = None
+        self.fargs: list = fargs
+        self.identify: str = identifier
+        self.base_estimator: str = estimator
+        self.pandas: bool = save_pandas
+        self.loss: str = loss
+        self.results: dict = None
+
         # CONSTANTS
-        self.n_cores = n_cores
-        self.rpc = rpc
-        self.evals = evals
-        self.test_run = test_run
-        self.cooldown = cooldown
+        self.n_cores: int = n_cores
+        self.rpc: int = rpc
+        self.evals: int = evals
+        self.test_run: bool = test_run
+        self.cooldown: bool = cooldown
         # COUNTER
-        self.batch_counter = 0
-        self.start_time = time.time()
-        self.current_cycle = 1
+        self.batch_counter: int = 0
+        self.start_time: time.time = time.time()
+        self.current_cycle: int = 1
         # MEMBER CLASSES
         self.distributor: Distributor = distributor
         self.optimizer: BayesOpt = optimizer
 
-        self.logger = logging.getLogger('OptimizationManager')
+        self.logger: logging.Logger = logging.getLogger('OptimizationManager')
         self.logger.setLevel(logging.DEBUG)
         self.logger.debug('CWD %s', os.getcwd())
 
         # BOOKKEEPING
-        self.batches = {}
-        self.results = []
+        self.batches: dict = {}
+        self.results: list = []
 
         # INITIALIZE
         self.init_distributor()
@@ -93,7 +94,7 @@ class OptimizationManager():
             evals=self.evals,
         )
 
-    def no_optimize(self, evals, run, config_path=None):
+    def no_optimize(self, evals: int, run: int, config_path: str = None):
         """
         RUN objective with (default)config evals times without ommptimization. 
         @param evals: number of evaluations
@@ -105,7 +106,7 @@ class OptimizationManager():
         """
 
         if config_path is not None:
-            config = pickle.load(open(config_path, 'rb'))
+            config: list = pickle.load(open(config_path, 'rb'))
         else:
             config = None
         # distribute work evenly over workers
@@ -115,7 +116,7 @@ class OptimizationManager():
             run=run,
             num_workers=evals,
             round_robin=True)
-        result = self.distributor.get_batch(
+        result: list = self.distributor.get_batch(
             complete_run_batch=False, batch_size=evals)
         self._add_result(result)
 
@@ -145,10 +146,10 @@ class OptimizationManager():
         """
 
         for r in map_res:
-            r['cycle'] = self.current_cycle
+            r['cycle']: int = self.current_cycle
         self.results.extend(map_res)
 
-    def update_optimizer(self, map_res):
+    def update_optimizer(self, map_res: list):
         """
         Update the optimizer with the results of the current batch.
         @param map_res: list of results
@@ -157,7 +158,7 @@ class OptimizationManager():
         self.optimizer.handle_result(
             map_res[0]['config'], sum(res[self.loss] for res in map_res)/len(map_res))
 
-    def make_batch(self, round_robin=False):
+    def make_batch(self, round_robin: bool = False):
         """makes a new job batch by retrieving a new configuration c_i form the optimizer
         and calling the distributors distribute function
 
@@ -170,7 +171,7 @@ class OptimizationManager():
 
         """
         self.batch_counter += 1
-        config = self.optimizer.get_next_config()
+        config: list = self.optimizer.get_next_config()
         self.distributor.distribute(
             config=config,
             fargs=self.fargs,
@@ -178,7 +179,7 @@ class OptimizationManager():
             run=self.batch_counter,
             round_robin=round_robin)
 
-    def get_results(self):
+    def get_results(self): dict | pd.DataFrame:
         """
             getter for self.results
 
@@ -216,7 +217,7 @@ class OptimizationManager():
 
         self.logger.debug('DONE \n test %s \n results %d',
                           self.test_run, len(self.results))
-        result = self.get_results()
+        result: dict | pd.DataFrame = self.get_results()
         with open(
             "{}{}.pkl".format(config.result_path, self.identify),
             "wb",
@@ -229,7 +230,7 @@ class OptimizationManager():
         ) as file:  # save pose
             pickle.dump(result.pose, file)
 
-    def add_res_to_batch(self, result, batch_number):
+    def add_res_to_batch(self, result: dict, batch_number: int):
         """adds a single result to a batch.
         @param result: the result to be added
         @type result: dict
@@ -242,7 +243,7 @@ class OptimizationManager():
         else:
             self.batches.update({batch_number: [result]})
 
-    def run(self, report=False, complete_run_batch=False) -> None:
+    def run(self, report: bool = False, complete_run_batch: bool = False) -> None:
         """
             Runs the Optimization procedure. This function blocks until
             optimization is complete.
@@ -250,7 +251,7 @@ class OptimizationManager():
         self.logger.info('RUN')
         # map initial runs workers/rpc times
 
-        initial_runs = int(self.n_cores/self.rpc)
+        initial_runs: int = int(self.n_cores/self.rpc)
 
         for run in range(initial_runs):
             self.make_batch(round_robin=True)
@@ -277,8 +278,8 @@ class OptimizationManager():
         if report:
             return self.get_results()
 
-    def set_fargs(self, fargs):
+    def set_fargs(self, fargs: list):
         self.fargs = fargs
 
-    def set_cycle(self, cycle):
+    def set_cycle(self, cycle: int):
         self.current_cycle = cycle
