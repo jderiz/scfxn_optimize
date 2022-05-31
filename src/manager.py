@@ -9,6 +9,7 @@ import time
 import numpy as np
 import pandas as pd
 import ray
+from skopt import Space
 
 import config
 from bayesopt import BayesOpt
@@ -71,6 +72,16 @@ class OptimizationManager():
         self.batches: dict = {}
         self.results: list = []
 
+        # Get optimization space
+        try:
+            dimensions: Space = Space.from_yaml(config.space_dimensions)
+        except FileNotFoundError as e:
+            print(e)
+            print(
+                "No space file has been defined the optimizer cannot be defined"
+            )
+            exit()
+
         # INITIALIZE
         self.init_distributor()
         self.init_optimizer()
@@ -78,6 +89,7 @@ class OptimizationManager():
     def init_optimizer(self):
         # OPTIMIZER instantiation
         self.optimizer.init(
+            dimensions=dimensions,
             random_state=5,
             base_estimator=self.base_estimator,
             acq_func_kwargs=config.acq_func_kwargs,

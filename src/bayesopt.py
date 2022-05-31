@@ -4,7 +4,7 @@ import os
 import numpy as np
 import pandas as pd
 import ray
-from skopt import Optimizer, Space, callbacks
+from skopt import Optimizer, callbacks
 
 import config
 
@@ -21,7 +21,7 @@ class BayesOpt:
         """
         pass
 
-    def init(self, dimensions: Space = None, cooldown: bool = True,
+    def init(self, dimensions: Space, cooldown: bool = True,
              evals: int = 12, base_estimator: str = 'RF',
              random_state: int = 5,
              acq_func_kwargs: list = None,
@@ -30,14 +30,6 @@ class BayesOpt:
         self.logger.setLevel(logging.DEBUG)
         self.logger.debug('CWD %s', os.getcwd())
         #
-        try:
-            dimensions: Space = Space.from_yaml(config.space_dimensions)
-        except FileNotFoundError as e:
-            print(e)
-            print(
-                "No space file has been defined the optimizer cannot be defined"
-            )
-            exit()
         self.opti: Optimizer = Optimizer(
             base_estimator=base_estimator,
             n_initial_points=n_initial_points,
