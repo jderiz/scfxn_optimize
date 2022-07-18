@@ -11,6 +11,7 @@ import logging
 
 from allosteric import initialize, relax_with_config
 
+from XML_handler import objective
 # LOG LEVEL
 level = logging.DEBUG
 handler = logging.StreamHandler()
@@ -21,7 +22,9 @@ _objective = relax_with_config
 # SETUP THAT IS BEING DONE ONLY ONCE ON EACH CPU e.g initializing Rosetta, loading large files
 _init_method = initialize
 # SPACE DIMENSIONS
-space_dimensions = "space.yml"
+space_dimensions = "ConfChangeSpace.yml"
+# ROSETTASCRIPTS Path
+rosetta_xml_script = "../benchmark/ubiquitin/nmr.xml"
 # RESULT DIR
 result_path = "/home/iwe7/scfxn_optimize/results/"
 pose_dir = "/home/iwe7/scfxn_optimize/results/poses/"

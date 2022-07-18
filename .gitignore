@@ -11,6 +11,7 @@ analyze/imgs/
 analyze/imgs/.ipy**
 !analyze/tex/
 !analyze/markdown/
+!analyze/allosteric_changed.ipynb
 __pycache__/
 slurm*
 py_out/
@@ -18,7 +19,7 @@ setup.py
 src/testray.py
 .idea
 *.log
-*.ipynb*
+*.ipynb_*
 design.resfile
 plotting.py
 test_notebook.db

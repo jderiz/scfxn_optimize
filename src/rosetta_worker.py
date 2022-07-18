@@ -12,10 +12,14 @@ from config import _init_method, _objective
 class PRSActor(object):
     """docstring for PRSActor"""
 
-    def __init__(self, arg):
+    def __init__(self, args, **kwargs):
         super(PRSActor, self).__init__()
-        self.arg = arg
-        prs.init()
+        self.args = args
+
+        if kwargs['options']:
+            prs.init(kwargs['options'])
+        else:
+            prs.init()
 
     def __init__(self, initargs=None, idx=None):
         """ Initialize the actor """
